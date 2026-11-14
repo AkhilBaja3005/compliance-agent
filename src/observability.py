@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 import threading
 import time
 import uuid
@@ -28,7 +29,7 @@ def configure_logging(level: str = "INFO") -> None:
     root = logging.getLogger("graphite")
     if any(getattr(h, "_graphite", False) for h in root.handlers):
         return
-    h = logging.StreamHandler()
+    h = logging.StreamHandler(sys.stdout)
     h.setFormatter(JsonFormatter())
     h._graphite = True  # type: ignore[attr-defined]
     root.addHandler(h)
