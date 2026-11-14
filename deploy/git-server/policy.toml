@@ -1,0 +1,7 @@
+repository = "/srv/git/demo.git"
+tenant_id = "demo"
+company_name = "Aegis Demo"
+sector = "finance"
+commercial = true
+blocking_checks = ["PII-01", "HITL-01"]
+timeout_seconds = 60

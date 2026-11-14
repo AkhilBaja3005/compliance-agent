@@ -141,7 +141,8 @@ def build_systems(ix: TriModalIndex, declared) -> None:
         caps = {c for c, v in [("generative", sl.is_generation), ("automated_decision", sl.is_decision),
                                ("external_ai_call", sl.calls_ai_sdk)] if v}
         rec.capabilities = sorted(set(rec.capabilities) | caps)
-        unfiltered = any("unfiltered_prompt" in c.capability_tags for c in ix.cards if c.module_id.endswith("::" + sl.function_name))
+        card_id = f"{sl.file_path}::{sl.qualified_name or sl.function_name}"
+        unfiltered = any("unfiltered_prompt" in c.capability_tags for c in ix.cards if c.module_id == card_id)
         if unfiltered:
             rec.risk_category = "PROHIBITED"
         elif sl.is_decision and ix.sector in HIGH_RISK_SECTORS:
@@ -151,7 +152,7 @@ def build_systems(ix: TriModalIndex, declared) -> None:
         elif rec.risk_category == "UNKNOWN":
             rec.risk_category = "MINIMAL_RISK"
         ix.system_map[sl.slice_id] = sid
-        ix.system_map[f"{sl.file_path}::{sl.function_name}"] = sid
+        ix.system_map[f"{sl.file_path}::{sl.qualified_name or sl.function_name}"] = sid
     for s in ix.slices:  # helpers inherit the system of their file's entry point
         if s.slice_id not in ix.system_map:
             sid = next((ix.system_map[e.slice_id] for e in code_sys if e.file_path == s.file_path and e.slice_id in ix.system_map), None)

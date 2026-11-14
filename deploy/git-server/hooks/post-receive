@@ -1,0 +1,4 @@
+#!/bin/sh
+cd /opt/aegis || exit 2
+exec /usr/local/bin/python -m src.git_gate \
+    --git-dir /srv/git/demo.git --policy /etc/aegis/policy.toml --reports /var/lib/aegis/reports --post-receive

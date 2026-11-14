@@ -1,0 +1,13 @@
+# The receive hook uses local extraction and agents, without PDF rendering or cloud engines.
+pydantic==2.14.3
+langgraph==1.2.22
+tree-sitter==0.26.1
+tree-sitter-python==0.25.0
+rank-bm25==0.2.2
+numpy==2.5.4
+httpx==0.28.1
+apscheduler==3.11.3
+beautifulsoup4==4.15.0
+html2text==2025.4.15
+pypdf==7.1.0
+pdfplumber==0.11.10

@@ -45,11 +45,36 @@ podman compose ps
 podman compose down
 ```
 
-Both commands build the Python 3.11 Debian image, run as UID/GID 10001, and serve one Uvicorn
-process. The default port is bound to localhost. Set `AEGIS_PORT=8080` to change the host port.
+The `aegis` service builds the Python 3.11 Debian image, runs as UID/GID 10001, and serves one
+Uvicorn process. The default port is bound to localhost. Set `AEGIS_PORT=8080` to change the host port.
 `GET /healthz` is a lightweight process check, independent of credentials or external services;
 the container health check uses it. Use an existing access-control proxy before exposing this
 application to other networks. The audience views share the existing API's access model.
+
+## Git server in the shared stack
+
+Enable the `git` profile to run the SSH Git server alongside the dashboard in this same
+Compose project. First copy your public SSH key to the default authorized-keys location:
+
+```sh
+mkdir -p .aegis
+cp "$HOME/.ssh/id_ed25519.pub" .aegis/authorized_keys
+docker compose --profile git up --build -d
+# Or: podman compose --profile git up --build -d
+git clone ssh://git@localhost:2222/demo.git
+```
+
+Use `AEGIS_AUTHORIZED_KEYS` to select another public authorized-keys file, or
+`AEGIS_GIT_PORT` to change the SSH host port. The default SSH bind address is localhost;
+`AEGIS_GIT_BIND_ADDRESS` overrides it. Dedicated public-key and policy bind mounts use
+private SELinux labels. Both Docker and Podman use the root `compose.yaml`; Git has its
+own image and persistent `git-repositories` and `git-state` volumes. Its SSH daemon starts
+as root and runs Git operations and scanning as the restricted `git` account.
+
+The `demo.git` repository starts with approved existing FinScore findings. Pushes introducing
+new confirmed PII-redaction or human-oversight violations are rejected by the server hook;
+other findings remain advisory. Git push reports are separate from dashboard audit history.
+See [Git server setup, host-key verification, policy and reports](deploy/git-server/README.md).
 
 ## Sources, settings and schedules
 
@@ -114,7 +139,7 @@ runtime storage failures surface as errors; the application does not silently sw
 Changing backend configuration does not migrate old data.
 
 Every finalized `run_audit` call publishes through one persistence hook, including the existing
-synchronous `/audit/run`, CLI calls, and the separate code-change scanner. Its signature and
+synchronous `/audit/run`, CLI calls, and full-audit scanner integrations. Its signature and
 return type are unchanged. The scanner should call `run_audit(company_dir, selected_company_id, ...)`
 with the same `MONGODB_URI`/database, or the same `AEGIS_DASHBOARD_DB` file mounted at a shared path.
 For two containers, mount the same named state volume and use the same UID. For a host scanner,
@@ -156,6 +181,7 @@ ownership. Report and job IDs belonging to another company return 404.
 .venv/bin/playwright install chromium
 AEGIS_BROWSER_TESTS=1 .venv/bin/pytest -q tests/test_dashboard_browser.py
 AEGIS_CONTAINER_SMOKE=1 .venv/bin/pytest -q tests/test_dashboard_containers.py
+AEGIS_CONTAINER_SMOKE=1 .venv/bin/pytest -q tests/test_git_gate_docker.py
 docker compose config --quiet
 podman compose config --quiet
 ```
@@ -167,3 +193,5 @@ health, audit completion and report/settings persistence after restart, then rem
 For a container smoke test, start either stack, check `curl -f http://localhost:8000/healthz`, run
 an audit in the dashboard, restart with `compose restart aegis`, and confirm the report persists.
 Docker and Podman require their respective installed runtime and Compose provider.
+The Git container tests enable the `git` profile in the shared stack and check dashboard
+health, SSH clone/push enforcement, and Git persistence for each installed runtime.

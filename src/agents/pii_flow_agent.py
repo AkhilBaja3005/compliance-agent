@@ -4,6 +4,18 @@ from .tracing import traced
 from .base import (MicroAgent, Verdict, ev_slice, external_entries, no_code_verdict, pii_likely, slice_regions)
 
 
+def redaction_verdict(s, ix) -> Verdict:
+    """Per-entry-point result, also used by the push gate without evidence sampling."""
+    if s.has_pii_redaction:
+        return Verdict("PASS", 0.9, "PII redaction present before external calls",
+                       "The external-call entry point has a redaction/masking control.", [ev_slice(s)])
+    if pii_likely(s, ix):
+        return Verdict("CONFIRMED_VIOLATION", 0.9, "Personal data sent to external service without redaction",
+                       "The entry point forwards personal data with no detected redaction/masking control.", [ev_slice(s)])
+    return Verdict("SUSPECTED_GAP", 0.6, "No PII redaction evidence on external calls",
+                   "PII content could not be ruled out on this external call.", [ev_slice(s)])
+
+
 class PIIFlowAgent(MicroAgent):
     name = "pii_flow"
 
@@ -18,12 +30,13 @@ class PIIFlowAgent(MicroAgent):
                            f"Scanned {len(ix.py_files)} Python file(s); no entry point calls an external AI SDK or HTTP endpoint.",
                            scan_basis=True)
         if check.check_id == "PII-01":
-            bad = [s for s in ext if not s.has_pii_redaction]
+            results = [(s, redaction_verdict(s, ix)) for s in ext]
+            bad = [s for s, v in results if v.status != "PASS"]
             if not bad:
                 return Verdict("PASS", 0.9, "PII redaction present before external calls",
                                "Every entry point that reaches an external endpoint applies PII redaction/masking.",
                                [ev_slice(s) for s in ext[:4]])
-            confirmed = [s for s in bad if pii_likely(s, ix)]
+            confirmed = [s for s, v in results if v.status == "CONFIRMED_VIOLATION"]
             if confirmed:
                 return Verdict("CONFIRMED_VIOLATION", 0.9, "Personal data sent to external service without redaction",
                                f"{len(confirmed)} entry point(s) forward personal data to external endpoints with no redaction/masking step in the call path.",

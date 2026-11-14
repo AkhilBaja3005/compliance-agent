@@ -42,5 +42,23 @@ services:
       start_period: 15s
       retries: 3
 
+  git:
+    profiles: [git]
+    build:
+      context: .
+      dockerfile: deploy/git-server/Dockerfile
+    ports:
+      - "${AEGIS_GIT_BIND_ADDRESS:-127.0.0.1}:${AEGIS_GIT_PORT:-2222}:22"
+    volumes:
+      - git-repositories:/srv/git
+      - git-state:/var/lib/aegis
+      - ./deploy/git-server/policy.toml:/etc/aegis/policy.toml:ro,Z
+      - "${AEGIS_AUTHORIZED_KEYS:-./.aegis/authorized_keys}:/keys/authorized_keys:ro,Z"
+    restart: unless-stopped
+    pids_limit: 128
+    mem_limit: 1g
+
 volumes:
   aegis-state:
+  git-repositories:
+  git-state:
