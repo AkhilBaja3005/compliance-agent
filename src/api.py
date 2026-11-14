@@ -134,7 +134,8 @@ async def lifespan(app: FastAPI):
     init_state()
     app.state.dashboard = None
     try:
-        dashboard = DashboardService(get_dashboard_repository(), list_company_ids, companies_root)
+        from src.api import get_company_path
+        dashboard = DashboardService(get_dashboard_repository(), list_company_ids, get_company_path)
         dashboard.start()
         app.state.dashboard = dashboard
     except Exception as exc:
