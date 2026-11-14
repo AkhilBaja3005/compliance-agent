@@ -8,7 +8,7 @@ from src.schemas.findings import ComplianceFinding
 OWNERS = {"pii_flow": "Data Protection Officer", "hitl_oversight": "Head of Risk & Product",
           "safety_watermark": "Trust & Safety Lead", "oss_license": "Legal / OSS Compliance",
           "dpa_provenance": "DPO / Legal Counsel", "code_doc_drift": "Compliance Lead"}
-EFFORT = {"PII-01": 3, "PII-02": 5, "HITL-01": 8, "HITL-02": 5, "SAFE-01": 6, "SAFE-02": 4, "OSS-01": 5, "OSS-02": 10,
+EFFORT = {"PII-01": 3, "PII-02": 5, "HITL-01": 8, "HITL-02": 5, "SAFE-01": 6, "SAFE-02": 4, "BIO-01": 20, "OSS-01": 5, "OSS-02": 10,
           "DPA-01": 2, "DPA-02": 3, "DPA-03": 8, "DPA-04": 5}
 REMEDIATION = {
     "PII-01": ["Insert PII detection/redaction (e.g. Presidio) before every external model or HTTP call.",
@@ -21,6 +21,10 @@ REMEDIATION = {
                 "Record contests and outcomes for ICO accountability."],
     "SAFE-01": ["Add a moderation / safety-filter step on every generation endpoint and remove 'no refusal' prompt instructions.",
                 "Add red-team tests for hate speech and harmful content."],
+    "BIO-01": ["Remove the untargeted acquisition workflow: disable public_web_bulk / cctv_bulk source admission and the recurring expansion jobs that populate the facial index.",
+               "Purge facial features collected through untargeted discovery from the identity index, and keep only subjects who directly enrolled.",
+               "Restrict admission to specifically enrolled subjects (scope=enrolled_subjects, acquisitionMethod=subject_submission) and enforce it in code, not only in policy.",
+               "Do not rely on audit logs, human approval of each search or better accuracy: they do not cure an Art. 5(1)(e) acquisition practice. Reassess the replacement product separately against the remaining AI Act requirements."],
     "SAFE-02": ["Embed machine-readable marking (C2PA manifest / watermark / AI-generated header) in every generated output.",
                 "Add visible AI disclosure where outputs are shown to people."],
     "OSS-01": ["Replace or isolate GPL/AGPL dependencies, or obtain a commercial licence.", "Add licence scanning to CI."],

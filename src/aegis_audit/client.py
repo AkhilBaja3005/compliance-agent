@@ -37,6 +37,10 @@ class AuditSession:
     quarantined_for_human_review: List[Dict[str, Any]] = field(default_factory=list)
     passed_checks: List[Dict[str, Any]] = field(default_factory=list)
     agent_execution_trace: List[Dict[str, Any]] = field(default_factory=list)
+    eval_results: Dict[str, Any] = field(default_factory=dict)
+    fairness_metrics: Dict[str, Any] = field(default_factory=dict)
+    roadmap: List[Dict[str, Any]] = field(default_factory=list)
+    input_coverage: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -57,6 +61,10 @@ class AuditSession:
             "quarantined_for_human_review": self.quarantined_for_human_review,
             "passed_checks": self.passed_checks,
             "agent_execution_trace": self.agent_execution_trace,
+            "eval_results": self.eval_results,
+            "fairness_metrics": self.fairness_metrics,
+            "roadmap": self.roadmap,
+            "input_coverage": self.input_coverage,
         }
 
     def to_json(self, indent: int = 2) -> str:
@@ -185,6 +193,28 @@ class ComplianceAuditor:
             tenant_id = target_path.name
             real_report = run_audit(target_path, tenant_id)
 
+            from src.regulatory_rag.tier_a_rules import active_frameworks
+            _fw = active_frameworks()
+
+            def _in_scope(rule: str) -> bool:
+                return _fw is None or any(str(rule).upper().startswith(j) for j in _fw)
+
+            def _exposure(txt: str) -> str:
+                if _fw is None or "UK" in " ".join(_fw):
+                    return txt
+                import re as _re
+                return _re.sub(r"\s*(and/or|and)\s+up to GBP.*?UK GDPR", "", txt or "")
+
+            def _summary(txt: str) -> str:
+                if _fw is None or "UK" in " ".join(_fw):
+                    return txt
+                import re as _re
+
+                def _rel(m):
+                    keep = [r.strip() for r in m.group(1).split(",") if r.strip() and "UK_" not in r and not r.strip().startswith("UK ")]
+                    return f" Related: {', '.join(keep)}." if keep else ""
+                return _re.sub(r" Related: ([^()]*?)\.(?=\s*\()", _rel, txt or "")
+
             def _f_to_dict(f):
                 return {
                     "finding_id": f.finding_id,
@@ -197,11 +227,11 @@ class ComplianceAuditor:
                     "system_id": f.system_id,
                     "system_name": f.system_name,
                     "primary_rule": f.primary_rule,
-                    "also_engages": f.also_engages,
-                    "summary": f.summary,
+                    "also_engages": [r for r in f.also_engages if _in_scope(r)],
+                    "summary": _summary(f.summary),
                     "code_vs_doc_drift": f.code_vs_doc_drift,
                     "evidence": [e.model_dump() if hasattr(e, "model_dump") else e for e in f.evidence],
-                    "exposure_text": f.exposure_text,
+                    "exposure_text": _exposure(f.exposure_text),
                     "owner": f.owner,
                     "effort_days": f.effort_days,
                     "human_review_required": f.human_review_required,
@@ -234,6 +264,10 @@ class ComplianceAuditor:
                 quarantined_for_human_review=quarantined_dicts,
                 passed_checks=passed_dicts,
                 agent_execution_trace=[{"step": t} for t in real_report.agent_execution_trace],
+                eval_results=real_report.eval_results,
+                fairness_metrics=real_report.fairness_metrics,
+                roadmap=real_report.roadmap,
+                input_coverage=real_report.input_coverage,
             )
 
         # 7 Systems modeled on Northwind Labs Ltd (sample_connectors default)

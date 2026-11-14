@@ -76,6 +76,8 @@ CHECKS: list[MandatoryCheck] = [
                    "UK_GDPR_ICO", "UK_GDPR_ICO:Art.22", "HIGH_RISK", lambda p: p.automated_decisions or p.high_risk_sector or _unknown(p)),
     MandatoryCheck("SAFE-01", "safety_watermark", "Do all text/audio generation endpoints have a moderation / harmful-content control?",
                    "EU_AI_ACT", "EU_AI_ACT:Art.5", "HIGH_RISK", lambda p: p.generative or _unknown(p)),
+    MandatoryCheck("BIO-01", "safety_watermark", "Does the system create or expand a facial-recognition database through untargeted scraping of internet or CCTV images (Art. 5(1)(e))?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.5", "PROHIBITED", lambda p: True),
     MandatoryCheck("SAFE-02", "safety_watermark", "Are generated outputs marked machine-readably (watermark / C2PA / AI-generated header)?",
                    "EU_AI_ACT", "EU_AI_ACT:Art.50", "LIMITED_RISK", lambda p: p.generative or _unknown(p)),
     MandatoryCheck("OSS-01", "oss_license", "Are all dependencies free of copyleft (GPL/AGPL) terms that conflict with commercial distribution?",

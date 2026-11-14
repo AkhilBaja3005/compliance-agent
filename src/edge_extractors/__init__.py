@@ -163,6 +163,15 @@ def build_systems(ix: TriModalIndex, declared) -> None:
             sid = next((ix.system_map[e.slice_id] for e in code_sys if e.file_path == file and e.slice_id in ix.system_map), None)
             if sid:
                 ix.system_map[c.module_id] = sid
+    if not systems:  # non-Python code (TS/JS): derive the system from biometric capability cards + product name in docs
+        bio = [c for c in ix.cards if "biometric_identification" in c.capability_tags]
+        if bio:
+            title = next((m.group(1).strip() for c in ix.chunks if (m := re.match(r"\s*#\s+(.+)", c.text))), ix.company_name)
+            systems["S1"] = AISystemRecord(
+                system_id="S1", system_name=title[:60], description="One-to-many facial identity search", sector=ix.sector,
+                tenant_id=ix.tenant_id, detected_in_code=True, declared_in_docs=True, capabilities=["biometric_identification"],
+                locators=[c.exact_locator for c in bio[:6]],
+                risk_category="PROHIBITED" if any("untargeted_acquisition" in c.capability_tags for c in ix.cards) else "HIGH_RISK")
     ix.systems = [systems[k] for k in sorted(systems)]
 
 

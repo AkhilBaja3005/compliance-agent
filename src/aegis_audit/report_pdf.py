@@ -470,10 +470,19 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     quarantined = report_data.get("quarantined_for_human_review", [])
     passed = report_data.get("passed_checks", [])
 
+    try:
+        from aegis_audit import report_sections as _sections
+    except ImportError:  # pragma: no cover
+        from . import report_sections as _sections
+    is_real = bool(report_data.get("eval_results"))
+    systems = [_sections.normalize_system(s) for s in systems]
+    all_f = confirmed_findings + suspected_gaps + quarantined + passed
+    _sv = lambda f: str(f.get("severity") or "").upper()
+
     # Counts
-    crit_count = sum(1 for f in confirmed_findings if f.get("severity") == "CRITICAL")
-    high_count = sum(1 for f in confirmed_findings if f.get("severity") == "HIGH")
-    med_count = sum(1 for f in confirmed_findings if f.get("severity") in ("MEDIUM", "LIMITED"))
+    crit_count = sum(1 for f in confirmed_findings if _sv(f) == "CRITICAL")
+    high_count = sum(1 for f in confirmed_findings if _sv(f) == "HIGH")
+    med_count = sum(1 for f in confirmed_findings if _sv(f) in ("MEDIUM", "LIMITED"))
     undeclared_count = sum(1 for s in systems if s.get("declared") is False)
     total_controls = len(confirmed_findings) + len(suspected_gaps) + len(passed)
     passing_controls = len(passed)
@@ -586,7 +595,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     <tbody>
 """
     for f in confirmed_findings[:4]:
-        sev = f.get("severity", "HIGH")
+        sev = str(f.get("severity") or "HIGH").upper()
         badge_cls = f"badge-{sev.lower()}"
         html_out += f"""
         <tr>
@@ -657,6 +666,11 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
     </tbody>
 </table>
 
+"""
+    if is_real:
+        html_out += _sections.sec2_callout(systems, all_f)
+    else:
+        html_out += """
 <div class="callout-card">
     <div style="font-size:8pt; font-weight:700; color:#0F172A; margin-bottom:6px; text-transform:uppercase;">Classification Record: Deep-Dive Analysis</div>
     <div class="callout-grid">
@@ -678,9 +692,16 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
         </div>
     </div>
 </div>
+"""
+    html_out += """
 
 <div class="page-break"></div>
 
+"""
+    if is_real:
+        html_out += _sections.sec3(report_data, systems, all_f)
+    else:
+        html_out += """
 <!-- ======================================================================= -->
 <!-- SECTION 3: COMPLIANCE MATRIX -->
 <!-- ======================================================================= -->
@@ -779,6 +800,8 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
         </tr>
     </tbody>
 </table>
+"""
+    html_out += """
 
 <div class="page-break"></div>
 
@@ -792,7 +815,7 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
 """
 
     for f in confirmed_findings:
-        sev = f.get("severity", "HIGH")
+        sev = str(f.get("severity") or "HIGH").upper()
         hist = f.get("history_status", "NEW")
         hist_cls = "badge-new" if hist == "NEW" else "badge-recurring"
         badge_cls = f"badge-{sev.lower()}"
@@ -873,9 +896,15 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
 </div>
 """
 
+    html_out += _sections.sec4_extra(report_data)
     html_out += """
 <div class="page-break"></div>
 
+"""
+    if is_real:
+        html_out += _sections.sec5(report_data, all_f)
+    else:
+        html_out += """
 <!-- ======================================================================= -->
 <!-- SECTION 5: SAFETY & FAIRNESS TESTING -->
 <!-- ======================================================================= -->
@@ -937,9 +966,16 @@ Automated red-teaming eval suite results and demographic selection-rate parity a
         establishing statutory non-compliance under EU AI Act Annex III §4(a).
     </div>
 </div>
+"""
+    html_out += """
 
 <div class="page-break"></div>
 
+"""
+    if is_real:
+        html_out += _sections.sec6(report_data)
+    else:
+        html_out += """
 <!-- ======================================================================= -->
 <!-- SECTION 6: REMEDIATION ROADMAP, INPUT COVERAGE & SIGN-OFF -->
 <!-- ======================================================================= -->
@@ -1015,6 +1051,8 @@ Structured, phased execution plan to achieve full statutory compliance before st
     </tbody>
 </table>
 
+"""
+    html_out += f"""
 <h4 style="font-size:8pt; margin-top:8px; margin-bottom:4px; text-transform:uppercase;">Executive Sign-Off & Verification</h4>
 <table class="signoff-table">
     <thead>

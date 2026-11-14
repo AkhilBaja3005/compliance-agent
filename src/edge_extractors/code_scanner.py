@@ -14,7 +14,7 @@ from tree_sitter import Language, Parser
 
 from src.schemas.artifacts import ASTSlice, BehavioralCapabilityCard, DependencyFact, sha256_text
 
-SKIP_DIRS = {".git", "__pycache__", ".venv", "venv", "node_modules", ".mypy_cache", ".pytest_cache", "site-packages"}
+SKIP_DIRS = {"reviewer", ".git", "__pycache__", ".venv", "venv", "node_modules", ".mypy_cache", ".pytest_cache", "site-packages"}
 
 _PY = Language(tspython.language())
 _PARSER = Parser(_PY)
@@ -213,6 +213,35 @@ def _urls_in(text: str) -> list[str]:
     return out
 
 
+# ----------------------------------------------------------------------------- non-Python signal scan (TS/JS/JSON)
+BIOMETRIC_RE = re.compile(r"facial|face[_\- ]?(recogni\w*|search|identity|index|feature\w*|template\w*|match\w*)|biometric|faceprint|identity[_\- ]?index", re.I)
+UNTARGETED_RE = re.compile(
+    r"scope[\"']?\s*[:=]\s*[\"']untargeted|\buntargeted\b|bulk_public_discovery|bulk_cctv_frames|public_web_bulk|cctv_bulk|"
+    r"publicAccessSufficientForBulk\s*[:=]\s*true|recurringExpansionEnabled\s*[:=]\s*true|scrap(e|ing)\w*\s*\(|\bcrawl\w*\s*\(", re.I)
+_SIGNAL_SUFFIXES = {".ts", ".tsx", ".js", ".mjs", ".json"}
+
+
+def _scan_signal_file(src: str, rel: str, tenant_id: str, result: ScanResult) -> None:
+    """Regex capability facts for non-Python sources: facial/biometric functions and untargeted bulk acquisition.
+    JSON files only contribute untargeted-acquisition facts (data/config), never biometric-function claims."""
+    tags, first = [], None
+    rules = [("untargeted_acquisition", UNTARGETED_RE)] if rel.endswith(".json") else \
+        [("biometric_identification", BIOMETRIC_RE), ("untargeted_acquisition", UNTARGETED_RE)]
+    for tag, rx in rules:
+        m = rx.search(src)
+        if m:
+            tags.append(tag)
+            ln = src.count("\n", 0, m.start()) + 1
+            first = ln if first is None else min(first, ln)
+    if not tags:
+        return
+    lines = src.splitlines()
+    window = "\n".join(lines[max(0, first - 1): first + 3])
+    result.cards.append(BehavioralCapabilityCard(
+        module_id=f"{rel}::signals", tenant_id=tenant_id, exact_locator=f"{rel}:{first}-{min(len(lines), first + 3)}",
+        system_prompt=window[:300], capability_tags=tags, sha256_hash=sha256_text(window)))
+
+
 # ----------------------------------------------------------------------------- scanning
 class ScanResult:
     def __init__(self):
@@ -234,6 +263,11 @@ def scan_code(company_dir: Path | str, tenant_id: str) -> ScanResult:
             _scan_python_file(src, rel, tenant_id, result)
             if LOCAL_MODEL_RE.search(src):
                 result.uses_local_model = True
+        elif path.suffix in _SIGNAL_SUFFIXES and not (set(Path(rel).parts[:-1]) & {"tests", "test", "__tests__", "compliance", "scenarios"}) \
+                and ".test." not in path.name and not path.name.endswith((".d.ts", "package-lock.json")) and path.stat().st_size < 400_000:
+            if path.suffix != ".json":
+                result.py_files.append(rel)  # counts as code present (TS/JS)
+            _scan_signal_file(_read(path), rel, tenant_id, result)
         elif path.name.lower().startswith("requirements") and path.suffix in {".txt", ".in"}:
             result.dependencies.extend(parse_requirements(_read(path), rel, tenant_id))
         if path.suffix in {".md", ".txt", ".json", ".yaml", ".yml", ".toml", ".cfg", ".py"} or path.name.upper().startswith(("LICENSE", "MODEL_CARD")):
