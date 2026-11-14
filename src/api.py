@@ -22,7 +22,7 @@ from src.observability import configure_logging, metrics, new_request_id, reques
 from src.signoff import SignoffLog
 
 from src.agents import LLMClient, run_audit
-from src.dashboard.routes import STATIC, router as dashboard_router
+from src.dashboard.routes import ASSETS, STATIC, router as dashboard_router
 from src.edge_extractors import build_index
 from src.law_sync import get_store, simulate_law_amendment, sync_now
 from src.law_sync.scheduler import law_status, start_scheduler, stop_scheduler
@@ -46,11 +46,11 @@ def list_company_ids() -> list[str]:
     return sorted(p.name for p in companies_root().iterdir() if p.is_dir() and p.name.startswith("company_"))
 
 
-log = logging.getLogger("aegis.api")
+log = logging.getLogger("graphite.api")
 
 
 def data_dir() -> Path | None:
-    d = os.getenv("AEGIS_DATA_DIR")
+    d = os.getenv("GRAPHITE_DATA_DIR")
     return Path(d) if d else None
 
 
@@ -67,9 +67,9 @@ def _run_job(params: dict) -> dict:
     rep = run_audit(companies_root() / params["company_id"], params["company_id"], LLMClient(), known_tenants=set(list_company_ids()),
                     github_source=params.get("github_url"), confluence_source=params.get("confluence_path") or ("cloud" if params.get("confluence_space_key") else None),
                     space_key=params.get("confluence_space_key"))
-    metrics.inc("aegis_audits_total", tenant=params["company_id"])
+    metrics.inc("graphite_audits_total", tenant=params["company_id"])
     for f in rep.all_findings():
-        metrics.inc("aegis_findings_total", status=f.status)
+        metrics.inc("graphite_findings_total", status=f.status)
     return rep.model_dump(mode="json")
 
 
@@ -87,7 +87,7 @@ async def lifespan(app: FastAPI):
     from src.dashboard.service import DashboardService
     from src.storage.dashboard import get_dashboard_repository
 
-    configure_logging(os.getenv("AEGIS_LOG_LEVEL", "INFO"))
+    configure_logging(os.getenv("GRAPHITE_LOG_LEVEL", "INFO"))
     init_state()
     app.state.dashboard = None
     try:
@@ -97,7 +97,7 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logging.getLogger(__name__).error("Dashboard startup failed: %s", type(exc).__name__)
     if os.getenv("AUTO_SYNC", "false").lower() == "true":
-        start_scheduler(float(os.getenv("AEGIS_SYNC_INTERVAL_HOURS", "24")))
+        start_scheduler(float(os.getenv("GRAPHITE_SYNC_INTERVAL_HOURS", "24")))
     try:
         yield
     finally:
@@ -107,9 +107,9 @@ async def lifespan(app: FastAPI):
             app.state.dashboard = None
 
 
-app = FastAPI(title="Aegis AI Compliance Auditor", lifespan=lifespan)
+app = FastAPI(title="Graphite AI Compliance Auditor", lifespan=lifespan)
 
-_origins = [o.strip() for o in os.getenv("AEGIS_CORS_ORIGINS", "").split(",") if o.strip()]
+_origins = [o.strip() for o in os.getenv("GRAPHITE_CORS_ORIGINS", "").split(",") if o.strip()]
 if _origins:  # CORS is off unless origins are listed explicitly
     app.add_middleware(CORSMiddleware, allow_origins=_origins, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-API-Key"])
 
@@ -130,7 +130,7 @@ async def _edge(request: Request, call_next):
     rid = request.headers.get("x-request-id") or new_request_id()
     request_id_var.set(rid)
     t0 = time.perf_counter()
-    max_body = int(os.getenv("AEGIS_MAX_BODY_BYTES", "1048576"))
+    max_body = int(os.getenv("GRAPHITE_MAX_BODY_BYTES", "1048576"))
     cl = request.headers.get("content-length")
     if cl and cl.isdigit() and int(cl) > max_body:
         resp = JSONResponse({"detail": "request body too large"}, status_code=413)
@@ -150,12 +150,13 @@ async def _edge(request: Request, call_next):
     resp.headers["X-Request-ID"] = rid
     ms = round((time.perf_counter() - t0) * 1000, 1)
     p = getattr(request.state, "principal", None)
-    metrics.inc("aegis_http_requests_total", method=request.method, status=resp.status_code)
+    metrics.inc("graphite_http_requests_total", method=request.method, status=resp.status_code)
     log.info("request", extra={"method": request.method, "path": request.url.path, "status": resp.status_code, "duration_ms": ms, "key_id": getattr(p, "key_id", "-")})
     return resp
 
 app.include_router(dashboard_router)
 app.mount("/dashboard/static", StaticFiles(directory=STATIC), name="dashboard-static")
+app.mount("/dashboard/assets", StaticFiles(directory=ASSETS), name="dashboard-assets")
 
 
 class CompanyInfo(BaseModel):
@@ -251,7 +252,7 @@ def _validated(req: AuditRequest, p: sec.Principal) -> dict:
 @app.post("/audit/run", response_model=TriagedAuditReport)
 def audit_run(req: AuditRequest, p: sec.Principal = Depends(sec.require("auditor")), _rl: None = Depends(sec.rate_limit(heavy=True))):
     params = _validated(req, p)
-    metrics.inc("aegis_audits_total", tenant=req.company_id)
+    metrics.inc("graphite_audits_total", tenant=req.company_id)
     return run_audit(companies_root() / req.company_id, req.company_id, LLMClient(),
                      tamper=_fake_citation if req.inject_fake_citation else None, known_tenants=set(list_company_ids()),
                      github_source=params.get("github_url"), confluence_source=params.get("confluence_path") or ("cloud" if req.confluence_space_key else None),
@@ -347,7 +348,7 @@ def laws_simulate(req: SimulateRequest | None = None, _: sec.Principal = Depends
 
 @app.post("/laws/ingest")
 def laws_ingest(deep_linkup: bool = False, _: sec.Principal = Depends(sec.require("admin"))):
-    """Run the full knowledge sync for the *configured* sources (sync_sources.yaml / AEGIS_SYNC_CONFIG). Request bodies cannot add paths or URLs."""
+    """Run the full knowledge sync for the *configured* sources (sync_sources.yaml / GRAPHITE_SYNC_CONFIG). Request bodies cannot add paths or URLs."""
     from src.law_sync.ingest import run_full_sync
 
     rep = run_full_sync(deep_linkup=deep_linkup)
@@ -357,7 +358,7 @@ def laws_ingest(deep_linkup: bool = False, _: sec.Principal = Depends(sec.requir
 
 @app.get("/laws/pending")
 def laws_pending(_: sec.Principal = Depends(sec.require("admin"))):
-    """Rule updates staged for human review (only when AEGIS_RULE_REVIEW_REQUIRED=true)."""
+    """Rule updates staged for human review (only when GRAPHITE_RULE_REVIEW_REQUIRED=true)."""
     st = get_store()
     return [{"pending_id": k, "source": v["source"], "created_at": v["created_at"], "changes": [c.model_dump() for c in v["changes"]]} for k, v in st.pending.items()]
 
@@ -404,7 +405,7 @@ class PDFIngestRequest(BaseModel):
 
 
 def pdf_roots() -> list[Path]:
-    return [Path(os.getenv("AEGIS_PDF_ROOT", ROOT / "regulatory_pdfs"))]
+    return [Path(os.getenv("GRAPHITE_PDF_ROOT", ROOT / "regulatory_pdfs"))]
 
 
 @app.post("/admin/ingest-pdf")
@@ -413,7 +414,7 @@ def admin_ingest_pdf(req: PDFIngestRequest, p: sec.Principal = Depends(sec.requi
     from src.edge_extractors.pdf_ingestor import ingest_pdf_file
     from src.storage import get_compliance_store
 
-    path = sec.validate_local_path(req.pdf_path, pdf_roots(), p)  # only files under AEGIS_PDF_ROOT
+    path = sec.validate_local_path(req.pdf_path, pdf_roots(), p)  # only files under GRAPHITE_PDF_ROOT
     if not path.is_file() or path.suffix.lower() != ".pdf":
         raise HTTPException(status_code=404, detail="PDF file not found")
     chunks = ingest_pdf_file(pdf_path=path, jurisdiction=req.jurisdiction, tenant_id=req.tenant_id, doc_category=req.doc_category)

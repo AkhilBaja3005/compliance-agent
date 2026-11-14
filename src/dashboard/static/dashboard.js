@@ -23,7 +23,7 @@
     "Info",
     "Unspecified",
   ];
-  const colors = ["#bc4c4f", "#b77e1e", "#8261af", "#24806c"];
+  const colors = ["#161F34", "#40668D", "#7E65AE", "#006DDD"];
   const state = {
     company: "",
     generation: 0,
@@ -146,7 +146,7 @@
     url.searchParams.set("company", company);
     history.replaceState(null, "", url);
     try {
-      localStorage.setItem("aegis-company", company);
+      localStorage.setItem("graphite-company", company);
     } catch (_) {
       /* Optional preference. */
     }
@@ -179,7 +179,7 @@
       $("company").disabled = false;
       let stored = "";
       try {
-        stored = localStorage.getItem("aegis-company");
+        stored = localStorage.getItem("graphite-company");
       } catch (_) {
         /* Optional preference. */
       }
@@ -363,7 +363,7 @@
     $("severity-chart").innerHTML = severityOrder
       .map(
         (severity, i) =>
-          `<div class="severity-row"><span>${severity}</span><div class="bar-track"><div class="bar-fill" style="width:${(100 * counts[i]) / maximum}%;background:${["#aa4046", "#bc6460", "#c3994a", "#7c9a98", "#9aadb2", "#bec8cc"][i]}"></div></div><strong>${counts[i]}</strong></div>`,
+          `<div class="severity-row"><span>${severity}</span><div class="bar-track"><div class="bar-fill" style="width:${(100 * counts[i]) / maximum}%;background:${["#0D1322", "#2F4B68", "#40668D", "#7F97B2", "#7FC8FF", "#B2DEFF"][i]}"></div></div><strong>${counts[i]}</strong></div>`,
       )
       .join("");
     const priorities = [...open]
@@ -409,11 +409,11 @@
     const grid = [0, 0.5, 1]
       .map(
         (fraction) =>
-          `<line x1="40" x2="520" y1="${y(maximum * fraction)}" y2="${y(maximum * fraction)}" stroke="#e8eded" stroke-dasharray="3 4"/><text x="27" y="${y(maximum * fraction) + 3}" text-anchor="end" fill="#7a8d94" font-size="9">${Math.round(maximum * fraction)}</text>`,
+          `<line x1="40" x2="520" y1="${y(maximum * fraction)}" y2="${y(maximum * fraction)}" stroke="#CCE9FF" stroke-dasharray="3 4"/><text x="27" y="${y(maximum * fraction) + 3}" text-anchor="end" fill="#40668D" font-size="9">${Math.round(maximum * fraction)}</text>`,
       )
       .join("");
     $("trend-chart").innerHTML =
-      `<svg viewBox="0 0 550 155" role="img" aria-label="Finding counts across ${reports.length} completed assessments. Exact values are in the history data table.">${grid}${series.map((key, s) => `<polyline fill="none" stroke="${colors[s]}" stroke-width="2" points="${reports.map((report, i) => `${x(i)},${y(report.counts[key])}`).join(" ")}"/>${reports.map((report, i) => `<circle cx="${x(i)}" cy="${y(report.counts[key])}" r="3" fill="${colors[s]}"><title>${esc(date(report.assessed_at))}: ${key} ${report.counts[key]}</title></circle>`).join("")}`).join("")}<text x="40" y="150" fill="#7a8d94" font-size="9">${esc(new Date(reports[0].assessed_at).toLocaleDateString())}</text><text x="520" y="150" text-anchor="end" fill="#7a8d94" font-size="9">${reports.length === 1 ? "First assessment" : esc(new Date(reports.at(-1).assessed_at).toLocaleDateString())}</text></svg>`;
+      `<svg viewBox="0 0 550 155" role="img" aria-label="Finding counts across ${reports.length} completed assessments. Exact values are in the history data table.">${grid}${series.map((key, s) => `<polyline fill="none" stroke="${colors[s]}" stroke-width="2" points="${reports.map((report, i) => `${x(i)},${y(report.counts[key])}`).join(" ")}"/>${reports.map((report, i) => `<circle cx="${x(i)}" cy="${y(report.counts[key])}" r="3" fill="${colors[s]}"><title>${esc(date(report.assessed_at))}: ${key} ${report.counts[key]}</title></circle>`).join("")}`).join("")}<text x="40" y="150" fill="#40668D" font-size="9">${esc(new Date(reports[0].assessed_at).toLocaleDateString())}</text><text x="520" y="150" text-anchor="end" fill="#40668D" font-size="9">${reports.length === 1 ? "First assessment" : esc(new Date(reports.at(-1).assessed_at).toLocaleDateString())}</text></svg>`;
     $("history-data").innerHTML = reports
       .map(
         (report) =>
@@ -568,7 +568,7 @@
     renderFindings();
   });
   if (engineering) {
-    document.title = "Engineering findings · Aegis";
+    document.title = "Engineering findings · Graphite";
     $("view-label").textContent = "Engineering findings";
     $("page-title").textContent = "From finding to resolution.";
     $("page-description").textContent =

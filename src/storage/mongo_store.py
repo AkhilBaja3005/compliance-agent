@@ -1,7 +1,7 @@
 """MongoDB Atlas: Vector Search, LangGraph checkpointer and `audit_history` longitudinal tracking.
 
 Live when MONGODB_URI is set and reachable. Otherwise an in-memory store with the same interface is used
-(optionally persisted to AEGIS_HISTORY_FILE) and vector search falls back to local BM25 + hashing embeddings.
+(optionally persisted to GRAPHITE_HISTORY_FILE) and vector search falls back to local BM25 + hashing embeddings.
 """
 from __future__ import annotations
 
@@ -103,7 +103,7 @@ class _MemCollection:
 class MongoComplianceStore:
     def __init__(self, uri: str | None = None, db_name: str | None = None, client: Any = None, embedder: Any = None):
         self.uri = uri if uri is not None else os.getenv("MONGODB_URI")
-        self.db_name = db_name or os.getenv("MONGODB_DB_NAME") or os.getenv("MONGODB_DATABASE") or "aegis_compliance"
+        self.db_name = db_name or os.getenv("MONGODB_DB_NAME") or os.getenv("MONGODB_DATABASE") or "graphite_compliance"
         self.checkpoint_collection = os.getenv("MONGODB_CHECKPOINT_COLLECTION", "langgraph_checkpoints")
         self.error: str | None = None
         self.client = None
@@ -139,7 +139,7 @@ class MongoComplianceStore:
             return self.db[name]
         with self._lock:
             if name not in self._mem:
-                path = os.getenv("AEGIS_HISTORY_FILE") if name == HISTORY else None
+                path = os.getenv("GRAPHITE_HISTORY_FILE") if name == HISTORY else None
                 self._mem[name] = _MemCollection(path)
             return self._mem[name]
 

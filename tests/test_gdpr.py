@@ -17,12 +17,12 @@ def test_gdpr_rules_seeded_and_checks_registered():
 
 
 def test_default_scope_is_ai_act_plus_gdpr(monkeypatch):
-    monkeypatch.delenv("AEGIS_FRAMEWORKS", raising=False)
+    monkeypatch.delenv("GRAPHITE_FRAMEWORKS", raising=False)
     assert active_frameworks() == {"EU_AI_ACT", "EU_GDPR"}
 
 
 def _gdpr(path, monkeypatch, fw="EU_AI_ACT,EU_GDPR"):
-    monkeypatch.setenv("AEGIS_FRAMEWORKS", fw)
+    monkeypatch.setenv("GRAPHITE_FRAMEWORKS", fw)
     rep = run_audit(path, "g")
     return {f.check_id: f for f in rep.all_findings() if (f.check_id or "").startswith("GDPR-")}, rep
 

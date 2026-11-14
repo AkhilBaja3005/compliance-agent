@@ -1,4 +1,4 @@
-# Sources for `aegis sync-laws` and the daily sync. Paths are relative to this file. Every entry is hashed: unchanged sources are skipped,
+# Sources for `graphite sync-laws` and the daily sync. Paths are relative to this file. Every entry is hashed: unchanged sources are skipped,
 # changed ones are replaced, and files that disappear are removed. Web pages must be https and publicly reachable.
 folders:
   - path: regulatory_pdfs

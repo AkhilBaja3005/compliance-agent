@@ -5,10 +5,10 @@
     {
       "tool": {
         "driver": {
-          "name": "Aegis Compliance Auditor",
-          "organization": "Aegis AI Safety",
+          "name": "Graphite Compliance Auditor",
+          "organization": "Graphite AI Safety",
           "semanticVersion": "1.0.0",
-          "informationUri": "https://github.com/aegis-ai/aegis",
+          "informationUri": "https://github.com/graphite-ai/graphite",
           "rules": [
             {
               "id": "EU_AI_ACT:Art.5",

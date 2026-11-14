@@ -1,4 +1,4 @@
-"""Data-driven HTML builders for the Aegis PDF (sections 2-6). Same template for every company; rows and columns
+"""Data-driven HTML builders for the Graphite PDF (sections 2-6). Same template for every company; rows and columns
 come from the audit report (systems, findings, checks, roadmap, coverage), never from hardcoded sample text."""
 from __future__ import annotations
 

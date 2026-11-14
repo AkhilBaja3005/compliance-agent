@@ -1,4 +1,4 @@
-# Aegis: AI safety and regulatory compliance auditor
+# Graphite: AI safety and regulatory compliance auditor
 
 Audits a company's code, documents and data against the EU AI Act and EU GDPR and produces a triaged, evidence-backed report (JSON and a 6-section PDF). Findings are technical observations for human review, not legal advice.
 
@@ -9,16 +9,16 @@ Audits a company's code, documents and data against the EU AI Act and EU GDPR an
 ```bash
 make install                  # venv + dependencies
 cp .env.example .env          # all engines have offline fallbacks; fill in only what you have
-.venv/bin/aegis doctor        # shows which integrations are live; add --live for one read-only call each
+.venv/bin/graphite doctor        # shows which integrations are live; add --live for one read-only call each
 make test                     # unit tests + the precision/recall gate
 make demo                     # audits three sample companies -> demo_output/*.pdf + summary.json
 ```
 
-Keep the regulatory knowledge base current: `aegis sync-laws` (rules + folders and URLs from `sync_sources.yaml`, or `--folder DIR --url https://...`); schedule it with `aegis sync-daemon` or cron ([runbook](docs/runbook.md)).
+Keep the regulatory knowledge base current: `graphite sync-laws` (rules + folders and URLs from `sync_sources.yaml`, or `--folder DIR --url https://...`); schedule it with `graphite sync-daemon` or cron ([runbook](docs/runbook.md)).
 
-Audit your own folder: `aegis scan -t <folder> -c "Company" -o report.pdf`. A folder may hold `github/` and `confluence/` subfolders, or just files.
+Audit your own folder: `graphite scan -t <folder> -c "Company" -o report.pdf`. A folder may hold `github/` and `confluence/` subfolders, or just files.
 
-PR gate: `aegis scan -t <repo> --diff origin/main --fail-on high` audits only the code files changed since the base (`git diff --name-only <base>...HEAD`). Unchanged files are served from a content-addressed AST cache (`AEGIS_AST_CACHE_DIR=.aegis_cache` persists it between runs). Micro-agent checks run in parallel (`AEGIS_AGENT_WORKERS`, default 6) with deterministic ordering.
+PR gate: `graphite scan -t <repo> --diff origin/main --fail-on high` audits only the code files changed since the base (`git diff --name-only <base>...HEAD`). Unchanged files are served from a content-addressed AST cache (`GRAPHITE_AST_CACHE_DIR=.graphite_cache` persists it between runs). Micro-agent checks run in parallel (`GRAPHITE_AGENT_WORKERS`, default 6) with deterministic ordering.
 
 ## Architecture
 
@@ -37,11 +37,11 @@ inputs ──► edge extractors ──► tri-modal index ──► Supervisor 
 | MongoDB Atlas | `$vectorSearch`, LangGraph checkpoints, `audit_history` | in-memory store + local BM25 |
 | Databricks | Model Serving, MLflow traces, Unity Catalog tables | deterministic narratives, no-op tracing |
 
-Scope is set by `AEGIS_FRAMEWORKS` (default `EU_AI_ACT,EU_GDPR` or `ALL`). Licence checks (GPL, non-commercial weights) always run. Details of what each reader sees: [docs/coverage.md](docs/coverage.md).
+Scope is set by `GRAPHITE_FRAMEWORKS` (default `EU_AI_ACT,EU_GDPR` or `ALL`). Licence checks (GPL, non-commercial weights) always run. Details of what each reader sees: [docs/coverage.md](docs/coverage.md).
 
 ## API
 
-`uvicorn src.api:app`. **Closed by default**: set `AEGIS_API_KEYS="key:tenants:role,..."` (roles `admin`, `auditor`, `viewer`; tenants `*` or `a|b`). `AEGIS_AUTH_DISABLED=true` is for local development only.
+`uvicorn src.api:app`. **Closed by default**: set `GRAPHITE_API_KEYS="key:tenants:role,..."` (roles `admin`, `auditor`, `viewer`; tenants `*` or `a|b`). `GRAPHITE_AUTH_DISABLED=true` is for local development only.
 
 | Route | Role | Purpose |
 |---|---|---|
@@ -49,7 +49,7 @@ Scope is set by `AEGIS_FRAMEWORKS` (default `EU_AI_ACT,EU_GDPR` or `ALL`). Licen
 | `POST /audit/jobs` (+ `Idempotency-Key`), `GET /audit/jobs/{id}`, `/report`, `POST .../cancel` | auditor / viewer | async audits |
 | `POST /audit/run` | auditor | synchronous audit |
 | `GET /reports/{id}`, `POST|GET /reports/{id}/signoff` | viewer / auditor | reports; hash-chained human sign-off |
-| `POST /laws/sync`, `/laws/simulate-update`, `GET /laws/pending`, `POST /laws/pending/{id}/approve` | admin | rule library; set `AEGIS_RULE_REVIEW_REQUIRED=true` to stage changes for approval |
+| `POST /laws/sync`, `/laws/simulate-update`, `GET /laws/pending`, `POST /laws/pending/{id}/approve` | admin | rule library; set `GRAPHITE_RULE_REVIEW_REQUIRED=true` to stage changes for approval |
 | `GET /metrics`, `/stack/status`, `POST /admin/ingest-pdf` | admin | operations |
 
 Hardening: constant-time key check, per-key rate limits, body-size limit, https-only allow-listed repo URLs, admin-only confined local paths, security headers, JSON logs with request ids (keys never logged). See [docs/threat-model.md](docs/threat-model.md) and [docs/runbook.md](docs/runbook.md).
@@ -70,7 +70,7 @@ Requires Python 3.11 or newer, Git, and [WeasyPrint's native libraries](https://
 ```sh
 python -m venv .venv
 .venv/bin/pip install -e '.[dev]'
-AEGIS_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --host 127.0.0.1 --port 8000 --workers 1
+GRAPHITE_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
 Open http://localhost:8000 and select a company. Choose **Run audit** to create the first
@@ -82,8 +82,8 @@ audit activity, coverage, engine fallback modes, and the latest 30 assessments.
 ### Docker Compose
 
 ```sh
-AEGIS_AUTH_DISABLED=true docker compose up --build -d
-docker compose logs -f aegis
+GRAPHITE_AUTH_DISABLED=true docker compose up --build -d
+docker compose logs -f graphite
 docker compose ps
 docker compose down
 ```
@@ -99,14 +99,19 @@ Install Podman and a Compose provider (`podman-compose` or Docker Compose).
 The same `compose.yaml` uses standard service, health check, port and volume options.
 
 ```sh
-AEGIS_AUTH_DISABLED=true podman compose up --build -d
-podman compose logs -f aegis
+cp .env.template .env
+GRAPHITE_AUTH_DISABLED=true podman compose up --build -d
+podman compose logs -f graphite
 podman compose ps
 podman compose down
 ```
 
-The `aegis` service builds the Python 3.11 Debian image, runs as UID/GID 10001, and serves one
-Uvicorn process. The default port is bound to localhost. Set `AEGIS_PORT=8080` to change the host port.
+The [Podman environment template](.env.template) lists the variables consumed by
+`compose.yaml`, with offline defaults and blank optional credentials. If you already have a
+`.env`, merge the settings you need into it instead of replacing it.
+
+The `graphite` service builds the Python 3.11 Debian image, runs as UID/GID 10001, and serves one
+Uvicorn process. The default port is bound to localhost. Set `GRAPHITE_PORT=8080` to change the host port.
 `GET /healthz` is a lightweight process check, independent of credentials or external services;
 the container health check uses it. Use an existing access-control proxy before exposing this
 application to other networks. Dashboard data uses the API key roles and tenant scopes. For a protected browser deployment,
@@ -119,16 +124,16 @@ Enable the `git` profile to run the SSH Git server alongside the dashboard in th
 Compose project. First copy your public SSH key to the default authorized-keys location:
 
 ```sh
-mkdir -p .aegis
-cp "$HOME/.ssh/id_ed25519.pub" .aegis/authorized_keys
-AEGIS_AUTH_DISABLED=true docker compose --profile git up --build -d
-# Or: AEGIS_AUTH_DISABLED=true podman compose --profile git up --build -d
+mkdir -p .graphite
+cp "$HOME/.ssh/id_ed25519.pub" .graphite/authorized_keys
+GRAPHITE_AUTH_DISABLED=true docker compose --profile git up --build -d
+# Or: GRAPHITE_AUTH_DISABLED=true podman compose --profile git up --build -d
 git clone ssh://git@localhost:2222/demo.git
 ```
 
-Use `AEGIS_AUTHORIZED_KEYS` to select another public authorized-keys file, or
-`AEGIS_GIT_PORT` to change the SSH host port. The default SSH bind address is localhost;
-`AEGIS_GIT_BIND_ADDRESS` overrides it. Dedicated public-key and policy bind mounts use
+Use `GRAPHITE_AUTHORIZED_KEYS` to select another public authorized-keys file, or
+`GRAPHITE_GIT_PORT` to change the SSH host port. The default SSH bind address is localhost;
+`GRAPHITE_GIT_BIND_ADDRESS` overrides it. Dedicated public-key and policy bind mounts use
 private SELinux labels. Both Docker and Podman use the root `compose.yaml`; Git has its
 own image and persistent `git-repositories` and `git-state` volumes. Its SSH daemon starts
 as root and runs Git operations and scanning as the restricted `git` account.
@@ -157,13 +162,13 @@ For local source mounts, create `compose.sources.yaml`:
 
 ```yaml
 services:
-  aegis:
+  graphite:
     volumes:
       - ./my-repository:/sources/repository:ro
       - ./confluence-export:/sources/confluence:ro
 ```
 
-For local development, start with `AEGIS_AUTH_DISABLED=true docker compose -f compose.yaml -f compose.sources.yaml up --build -d`, or the
+For local development, start with `GRAPHITE_AUTH_DISABLED=true docker compose -f compose.yaml -f compose.sources.yaml up --build -d`, or the
 equivalent `podman compose` command. On SELinux hosts, use `:ro,Z` for private source mounts,
 or `:ro,z` when sharing with another container. Save `/sources/repository` and
 `/sources/confluence` in the dashboard. Mounted sources must be readable by UID 10001. With authentication enabled, local sources
@@ -184,19 +189,20 @@ configuration through exported environment variables or a private `.env` read by
 - GitHub: `GITHUB_TOKEN`.
 - Confluence: `CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN`, and a saved space key.
 
-`.env.example` lists available settings but contains placeholder external credentials; replace
-or remove those placeholders before using it. The image excludes `.env` files. Container model
+`.env.template` covers the shared Compose stack. The broader `.env.example` lists
+application settings but contains placeholder external credentials; replace or remove those
+placeholders before using it. The image excludes `.env` files. Container model
 URLs must reach the serving host; `localhost` inside a container refers to that container.
 
 ### Persistent state and the separate scanner
 
-The named `aegis-state` volume stores async API jobs, reports and sign-off records
-(`AEGIS_DATA_DIR=/var/lib/aegis`), dashboard reports, company settings and job activity
-(`/var/lib/aegis/dashboard.sqlite3`), plus existing finding history
-(`/var/lib/aegis/finding-history.json`). `compose down` preserves it; `compose down -v` deletes it.
+The named `graphite-state` volume stores async API jobs, reports and sign-off records
+(`GRAPHITE_DATA_DIR=/var/lib/graphite`), dashboard reports, company settings and job activity
+(`/var/lib/graphite/dashboard.sqlite3`), plus existing finding history
+(`/var/lib/graphite/finding-history.json`). `compose down` preserves it; `compose down -v` deletes it.
 Back up the stopped volume or use SQLite's backup API for a live database, including WAL data.
 
-Outside containers, `AEGIS_DASHBOARD_DB` defaults to `.aegis/dashboard.sqlite3` in the project.
+Outside containers, `GRAPHITE_DASHBOARD_DB` defaults to `.graphite/dashboard.sqlite3` in the project.
 The repository selects MongoDB when the existing compliance store can connect at startup,
 otherwise SQLite. A MongoDB fallback is visible in the dashboard. Once a backend is selected,
 runtime storage failures surface as errors; the application does not silently switch databases.
@@ -205,7 +211,7 @@ Changing backend configuration does not migrate old data.
 Every finalized `run_audit` call publishes through one persistence hook, including the existing
 synchronous `/audit/run`, CLI calls, and full-audit scanner integrations. Its signature and
 return type are unchanged. The scanner should call `run_audit(company_dir, selected_company_id, ...)`
-with the same `MONGODB_URI`/database, or the same `AEGIS_DASHBOARD_DB` file mounted at a shared path.
+with the same `MONGODB_URI`/database, or the same `GRAPHITE_DASHBOARD_DB` file mounted at a shared path.
 For two containers, mount the same named state volume and use the same UID. For a host scanner,
 use a shared bind mount and set the host's database path accordingly. Keep SQLite on a local
 filesystem that supports file locking. A scanner only publishes reports; it must not start
@@ -243,9 +249,9 @@ ownership. Report and job IDs belonging to another company return 404.
 .venv/bin/pytest -q
 .venv/bin/pip install -e '.[browser]'
 .venv/bin/playwright install chromium
-AEGIS_BROWSER_TESTS=1 .venv/bin/pytest -q tests/test_dashboard_browser.py
-AEGIS_CONTAINER_SMOKE=1 .venv/bin/pytest -q tests/test_dashboard_containers.py
-AEGIS_CONTAINER_SMOKE=1 .venv/bin/pytest -q tests/test_git_gate_docker.py
+GRAPHITE_BROWSER_TESTS=1 .venv/bin/pytest -q tests/test_dashboard_browser.py
+GRAPHITE_CONTAINER_SMOKE=1 .venv/bin/pytest -q tests/test_dashboard_containers.py
+GRAPHITE_CONTAINER_SMOKE=1 .venv/bin/pytest -q tests/test_git_gate_docker.py
 docker compose config --quiet
 podman compose config --quiet
 ```
@@ -255,14 +261,14 @@ evidence, manual audits, polling, settings, failures, connection recovery and a 
 Container tests use isolated Compose projects for each installed runtime, check non-root execution,
 health, audit completion and report/settings persistence after restart, then remove their test data.
 For a container smoke test, start either stack, check `curl -f http://localhost:8000/healthz`, run
-an audit in the dashboard, restart with `compose restart aegis`, and confirm the report persists.
+an audit in the dashboard, restart with `compose restart graphite`, and confirm the report persists.
 Docker and Podman require their respective installed runtime and Compose provider.
 The Git container tests enable the `git` profile in the shared stack and check dashboard
 health, SSH clone/push enforcement, and Git persistence for each installed runtime.
 
 ## Evaluation
 
-`aegis eval` scores confirmed findings against `tests/eval/gold.json` and `tests/test_eval_gate.py` fails CI on a regression. The gold set is small, synthetic and written by the same team that tuned the checks, so a score of 1.0 means the planted defects are found, not that real repositories will be.
+`graphite eval` scores confirmed findings against `tests/eval/gold.json` and `tests/test_eval_gate.py` fails CI on a regression. The gold set is small, synthetic and written by the same team that tuned the checks, so a score of 1.0 means the planted defects are found, not that real repositories will be.
 
 ## Known limitations
 

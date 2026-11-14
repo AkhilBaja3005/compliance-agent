@@ -1,4 +1,4 @@
-"""Aegis Client and AuditSession models."""
+"""Graphite Client and AuditSession models."""
 
 from __future__ import annotations
 
@@ -13,14 +13,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from aegis_audit.remediator import generate_remediation_patches
-from aegis_audit.report_pdf import render_audit_pdf
-from aegis_audit.sarif import render_audit_sarif
+from graphite_audit.remediator import generate_remediation_patches
+from graphite_audit.report_pdf import render_audit_pdf
+from graphite_audit.sarif import render_audit_sarif
 
 
 @dataclass
 class AuditSession:
-    """Represents a completed or ongoing Aegis compliance audit session."""
+    """Represents a completed or ongoing Graphite compliance audit session."""
 
     report_id: str
     company_name: str
@@ -74,11 +74,11 @@ class AuditSession:
     def to_json(self, indent: int = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent, default=str)
 
-    def save_pdf(self, output_path: str = "aegis_compliance_report.pdf") -> str:
+    def save_pdf(self, output_path: str = "graphite_compliance_report.pdf") -> str:
         """Renders the exact 6-section executive A4 PDF report using WeasyPrint."""
         return render_audit_pdf(self.to_dict(), output_path=output_path)
 
-    def save_sarif(self, output_path: str = "aegis_compliance_report.sarif") -> Dict[str, Any]:
+    def save_sarif(self, output_path: str = "graphite_compliance_report.sarif") -> Dict[str, Any]:
         """Renders the OASIS SARIF v2.1.0 code scanning JSON output."""
         return render_audit_sarif(self.to_dict(), output_path=output_path)
 
@@ -568,7 +568,7 @@ class ComplianceAuditor:
         ]
 
         session = AuditSession(
-            report_id=f"AEGIS-NW-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}",
+            report_id=f"GRAPHITE-NW-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}",
             company_name=company_name,
             assessed_at=now_str,
             scope=f"GitHub Repositories ({len(systems)} systems) & Confluence AIGOV Space",
@@ -585,7 +585,7 @@ class ComplianceAuditor:
                 "databricks_endpoint": os.getenv("DATABRICKS_SERVING_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct"),
                 "unity_catalog_table": os.getenv("DATABRICKS_UNITY_CATALOG_TABLE", "compliance_catalog.audit_prod.triaged_audit_reports"),
                 "mlflow_trace_id": "tr-nw-881940a1b2",
-                "mongodb_database": os.getenv("MONGODB_DATABASE", "aegis_compliance"),
+                "mongodb_database": os.getenv("MONGODB_DATABASE", "graphite_compliance"),
                 "mongodb_checkpoint_id": "chk-atlas-9981240f",
                 "linkup_sources_verified_count": 48,
             },

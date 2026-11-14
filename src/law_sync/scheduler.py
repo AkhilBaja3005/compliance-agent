@@ -9,7 +9,7 @@ import logging
 
 from .store import get_store
 
-log = logging.getLogger("aegis.sync")
+log = logging.getLogger("graphite.sync")
 
 JOB_ID = "daily-law-sync"
 _scheduler: BackgroundScheduler | None = None

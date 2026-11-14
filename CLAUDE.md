@@ -1,11 +1,11 @@
-# Project Contract: Aegis AI Safety & Regulatory Compliance Auditor (`aegis_audit`)
+# Project Contract: Graphite AI Safety & Regulatory Compliance Auditor (`graphite_audit`)
 
 ## Tech Stack
 - Python 3.11+, Pydantic v2, LangGraph, FastAPI, Typer, Rich, WeasyPrint, PyGithub, BeautifulSoup4, html2text, `linkup-sdk`, `pymongo`, `langgraph-checkpoint-mongodb`, `databricks-sdk`, `mlflow`, `rank-bm25`.
 
 ## Strict Directory Ownership (Zero Merge Conflicts)
 - **Antigravity Owns (Python Library SDK, Rich CLI, WeasyPrint 6-Section PDF Renderer & Sample GitHub/Confluence Fixtures):**
-  `pyproject.toml`, `.env.example`, `src/aegis_audit/`, `src/sample_connectors/`
+  `pyproject.toml`, `.env.example`, `src/graphite_audit/`, `src/sample_connectors/`
 - **Claude Code Owns (GitHub/Confluence Connectors, Linkup Scout, MongoDB Atlas & Databricks Storage, 7 Core Auditing Agents, 4-Gate Guardrails, FastAPI & Tests):**
   `src/schemas/`, `src/connectors/`, `src/edge_extractors/`, `src/law_sync/`, `src/regulatory_rag/`, `src/storage/`, `src/agents/`, `src/guardrails/`, `src/api.py`, `tests/`
 

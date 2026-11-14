@@ -12,15 +12,15 @@ def git(*args, cwd=None):
 
 
 def initialize_repository(repo: Path, seed: Path, hooks: Path) -> None:
-    marker = repo / "aegis-initialized"
+    marker = repo / "graphite-initialized"
     if not repo.exists():
         git("init", "--bare", "--initial-branch=main", str(repo))
-        with tempfile.TemporaryDirectory(prefix="aegis_seed_") as tmp:
+        with tempfile.TemporaryDirectory(prefix="graphite_seed_") as tmp:
             work = Path(tmp) / "seed"
             shutil.copytree(seed, work, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             git("init", "--initial-branch=main", cwd=work)
             git("add", ".", cwd=work)
-            git("-c", "user.name=Aegis", "-c", "user.email=aegis@localhost", "commit", "-m",
+            git("-c", "user.name=Graphite", "-c", "user.email=graphite@localhost", "commit", "-m",
                 "Administrator-approved initial baseline", cwd=work)
             git("push", str(repo), "main", cwd=work)
         marker.write_text("Initial fixture import is approved existing debt.\n")
@@ -35,7 +35,7 @@ def initialize_repository(repo: Path, seed: Path, hooks: Path) -> None:
 def main():
     from src.git_gate.policy import Policy
 
-    policy = Policy.load(Path("/etc/aegis/policy.toml"))
+    policy = Policy.load(Path("/etc/graphite/policy.toml"))
     if Path(policy.repository) != Path("/srv/git/demo.git"):
         raise RuntimeError("The prototype serves only /srv/git/demo.git")
     keys = Path("/keys/authorized_keys")
@@ -45,20 +45,20 @@ def main():
     ssh.mkdir(mode=0o755, exist_ok=True)
     shutil.copyfile(keys, ssh / "authorized_keys")
     os.chmod(ssh / "authorized_keys", 0o644)
-    host = Path("/var/lib/aegis/ssh/ssh_host_ed25519_key")
+    host = Path("/var/lib/graphite/ssh/ssh_host_ed25519_key")
     host.parent.mkdir(parents=True, exist_ok=True)
     if not host.exists():
         subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(host)], check=True)
     repo = Path("/srv/git/demo.git")
-    initialize_repository(repo, Path("/opt/aegis/seed"), Path("/opt/aegis/hooks"))
+    initialize_repository(repo, Path("/opt/graphite/seed"), Path("/opt/graphite/hooks"))
     user = pwd.getpwnam("git")
-    for directory in (Path("/srv/git"), Path("/var/lib/aegis/reports")):
+    for directory in (Path("/srv/git"), Path("/var/lib/graphite/reports")):
         directory.mkdir(parents=True, exist_ok=True)
         os.chown(directory, user.pw_uid, user.pw_gid)
         for root, dirs, files in os.walk(directory):
             for name in dirs + files:
                 os.chown(Path(root) / name, user.pw_uid, user.pw_gid, follow_symlinks=False)
-    os.execv("/usr/sbin/sshd", ["sshd", "-D", "-e", "-f", "/etc/ssh/aegis_sshd_config"])
+    os.execv("/usr/sbin/sshd", ["sshd", "-D", "-e", "-f", "/etc/ssh/graphite_sshd_config"])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 Port 22
-HostKey /var/lib/aegis/ssh/ssh_host_ed25519_key
-PidFile /run/sshd/aegis.pid
+HostKey /var/lib/graphite/ssh/ssh_host_ed25519_key
+PidFile /run/sshd/graphite.pid
 PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
@@ -18,4 +18,4 @@ AllowStreamLocalForwarding no
 X11Forwarding no
 PermitTunnel no
 PermitTTY no
-ForceCommand /usr/local/bin/aegis-ssh-command
+ForceCommand /usr/local/bin/graphite-ssh-command

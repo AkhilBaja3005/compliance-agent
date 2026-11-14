@@ -1,6 +1,6 @@
 repository = "/srv/git/demo.git"
 tenant_id = "demo"
-company_name = "Aegis Demo"
+company_name = "Graphite Demo"
 sector = "finance"
 commercial = true
 blocking_checks = ["PII-01", "HITL-01"]

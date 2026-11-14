@@ -133,7 +133,7 @@ def test_full_sync_runs_rules_folders_and_reports_errors(tmp_path):
 
 
 def test_cli_sync_laws_with_folder_and_exit_code(tmp_path):
-    from aegis_audit.cli import app
+    from graphite_audit.cli import app
     (tmp_path / "n.md").write_text("# Note\nRecord-keeping obligations require automatic event logs.\n")
     ok = CliRunner().invoke(app, ["sync-laws", "--no-deep-linkup", "--folder", str(tmp_path)])
     assert ok.exit_code == 0 and "n.md" in ok.output and "new" in ok.output

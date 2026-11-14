@@ -21,7 +21,7 @@ Parsers: `tree-sitter` + `tree-sitter-language-pack`. If a grammar is unavailabl
 
 Local formats: Markdown, text, PDF (OCR via `pytesseract` + `pypdfium2` when installed; low confidence becomes a visible `LOW_OCR_CONFIDENCE` chunk, no OCR becomes `OCR_REQUIRED`), `.docx` (headings, tables, headers/footers), `.xlsx` (sheet + cell addresses, formulas never evaluated), `.pptx` (slides + speaker notes), HTML, RTF, ODT, CSV/TSV. An unreadable file becomes an `UNPARSED_DOCUMENT` chunk so it is never ignored silently. A CSV whose header contains personal/special-category columns is treated as data: its values are withheld.
 
-Remote sources (`doc_sources.py`): Notion, Jira (issues + comments), Slack (explicitly listed channels, public only unless `SLACK_INCLUDE_PRIVATE=true`), Google Drive, SharePoint/OneDrive (Microsoft Graph), GitHub issues/PRs. Each paginates, retries 429/502/503 with `Retry-After`, stamps `last modified`, supports incremental sync (`since`), reads only what the credential can read, and isolates failures (a failing source is reported in coverage, the audit continues). Enable with `AEGIS_REMOTE_DOC_SOURCES=true` plus:
+Remote sources (`doc_sources.py`): Notion, Jira (issues + comments), Slack (explicitly listed channels, public only unless `SLACK_INCLUDE_PRIVATE=true`), Google Drive, SharePoint/OneDrive (Microsoft Graph), GitHub issues/PRs. Each paginates, retries 429/502/503 with `Retry-After`, stamps `last modified`, supports incremental sync (`since`), reads only what the credential can read, and isolates failures (a failing source is reported in coverage, the audit continues). Enable with `GRAPHITE_REMOTE_DOC_SOURCES=true` plus:
 
 | Source | Variables / scopes |
 |---|---|
@@ -54,6 +54,6 @@ Fairness: `compute_fairness` reads a labelled outcomes CSV (an outcome column pl
 
 Not implemented: Snowflake/BigQuery/Postgres connectors beyond the generic `information_schema` reader, residency from catalog tags other than `region`/`location`, value-level lineage, differential privacy.
 
-## Evaluation (`src/evaluation.py`, `tests/eval/gold.json`, `aegis eval`)
+## Evaluation (`src/evaluation.py`, `tests/eval/gold.json`, `graphite eval`)
 
 Scores confirmed findings against gold labels (precision/recall per check and overall); `known_missed` lists planted defects with no check yet and counts as false negatives. CI gate: `tests/test_eval_gate.py`. The gold set is small and synthetic: its numbers describe that set only.

@@ -316,7 +316,7 @@ class AstCache:
 
     A hit skips tree-sitter and returns freshly built `ASTSlice` / `BehavioralCapabilityCard` objects, rebound to the caller's
     `tenant_id` (the tenant is part of every slice id, so ids are recomputed); commit metadata is stamped by the connector after the
-    scan, so cached entries never carry one. In-memory by default; `path` adds a JSON file (`.aegis_cache/ast_cache.json`).
+    scan, so cached entries never carry one. In-memory by default; `path` adds a JSON file (`.graphite_cache/ast_cache.json`).
     """
 
     MAX_ENTRIES = 5000
@@ -380,10 +380,10 @@ _AST_CACHE: AstCache | None = None
 
 
 def ast_cache() -> AstCache:
-    """Process-wide cache. Disk-backed when AEGIS_AST_CACHE_DIR is set (e.g. `.aegis_cache`), otherwise memory only."""
+    """Process-wide cache. Disk-backed when GRAPHITE_AST_CACHE_DIR is set (e.g. `.graphite_cache`), otherwise memory only."""
     global _AST_CACHE
     if _AST_CACHE is None:
-        d = os.getenv("AEGIS_AST_CACHE_DIR")
+        d = os.getenv("GRAPHITE_AST_CACHE_DIR")
         _AST_CACHE = AstCache(Path(d) / "ast_cache.json" if d else None)
     return _AST_CACHE
 

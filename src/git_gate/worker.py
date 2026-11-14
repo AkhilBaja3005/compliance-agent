@@ -23,7 +23,7 @@ def evaluate_push(policy: Policy, input_text: str) -> dict:
 
     def snapshot(commit):
         if commit not in cache:
-            with tempfile.TemporaryDirectory(prefix="aegis_snapshot_") as tmp:
+            with tempfile.TemporaryDirectory(prefix="graphite_snapshot_") as tmp:
                 root = Path(tmp)
                 if commit:
                     repo.materialize(commit, root)

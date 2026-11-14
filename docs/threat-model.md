@@ -13,5 +13,5 @@ Assets: client source code and documents, audit findings, API keys, the sign-off
 | Secret leakage | hard-coded credentials are reported by name and file only, values withheld; keys never logged; Linkup/Databricks/GitHub tokens go in headers only | secrets in scanned documents may appear in a cited snippet (280 chars); gate 2 redacts known patterns |
 | Personal data in scanned data | only schemas, counts and classifications are stored; values are classified in memory and discarded | free-text columns could carry personal data in names or comments |
 | Prompt injection from scanned docs | model output is validated against a schema; extracted claims must quote the document verbatim; findings are re-checked by deterministic gates; the model never executes tools | a hostile document can still influence narrative text, which is why findings require human sign-off |
-| Rule library tampering | each rule has a sha256; changes produce a diff; `AEGIS_RULE_REVIEW_REQUIRED` stages changes for approval | seed text is not counsel-reviewed |
+| Rule library tampering | each rule has a sha256; changes produce a diff; `GRAPHITE_RULE_REVIEW_REQUIRED` stages changes for approval | seed text is not counsel-reviewed |
 | Sign-off tampering | append-only, hash-chained log with verification | an attacker with disk access can rewrite the whole chain; keep an off-box copy |

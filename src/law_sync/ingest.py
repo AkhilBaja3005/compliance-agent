@@ -1,6 +1,6 @@
 """Full knowledge sync: statutory rules + chosen folders + web pages (+ optional remote document sources) into the vector store.
 
-Used by `aegis sync-laws`, `aegis sync-daemon`, the API scheduler and POST /laws/ingest. Everything it ingests becomes regulatory
+Used by `graphite sync-laws`, `graphite sync-daemon`, the API scheduler and POST /laws/ingest. Everything it ingests becomes regulatory
 knowledge under tenant `global_regulations`. Sources are tracked by sha256 in the `sync_sources` registry, so a run only re-embeds
 what changed, replaces a changed source's chunks (no stale passages), and removes the chunks of files that disappeared.
 Folder paths and URLs come only from trusted configuration (CLI flags or the config file), never from API request bodies.
@@ -22,7 +22,7 @@ import httpx
 
 from src.schemas.artifacts import sha256_text
 
-log = logging.getLogger("aegis.sync")
+log = logging.getLogger("graphite.sync")
 GLOBAL = "global_regulations"
 MAX_PAGE_BYTES = 25 * 1024 * 1024
 
@@ -71,12 +71,12 @@ class SyncReport:
 
 
 def load_config(path: str | os.PathLike | None = None) -> SyncConfig:
-    """YAML/JSON config: `folders: [{path, jurisdiction, category}]`, `urls: [{url, jurisdiction, category}]`. Path from arg, AEGIS_SYNC_CONFIG, or ./sync_sources.yaml."""
+    """YAML/JSON config: `folders: [{path, jurisdiction, category}]`, `urls: [{url, jurisdiction, category}]`. Path from arg, GRAPHITE_SYNC_CONFIG, or ./sync_sources.yaml."""
     import json
 
     import yaml
 
-    p = Path(path or os.getenv("AEGIS_SYNC_CONFIG") or "sync_sources.yaml")
+    p = Path(path or os.getenv("GRAPHITE_SYNC_CONFIG") or "sync_sources.yaml")
     if not p.is_file():
         return SyncConfig()
     raw = yaml.safe_load(p.read_text(encoding="utf-8")) if p.suffix in {".yml", ".yaml"} else json.loads(p.read_text(encoding="utf-8"))
@@ -105,7 +105,7 @@ def _public_host(host: str, resolver=socket.getaddrinfo) -> bool:
 def fetch_url(url: str, client: httpx.Client | None = None, resolver=socket.getaddrinfo, max_redirects: int = 4) -> tuple[bytes, str]:
     """GET an https URL (no private/loopback targets, redirects re-validated, size capped). Returns (body, content-type)."""
     own = client is None
-    client = client or httpx.Client(timeout=30, follow_redirects=False, headers={"User-Agent": "aegis-regulatory-sync/1.0"})
+    client = client or httpx.Client(timeout=30, follow_redirects=False, headers={"User-Agent": "graphite-regulatory-sync/1.0"})
     try:
         for _ in range(max_redirects + 1):
             u = urlparse(url)

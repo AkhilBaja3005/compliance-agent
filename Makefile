@@ -7,7 +7,7 @@ test:
 	.venv/bin/python -m pytest -q
 
 eval:
-	.venv/bin/aegis eval
+	.venv/bin/graphite eval
 
 lint:
 	.venv/bin/ruff check src tests
@@ -16,13 +16,13 @@ audit:
 	.venv/bin/pip-audit
 
 demo:
-	.venv/bin/aegis demo
+	.venv/bin/graphite demo
 
 doctor:
-	.venv/bin/aegis doctor
+	.venv/bin/graphite doctor
 
 serve:
 	.venv/bin/uvicorn src.api:app --reload --port 8000
 
 docker:
-	docker build -t aegis .
+	docker build -t graphite .

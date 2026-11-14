@@ -11,6 +11,7 @@ from src.schemas.findings import TriagedAuditReport
 
 router = APIRouter()
 STATIC = Path(__file__).parent / "static"
+ASSETS = Path(__file__).resolve().parents[2] / "assets"
 
 
 def service(request: Request, company_id: str, p: sec.Principal = Depends(sec.require("viewer")),

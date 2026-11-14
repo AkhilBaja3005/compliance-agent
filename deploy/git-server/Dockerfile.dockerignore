@@ -2,6 +2,6 @@
 .env
 .env.*
 .venv
-.aegis
+.graphite
 **/__pycache__
 **/.pytest_cache

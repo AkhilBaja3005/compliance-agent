@@ -5,10 +5,10 @@ import json
 from pathlib import Path
 from typer.testing import CliRunner
 
-from aegis_audit.cli import app
-from aegis_audit.client import ComplianceAuditor
-from aegis_audit.remediator import generate_remediation_patches
-from aegis_audit.sarif import render_audit_sarif
+from graphite_audit.cli import app
+from graphite_audit.client import ComplianceAuditor
+from graphite_audit.remediator import generate_remediation_patches
+from graphite_audit.sarif import render_audit_sarif
 
 runner = CliRunner()
 
@@ -22,7 +22,7 @@ def test_sarif_export_schema_and_scoring(fixtures_dir):
     assert sarif["$schema"].startswith("https://docs.oasis-open.org/sarif/sarif/v2.1.0")
 
     run = sarif["runs"][0]
-    assert run["tool"]["driver"]["name"] == "Aegis Compliance Auditor"
+    assert run["tool"]["driver"]["name"] == "Graphite Compliance Auditor"
     assert len(run["results"]) >= 5
 
     # Check rule scoring
@@ -104,7 +104,7 @@ def test_cli_fix_command(tmp_path):
     }
     report_file.write_text(json.dumps(report_data), encoding="utf-8")
 
-    # Run aegis fix with --apply
+    # Run graphite fix with --apply
     patch_file = tmp_path / "fixes.patch"
     res = runner.invoke(app, [
         "fix",

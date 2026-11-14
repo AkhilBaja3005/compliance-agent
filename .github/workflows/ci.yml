@@ -20,7 +20,7 @@ jobs:
         run: python -m pytest -q
         env: { BYOM_OFFLINE: "true" }
       - name: Eval table
-        run: aegis eval
+        run: graphite eval
         env: { BYOM_OFFLINE: "true" }
       - name: Dependency vulnerabilities
         run: pip-audit

@@ -190,7 +190,7 @@ def test_ast_cache_rebinds_tenant_and_invalidates_on_change(tmp_path):
 
 
 def test_ast_cache_disk_roundtrip_is_atomic_and_versioned(tmp_path):
-    path = tmp_path / ".aegis_cache" / "ast_cache.json"
+    path = tmp_path / ".graphite_cache" / "ast_cache.json"
     set_ast_cache(AstCache(path))
     scan_code(A, "t")
     assert path.is_file() and json.loads(path.read_text())["version"] == cs.SCANNER_VERSION
@@ -247,7 +247,7 @@ def test_diff_mode_scans_only_changed_files(repo):
 
 
 def test_diff_mode_end_to_end_scope_and_bad_base(repo):
-    from aegis_audit.client import ComplianceAuditor
+    from graphite_audit.client import ComplianceAuditor
 
     sess = ComplianceAuditor().audit(company_name="Diff Co", target_dir=str(repo), diff_base="base")
     assert "[diff vs base: 2 changed file(s)]" in sess.to_dict()["scope"] or "diff vs base" in str(sess.scope)
@@ -261,7 +261,7 @@ def test_diff_mode_end_to_end_scope_and_bad_base(repo):
 def test_cli_scan_diff_flag_reaches_the_scanner(repo, tmp_path):
     from typer.testing import CliRunner
 
-    from aegis_audit.cli import app
+    from graphite_audit.cli import app
 
     res = CliRunner().invoke(app, ["scan", "-t", str(repo), "--diff", "base", "-c", "Diff Co", "-o", str(tmp_path / "r.pdf"), "--format", "json"])
     assert res.exit_code == 0, res.output

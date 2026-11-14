@@ -86,7 +86,7 @@ class LinkupBase:
             log.warning("Linkup search failed (%s): %s", type(exc).__name__, exc)
             return None
         with _CACHE_LOCK:
-            if self._client is None or not hasattr(self._client, "_aegis_no_cache"):
+            if self._client is None or not hasattr(self._client, "_graphite_no_cache"):
                 _CACHE[query] = (now, cit)
         return cit
 

@@ -3,11 +3,11 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aegis-audit"
+name = "graphite-audit"
 version = "0.1.0"
-description = "Aegis AI Safety & Regulatory Compliance Auditor (Multi-Agent + BYOM + Zero False Negatives)"
+description = "Graphite AI Safety & Regulatory Compliance Auditor (Multi-Agent + BYOM + Zero False Negatives)"
 authors = [
-    { name = "Aegis Audit Team" }
+    { name = "Graphite Audit Team" }
 ]
 readme = "CLAUDE.md"
 requires-python = ">=3.11"
@@ -59,12 +59,11 @@ ocr = [
 browser = ["playwright"]
 
 [project.scripts]
-graphite = "aegis_audit.cli:app"
-aegis = "aegis_audit.cli:app"
+graphite = "graphite_audit.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["aegis_audit*", "sample_connectors*"]
+include = ["graphite_audit*", "sample_connectors*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

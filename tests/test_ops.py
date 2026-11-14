@@ -17,13 +17,13 @@ def _by(checks):
 def test_doctor_config_mode_never_fails_on_unset_services(monkeypatch):
     for v in ("LINKUP_API_KEY", "MONGODB_URI", "DATABRICKS_HOST", "DATABRICKS_TOKEN", "GITHUB_TOKEN", "CONFLUENCE_URL", "MLFLOW_TRACKING_URI"):
         monkeypatch.delenv(v, raising=False)
-    monkeypatch.setenv("AEGIS_AUTH_DISABLED", "false")
-    monkeypatch.delenv("AEGIS_API_KEYS", raising=False)
+    monkeypatch.setenv("GRAPHITE_AUTH_DISABLED", "false")
+    monkeypatch.delenv("GRAPHITE_API_KEYS", raising=False)
     c = _by(run_checks())
     assert c["Linkup"].status == "SKIP" and c["MongoDB Atlas"].status == "SKIP" and c["Databricks Model Serving"].status == "SKIP"
     assert c["code parsers"].status == "OK" and c["rule library"].status == "OK"
     assert c["API auth"].status == "FAIL" and exit_code(list(c.values())) == 1  # closed API is a failure the operator must see
-    monkeypatch.setenv("AEGIS_API_KEYS", "k-123456:*:admin")
+    monkeypatch.setenv("GRAPHITE_API_KEYS", "k-123456:*:admin")
     assert _by(run_checks())["API auth"].status == "OK"
 
 
@@ -45,37 +45,37 @@ def test_doctor_live_github_uses_header_only_and_hides_token(monkeypatch):
 
 
 def test_doctor_cli_exit_code(monkeypatch):
-    from aegis_audit.cli import app
-    monkeypatch.setenv("AEGIS_AUTH_DISABLED", "false")
-    monkeypatch.setenv("AEGIS_API_KEYS", "")  # empty (not unset) so the CLI's .env loading cannot refill it
+    from graphite_audit.cli import app
+    monkeypatch.setenv("GRAPHITE_AUTH_DISABLED", "false")
+    monkeypatch.setenv("GRAPHITE_API_KEYS", "")  # empty (not unset) so the CLI's .env loading cannot refill it
     res = CliRunner().invoke(app, ["doctor"])
     assert res.exit_code == 1 and "API auth" in res.output
 
 
 def test_demo_writes_pdfs_and_summary(tmp_path):
-    from aegis_audit.cli import app
+    from graphite_audit.cli import app
     res = CliRunner().invoke(app, ["demo", "--out-dir", str(tmp_path)])
     assert res.exit_code == 0, res.output
     summary = json.loads((tmp_path / "summary.json").read_text())
     assert len(summary) == 3 and all((tmp_path / f"{s['pdf'].split('/')[-1]}").exists() for s in summary)
-    assert {s["company"] for s in summary} == {"Aegis Health UK", "Meridian OmniTech", "Veylan Analytics"}
+    assert {s["company"] for s in summary} == {"Graphite Health UK", "Meridian OmniTech", "Veylan Analytics"}
 
 
 def test_json_logs_carry_request_id_and_metrics_render():
     request_id_var.set("req-1")
-    rec = logging.LogRecord("aegis.api", logging.INFO, "f", 1, "request", (), None)
+    rec = logging.LogRecord("graphite.api", logging.INFO, "f", 1, "request", (), None)
     rec.status = 200
     d = json.loads(JsonFormatter().format(rec))
     assert d["request_id"] == "req-1" and d["status"] == 200 and d["level"] == "INFO"
     m = Metrics()
-    m.inc("aegis_x_total", status=200)
-    m.inc("aegis_x_total", status=200)
-    assert 'aegis_x_total{status="200"} 2' in m.render()
+    m.inc("graphite_x_total", status=200)
+    m.inc("graphite_x_total", status=200)
+    assert 'graphite_x_total{status="200"} 2' in m.render()
 
 
 def test_default_scan_target_returns_a_session_and_pdf(tmp_path):
-    """Regression: `aegis scan` with no target must audit the bundled demo data, not return None."""
-    from aegis_audit.client import ComplianceAuditor
+    """Regression: `graphite scan` with no target must audit the bundled demo data, not return None."""
+    from graphite_audit.client import ComplianceAuditor
     s = ComplianceAuditor().audit()
     assert s is not None and s.company_name
     assert (tmp_path / "x.pdf").parent.exists() and s.save_pdf(str(tmp_path / "x.pdf")).endswith("x.pdf")

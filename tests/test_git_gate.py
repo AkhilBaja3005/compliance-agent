@@ -74,7 +74,7 @@ class Server:
 
     def push(self, *refs):
         push_id = uuid.uuid4().hex
-        env = {**os.environ, "AEGIS_PUSH_ID": push_id}
+        env = {**os.environ, "GRAPHITE_PUSH_ID": push_id}
         # A client-side bypass must not bypass the server's hook.
         result = git(self.client, "push", "--no-verify", str(self.repo), *(refs or ("main",)), check=False, env=env)
         report = json.loads((self.reports / f"{push_id}.json").read_text())
@@ -235,7 +235,7 @@ def test_unscannable_or_unsupported_push_rejected(server, tmp_path, kind):
         git(server.client, "update-ref", "refs/tags/blob", blob)
         ref = "refs/tags/blob"
     else:
-        ref = "main:refs/aegis/bypass"
+        ref = "main:refs/graphite/bypass"
     server.commit("unsupported input")
     result, report, _ = server.push(ref)
     assert result.returncode != 0 and report["decision"] == "ERROR"

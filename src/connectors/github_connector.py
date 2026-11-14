@@ -54,7 +54,7 @@ def local_commit_sha(path: Path) -> str:
 @contextmanager
 def shallow_clone(url: str, token: str | None = None, depth: int = 1):
     """Shallow-clone into a temp dir (token via git config env, never argv/URL); deleted on exit. `depth` > 1 also fetches all branches (diff mode)."""
-    tmp = tempfile.mkdtemp(prefix="aegis_clone_")
+    tmp = tempfile.mkdtemp(prefix="graphite_clone_")
     try:
         env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
         if token:
@@ -85,7 +85,7 @@ def scan_github_source(source: str | Path, tenant_id: str, token: str | None = N
     token = token or os.getenv("GITHUB_TOKEN") or None
     if is_github_url(src):
         url = GITHUB_URL_RE.match(src).group(1)
-        with shallow_clone(url, token, depth=int(os.getenv("AEGIS_DIFF_CLONE_DEPTH", "100")) if diff_base else 1) as repo:  # temp folder removed after scanning
+        with shallow_clone(url, token, depth=int(os.getenv("GRAPHITE_DIFF_CLONE_DEPTH", "100")) if diff_base else 1) as repo:  # temp folder removed after scanning
             sha = _git(["rev-parse", "HEAD"], cwd=repo)
             files = changed_files(repo, _resolve_base(repo, diff_base)) if diff_base else None
             result = scan_code(repo, tenant_id, only_files=set(files) if files is not None else None)
@@ -109,7 +109,7 @@ def _resolve_base(repo: Path, base: str) -> str:
             return cand
         except RuntimeError:
             continue
-    raise RuntimeError(f"diff base {base!r} not found in the clone (increase AEGIS_DIFF_CLONE_DEPTH?)")
+    raise RuntimeError(f"diff base {base!r} not found in the clone (increase GRAPHITE_DIFF_CLONE_DEPTH?)")
 
 
 def _stamp(result: ScanResult, sha: str, origin: str) -> None:

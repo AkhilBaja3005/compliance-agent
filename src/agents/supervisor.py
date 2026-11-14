@@ -47,7 +47,7 @@ class SupervisorAgent:
         self.trace_id: str | None = None
         self.checks = {c.check_id: c for c in checklist}
         self.order = [c.check_id for c in checklist]
-        self.max_workers = max_workers or int(os.getenv("AEGIS_AGENT_WORKERS", "6"))
+        self.max_workers = max_workers or int(os.getenv("GRAPHITE_AGENT_WORKERS", "6"))
 
     # ---- graph nodes
     def supervisor_node(self, state: AuditState) -> dict:
@@ -78,7 +78,7 @@ class SupervisorAgent:
     def run_checks_node(self, state: AuditState) -> dict:
         batch = list(state["batch"])
         workers = max(1, min(self.max_workers, len(batch)))
-        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="aegis-agent") as pool:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="graphite-agent") as pool:
             futures = [pool.submit(contextvars.copy_context().run, self._run_one, cid) for cid in batch]  # keep trace/MLflow context in each thread
             results = [f.result() for f in futures]
         results.sort(key=lambda r: r[0])  # deterministic: by check_id, never by completion order

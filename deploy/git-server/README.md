@@ -1,4 +1,4 @@
-# Aegis Git server prototype
+# Graphite Git server prototype
 
 This is a primary Git remote over SSH with an administrator-installed `pre-receive`
 hook. It rejects **new confirmed instances** of `PII-01` (PII redaction) and
@@ -8,7 +8,7 @@ Scanner/configuration failures and timeouts reject the push separately.
 
 The repository starts with the FinScore fixture as an explicitly approved initial
 baseline. It intentionally contains existing violations so regression behavior
-can be demonstrated. This is a single-repository prototype using Aegis's current
+can be demonstrated. This is a single-repository prototype using Graphite's current
 Python heuristics, not a production compliance certification service.
 
 ## Start
@@ -19,28 +19,28 @@ service is part of the root `compose.yaml`, enabled with its `git` profile. From
 the project root:
 
 ```bash
-mkdir -p .aegis
-cp "$HOME/.ssh/id_ed25519.pub" .aegis/authorized_keys
+mkdir -p .graphite
+cp "$HOME/.ssh/id_ed25519.pub" .graphite/authorized_keys
 docker compose --profile git up --build -d
 # Or: podman compose --profile git up --build -d
 git clone ssh://git@localhost:2222/demo.git
 ```
 
 This starts the dashboard and Git server in the same Compose project. The default
-public authorized-keys file is `.aegis/authorized_keys`; set `AEGIS_AUTHORIZED_KEYS`
+public authorized-keys file is `.graphite/authorized_keys`; set `GRAPHITE_AUTHORIZED_KEYS`
 to an absolute path to another public authorized-keys file if needed. Never supply
 a private key. A file containing multiple public keys is supported. The dedicated
 copy and policy bind mounts use `:ro,Z` for rootless Podman on SELinux hosts.
 Use `GIT_SSH_COMMAND='ssh -i /path/to/private_key'` if your SSH agent does not
 already have the matching identity.
 
-The SSH listener defaults to `127.0.0.1:2222`; override `AEGIS_GIT_BIND_ADDRESS` or
-`AEGIS_GIT_PORT` as needed. On the first connection, verify
+The SSH listener defaults to `127.0.0.1:2222`; override `GRAPHITE_GIT_BIND_ADDRESS` or
+`GRAPHITE_GIT_PORT` as needed. On the first connection, verify
 the host key against the server's fingerprint:
 
 ```bash
 docker compose --profile git exec git \
-  ssh-keygen -lf /var/lib/aegis/ssh/ssh_host_ed25519_key.pub
+  ssh-keygen -lf /var/lib/graphite/ssh/ssh_host_ed25519_key.pub
 ```
 
 Repository history uses `git-repositories`; SSH host keys and JSON reports use
@@ -94,11 +94,11 @@ its identity. Renames count as new instances. Multiple new violations within an
 already violating function are outside the prototype's regression granularity.
 Same-named methods in different classes have separate identities.
 
-Reports live under `/var/lib/aegis/reports`:
+Reports live under `/var/lib/graphite/reports`:
 
 ```bash
-docker compose --profile git exec git ls /var/lib/aegis/reports
-docker compose --profile git cp git:/var/lib/aegis/reports ./aegis-reports
+docker compose --profile git exec git ls /var/lib/graphite/reports
+docker compose --profile git cp git:/var/lib/graphite/reports ./graphite-reports
 ```
 
 `<push-id>.json` records `ALLOW`, `BLOCK`, or `ERROR`, policy/rule versions, timing,
@@ -136,11 +136,11 @@ python -m pytest tests/test_git_gate.py -q
 On a Docker- or Podman-enabled host, run the optional shared-stack SSH smoke tests:
 
 ```bash
-AEGIS_CONTAINER_SMOKE=1 python -m pytest tests/test_git_gate_docker.py -q
+GRAPHITE_CONTAINER_SMOKE=1 python -m pytest tests/test_git_gate_docker.py -q
 ```
 
 For each installed runtime, they start the root Compose stack with the `git`
 profile using an isolated project and available host ports, generate an ephemeral
 test key, verify dashboard health, SSH clone, accepted and rejected pushes, and
 restart persistence, then remove only that test project's containers and volumes.
-The earlier `AEGIS_DOCKER_SMOKE=1` switch also enables these tests for compatibility.
+The earlier `GRAPHITE_DOCKER_SMOKE=1` switch also enables these tests for compatibility.

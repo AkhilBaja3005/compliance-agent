@@ -1,4 +1,4 @@
-"""Finding and report schemas (Aegis contract: see CLAUDE.md)."""
+"""Finding and report schemas (Graphite contract: see CLAUDE.md)."""
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -21,7 +21,7 @@ class EvidencePointer(BaseModel):
     exact_locator: str
     sha256_hash: str
     snippet: str = ""
-    # Aegis contract aliases + provenance: {type, item, exact_locator, sha256_hash, source_url, source_date}
+    # Graphite contract aliases + provenance: {type, item, exact_locator, sha256_hash, source_url, source_date}
     type: str | None = None
     item: str | None = None
     source_url: str | None = None
@@ -55,7 +55,7 @@ class ComplianceFinding(BaseModel):
     human_review_reason: str | None = None
     quarantine_reason: str | None = None
     original_status: FindingStatus | None = None
-    # Aegis contract fields
+    # Graphite contract fields
     severity: Severity | None = None
     due_date: date | None = None
     days_remaining: int | None = None
@@ -182,7 +182,7 @@ class TriagedAuditReport(BaseModel):
         return {**StackTelemetry().model_dump(), **(self.stack_telemetry or {})}
 
     def to_export_dict(self) -> dict[str, Any]:
-        """Serializes the report into a clean dictionary conforming to Aegis export contracts."""
+        """Serializes the report into a clean dictionary conforming to Graphite export contracts."""
         filters = _scope_helpers()
         fx = lambda items: [f.to_export_dict(filters) for f in items]  # noqa: E731
 

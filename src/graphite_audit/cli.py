@@ -1,4 +1,4 @@
-"""Aegis Rich Terminal CLI Interface."""
+"""Graphite Rich Terminal CLI Interface."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from aegis_audit.client import ComplianceAuditor
+from graphite_audit.client import ComplianceAuditor
 
 app = typer.Typer(
     name="graphite",
@@ -82,7 +82,7 @@ def scan(
         help="Target company name",
     ),
     output_pdf: str = typer.Option(
-        "aegis_compliance_report.pdf",
+        "graphite_compliance_report.pdf",
         "--output-pdf",
         "-o",
         help="File path to save the generated 6-section WeasyPrint A4 PDF report",
@@ -206,7 +206,7 @@ def scan(
 def _build_sync_config(config: Optional[str], folder: list[str], url: list[str], jurisdiction: str, remote_docs_tenant: Optional[str], pdf_dir: str):
     from src.law_sync.ingest import FolderSource, SyncConfig, UrlSource, load_config
 
-    cfg = load_config(config) if (config or Path("sync_sources.yaml").is_file() or os.getenv("AEGIS_SYNC_CONFIG")) else SyncConfig()
+    cfg = load_config(config) if (config or Path("sync_sources.yaml").is_file() or os.getenv("GRAPHITE_SYNC_CONFIG")) else SyncConfig()
     j = "EU_AI_ACT" if "GDPR" not in jurisdiction.upper() else "EU_GDPR"
     cfg.folders += [FolderSource(str(Path(f).resolve()), j) for f in folder]
     cfg.urls += [UrlSource(u, j) for u in url]
@@ -239,7 +239,7 @@ def sync_laws(
     deep_linkup: bool = typer.Option(True, "--deep-linkup/--no-deep-linkup", help="Use Linkup deep web search for active legal amendments"),
     folder: list[str] = typer.Option([], "--folder", "-f", help="Folder to ingest (repeatable): PDF, md, txt, docx, xlsx, pptx, html, rtf, odt, csv"),
     url: list[str] = typer.Option([], "--url", "-u", help="https web page or PDF to ingest (repeatable)"),
-    config: Optional[str] = typer.Option(None, "--config", "-c", help="YAML/JSON file listing folders and urls (default ./sync_sources.yaml or $AEGIS_SYNC_CONFIG)"),
+    config: Optional[str] = typer.Option(None, "--config", "-c", help="YAML/JSON file listing folders and urls (default ./sync_sources.yaml or $GRAPHITE_SYNC_CONFIG)"),
     remote_docs_tenant: Optional[str] = typer.Option(None, "--remote-docs-tenant", help="Also index env-configured remote sources (Notion, Jira, Slack, ...) into this tenant"),
     pdf_dir: str = typer.Option("regulatory_pdfs", "--pdf-dir", help="Default folder when no --folder/--url/config is given ('' to skip)"),
 ):
@@ -254,7 +254,7 @@ def sync_laws(
         f"[bold cyan]Folders:[/bold cyan] {', '.join(f.path for f in cfg.folders) or '-'}\n"
         f"[bold cyan]URLs:[/bold cyan] {', '.join(u.url for u in cfg.urls) or '-'}\n"
         f"[bold cyan]Remote documents:[/bold cyan] {cfg.remote_docs_tenant or 'off'}",
-        title="[bold magenta]Aegis regulatory knowledge sync[/bold magenta]", border_style="magenta"))
+        title="[bold magenta]Graphite regulatory knowledge sync[/bold magenta]", border_style="magenta"))
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True) as progress:
         progress.add_task("[magenta]Syncing rules, folders and web sources...", total=None)
         rep = run_full_sync(cfg, deep_linkup=deep_linkup)
@@ -265,19 +265,19 @@ def sync_laws(
 @app.command("sync-daemon")
 def sync_daemon(
     interval_hours: float = typer.Option(24.0, "--interval-hours", help="Hours between full syncs"),
-    config: Optional[str] = typer.Option(None, "--config", "-c", help="Sources file (default ./sync_sources.yaml or $AEGIS_SYNC_CONFIG)"),
+    config: Optional[str] = typer.Option(None, "--config", "-c", help="Sources file (default ./sync_sources.yaml or $GRAPHITE_SYNC_CONFIG)"),
     run_now: bool = typer.Option(True, "--run-now/--wait", help="Run one sync immediately, then on the interval"),
 ):
-    """Long-running scheduler for the full sync (use as a separate process/container). For cron use `aegis sync-laws` instead."""
+    """Long-running scheduler for the full sync (use as a separate process/container). For cron use `graphite sync-laws` instead."""
     import threading
 
     from src.agents.llm_client import _load_dotenv
     _load_dotenv()
     from src.observability import configure_logging
 
-    configure_logging(os.getenv("AEGIS_LOG_LEVEL", "INFO"))
+    configure_logging(os.getenv("GRAPHITE_LOG_LEVEL", "INFO"))
     if config:
-        os.environ["AEGIS_SYNC_CONFIG"] = config
+        os.environ["GRAPHITE_SYNC_CONFIG"] = config
     from src.law_sync.scheduler import start_scheduler
 
     start_scheduler(interval_hours, run_immediately=run_now)
@@ -450,7 +450,7 @@ def fix_cmd(
         ...,
         "--report",
         "-r",
-        help="Path to an Aegis audit report JSON file",
+        help="Path to an Graphite audit report JSON file",
     ),
     repos: List[str] = typer.Option(
         ["."],
@@ -472,7 +472,7 @@ def fix_cmd(
 ):
     """Generates unified diff patches or applies automated fixes for detected statutory violations."""
     import json as _json
-    from aegis_audit.remediator import generate_remediation_patches
+    from graphite_audit.remediator import generate_remediation_patches
 
     report_p = Path(report_file)
     if not report_p.is_file():
@@ -579,7 +579,7 @@ def doctor_cmd(live: bool = typer.Option(False, "--live", help="Also make one sm
     from src.doctor import exit_code, run_checks
 
     checks = run_checks(live=live)
-    t = Table(title=f"Aegis doctor ({'live' if live else 'config only'})", header_style="bold cyan")
+    t = Table(title=f"Graphite doctor ({'live' if live else 'config only'})", header_style="bold cyan")
     for h in ("Check", "Status", "Detail"):
         t.add_column(h)
     style = {"OK": "green", "FAIL": "bold red", "WARN": "yellow", "SKIP": "dim"}
@@ -596,7 +596,7 @@ def demo_cmd(out_dir: str = typer.Option("demo_output", "--out-dir", help="Where
 
     from src.agents.llm_client import _load_dotenv
     _load_dotenv()
-    from aegis_audit.client import ComplianceAuditor
+    from graphite_audit.client import ComplianceAuditor
     from src.law_sync import get_store
     from src.storage import get_compliance_store
 
@@ -605,7 +605,7 @@ def demo_cmd(out_dir: str = typer.Option("demo_output", "--out-dir", help="Where
     n = len(get_store().snapshot())
     get_compliance_store().index_rules(get_store().snapshot())
     console.print(f"[bold]Rule library:[/bold] {n} rules indexed ({get_store().version})")
-    targets = [("sample_connectors/enterprise/aegis_health_uk", "Aegis Health UK"), ("sample_connectors/enterprise/meridian_omni_ai", "Meridian OmniTech"),
+    targets = [("sample_connectors/enterprise/graphite_health_uk", "Graphite Health UK"), ("sample_connectors/enterprise/meridian_omni_ai", "Meridian OmniTech"),
                ("synthetic_companies/veylan_analytics_face_identity", "Veylan Analytics")]
     summary = []
     for path, name in targets:

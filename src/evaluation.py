@@ -36,13 +36,13 @@ def evaluate(gold_path: Path | str = DEFAULT_GOLD, frameworks: str = "EU_AI_ACT,
     run = run or run_audit
     root = root or Path(gold_path).resolve().parent.parent.parent
     gold = json.loads(Path(gold_path).read_text())
-    prev = os.environ.get("AEGIS_FRAMEWORKS")
-    os.environ["AEGIS_FRAMEWORKS"] = frameworks
+    prev = os.environ.get("GRAPHITE_FRAMEWORKS")
+    os.environ["GRAPHITE_FRAMEWORKS"] = frameworks
     cases: list[CaseResult] = []
     per_check: dict[str, dict[str, int]] = defaultdict(lambda: {"tp": 0, "fp": 0, "fn": 0})
     try:
         for c in gold["cases"]:
-            os.environ["AEGIS_FRAMEWORKS"] = c.get("frameworks", frameworks)  # a case may need another scope (e.g. EU data-residency checks)
+            os.environ["GRAPHITE_FRAMEWORKS"] = c.get("frameworks", frameworks)  # a case may need another scope (e.g. EU data-residency checks)
             rep = run(root / c["path"], c["name"])
             confirmed = {f.check_id for f in rep.confirmed_findings if f.check_id}
             res = CaseResult(c["name"])
@@ -61,9 +61,9 @@ def evaluate(gold_path: Path | str = DEFAULT_GOLD, frameworks: str = "EU_AI_ACT,
             cases.append(res)
     finally:
         if prev is None:
-            os.environ.pop("AEGIS_FRAMEWORKS", None)
+            os.environ.pop("GRAPHITE_FRAMEWORKS", None)
         else:
-            os.environ["AEGIS_FRAMEWORKS"] = prev
+            os.environ["GRAPHITE_FRAMEWORKS"] = prev
     tp = sum(len(c.tp) for c in cases)
     fp = sum(len(c.fp) for c in cases)
     fn = sum(len(c.fn) + len(c.known_missed) for c in cases)

@@ -1,4 +1,4 @@
-"""Automated Remediation Patch Generator for Aegis AI Compliance Auditor.
+"""Automated Remediation Patch Generator for Graphite AI Compliance Auditor.
 
 Inspects confirmed statutory findings and produces unified diff patches or
 applies in-place fixes directly to files.
@@ -51,14 +51,14 @@ def _compute_remediation_diff(
     if "face_upload_filter" in original and ("bypass" in f_title or "pro tier" in f_title or "moderation" in f_title):
         modified = re.sub(
             r"(\bface_upload_filter\s*:\s*)false\b",
-            r"\1true # [Aegis Remediation: EU AI Act Art. 5(1)(d) likeness protection enforced]",
+            r"\1true # [Graphite Remediation: EU AI Act Art. 5(1)(d) likeness protection enforced]",
             modified,
             flags=re.IGNORECASE,
         )
         if "deepfake_detection_enforced" in modified:
             modified = re.sub(
                 r"(\bdeepfake_detection_enforced\s*:\s*)false\b",
-                r"\1true # [Aegis Remediation: Deepfake detection enforced]",
+                r"\1true # [Graphite Remediation: Deepfake detection enforced]",
                 modified,
                 flags=re.IGNORECASE,
             )

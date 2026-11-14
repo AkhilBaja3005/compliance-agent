@@ -140,9 +140,9 @@ DEFAULT_FRAMEWORKS = "EU_AI_ACT,EU_GDPR"
 
 
 def active_frameworks() -> set[str] | None:
-    """Jurisdictions in scope. Env AEGIS_FRAMEWORKS (comma list or ALL); default EU_AI_ACT only. None = all."""
+    """Jurisdictions in scope. Env GRAPHITE_FRAMEWORKS (comma list or ALL); default EU_AI_ACT only. None = all."""
     import os
-    raw = os.getenv("AEGIS_FRAMEWORKS", DEFAULT_FRAMEWORKS).strip()
+    raw = os.getenv("GRAPHITE_FRAMEWORKS", DEFAULT_FRAMEWORKS).strip()
     if not raw or raw.upper() == "ALL":
         return None
     return {x.strip().upper() for x in raw.split(",") if x.strip()}

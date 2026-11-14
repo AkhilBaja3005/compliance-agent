@@ -25,12 +25,12 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(level: str = "INFO") -> None:
-    root = logging.getLogger("aegis")
-    if any(getattr(h, "_aegis", False) for h in root.handlers):
+    root = logging.getLogger("graphite")
+    if any(getattr(h, "_graphite", False) for h in root.handlers):
         return
     h = logging.StreamHandler()
     h.setFormatter(JsonFormatter())
-    h._aegis = True  # type: ignore[attr-defined]
+    h._graphite = True  # type: ignore[attr-defined]
     root.addHandler(h)
     root.setLevel(level)
     root.propagate = False

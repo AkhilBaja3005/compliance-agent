@@ -1,4 +1,4 @@
-"""Deterministic enrichment of findings with Aegis-contract fields (severity, due dates, owner, remediation...)."""
+"""Deterministic enrichment of findings with Graphite-contract fields (severity, due dates, owner, remediation...)."""
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta

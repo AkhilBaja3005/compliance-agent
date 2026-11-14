@@ -1,21 +1,21 @@
 services:
-  aegis:
+  graphite:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "${AEGIS_BIND_ADDRESS:-127.0.0.1}:${AEGIS_PORT:-8000}:8000"
+      - "${GRAPHITE_BIND_ADDRESS:-127.0.0.1}:${GRAPHITE_PORT:-8000}:8000"
     environment:
-      AEGIS_DATA_DIR: /var/lib/aegis
-      AEGIS_DASHBOARD_DB: /var/lib/aegis/dashboard.sqlite3
-      AEGIS_HISTORY_FILE: /var/lib/aegis/finding-history.json
-      AEGIS_AUTH_DISABLED: ${AEGIS_AUTH_DISABLED:-false}
-      AEGIS_API_KEYS: ${AEGIS_API_KEYS:-}
+      GRAPHITE_DATA_DIR: /var/lib/graphite
+      GRAPHITE_DASHBOARD_DB: /var/lib/graphite/dashboard.sqlite3
+      GRAPHITE_HISTORY_FILE: /var/lib/graphite/finding-history.json
+      GRAPHITE_AUTH_DISABLED: ${GRAPHITE_AUTH_DISABLED:-false}
+      GRAPHITE_API_KEYS: ${GRAPHITE_API_KEYS:-}
       BYOM_OFFLINE: ${BYOM_OFFLINE:-true}
       AUTO_SYNC: ${AUTO_SYNC:-false}
       COMPANIES_DIR: ${COMPANIES_DIR:-/app/tests/fixtures/companies}
       MONGODB_URI: ${MONGODB_URI:-}
-      MONGODB_DATABASE: ${MONGODB_DATABASE:-aegis_compliance}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-graphite_compliance}
       MONGODB_TIMEOUT_MS: ${MONGODB_TIMEOUT_MS:-5000}
       BYOM_BASE_URL: ${BYOM_BASE_URL:-http://127.0.0.1:11434/v1}
       BYOM_MODEL_NAME: ${BYOM_MODEL_NAME:-llama3.1:8b}
@@ -35,7 +35,7 @@ services:
       CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
       CONFLUENCE_SPACE_KEY: ${CONFLUENCE_SPACE_KEY:-}
     volumes:
-      - aegis-state:/var/lib/aegis
+      - graphite-state:/var/lib/graphite
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
@@ -51,17 +51,17 @@ services:
       context: .
       dockerfile: deploy/git-server/Dockerfile
     ports:
-      - "${AEGIS_GIT_BIND_ADDRESS:-127.0.0.1}:${AEGIS_GIT_PORT:-2222}:22"
+      - "${GRAPHITE_GIT_BIND_ADDRESS:-127.0.0.1}:${GRAPHITE_GIT_PORT:-2222}:22"
     volumes:
       - git-repositories:/srv/git
-      - git-state:/var/lib/aegis
-      - ./deploy/git-server/policy.toml:/etc/aegis/policy.toml:ro,Z
-      - "${AEGIS_AUTHORIZED_KEYS:-./.aegis/authorized_keys}:/keys/authorized_keys:ro,Z"
+      - git-state:/var/lib/graphite
+      - ./deploy/git-server/policy.toml:/etc/graphite/policy.toml:ro,Z
+      - "${GRAPHITE_AUTHORIZED_KEYS:-./.graphite/authorized_keys}:/keys/authorized_keys:ro,Z"
     restart: unless-stopped
     pids_limit: 128
     mem_limit: 1g
 
 volumes:
-  aegis-state:
+  graphite-state:
   git-repositories:
   git-state:

@@ -15,15 +15,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.mark.parametrize("runtime", ["docker", "podman"])
 def test_container_health_audit_and_persistence(runtime):
-    if os.getenv("AEGIS_CONTAINER_SMOKE") != "1" or not shutil.which(runtime):
-        pytest.skip("Set AEGIS_CONTAINER_SMOKE=1 with Docker or Podman and its Compose provider installed")
+    if os.getenv("GRAPHITE_CONTAINER_SMOKE") != "1" or not shutil.which(runtime):
+        pytest.skip("Set GRAPHITE_CONTAINER_SMOKE=1 with Docker or Podman and its Compose provider installed")
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
-    project = "aegis-dashboard-test-" + uuid.uuid4().hex[:10]
+    project = "graphite-dashboard-test-" + uuid.uuid4().hex[:10]
     compose = [runtime, "compose", "-p", project, "-f", str(ROOT / "compose.yaml")]
-    env = {**os.environ, "AEGIS_PORT": str(port), "AEGIS_BIND_ADDRESS": "127.0.0.1",
-           "BYOM_OFFLINE": "true", "AEGIS_AUTH_DISABLED": "true", "AUTO_SYNC": "false", "COMPANIES_DIR": "/app/tests/fixtures/companies"}
+    env = {**os.environ, "GRAPHITE_PORT": str(port), "GRAPHITE_BIND_ADDRESS": "127.0.0.1",
+           "BYOM_OFFLINE": "true", "GRAPHITE_AUTH_DISABLED": "true", "AUTO_SYNC": "false", "COMPANIES_DIR": "/app/tests/fixtures/companies"}
     for key in ("MONGODB_URI", "LINKUP_API_KEY", "DATABRICKS_HOST", "DATABRICKS_TOKEN", "DATABRICKS_WAREHOUSE_ID",
                 "MLFLOW_TRACKING_URI", "GITHUB_TOKEN", "CONFLUENCE_URL", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
         env[key] = ""
@@ -68,14 +68,14 @@ def test_container_health_audit_and_persistence(runtime):
         assert job["state"] == "succeeded", job
         before = httpx.get(base + "/snapshot").json()
         assert before["latest_report"]["report_id"] == job["report_id"]
-        check = run("exec", "-T", "aegis", "python", "-c",
-                    "import os; from pathlib import Path; assert os.getuid() != 0; assert Path('/var/lib/aegis/finding-history.json').is_file()")
+        check = run("exec", "-T", "graphite", "python", "-c",
+                    "import os; from pathlib import Path; assert os.getuid() != 0; assert Path('/var/lib/graphite/finding-history.json').is_file()")
         assert check.returncode == 0, check.stderr
         # Invoke the exact configured health-check command, independent of its timer.
-        check = run("exec", "-T", "aegis", "python", "-c",
+        check = run("exec", "-T", "graphite", "python", "-c",
                     "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).read()")
         assert check.returncode == 0, check.stderr
-        assert run("restart", "aegis").returncode == 0
+        assert run("restart", "graphite").returncode == 0
         healthy()
         after = httpx.get(base + "/snapshot").json()
         assert after["latest_report"]["report_id"] == before["latest_report"]["report_id"]

@@ -1,4 +1,4 @@
-"""SARIF 2.1.0 Exporter for Aegis AI Compliance Auditor.
+"""SARIF 2.1.0 Exporter for Graphite AI Compliance Auditor.
 
 Conforms to the OASIS Static Analysis Results Interchange Format (SARIF) v2.1.0:
 https://docs.oasis-open.org/sarif/sarif/v2.1.0/cos02/schemas/sarif-schema-2.1.0.json
@@ -164,10 +164,10 @@ def render_audit_sarif(report: Any, output_path: Optional[str] = None) -> Dict[s
             {
                 "tool": {
                     "driver": {
-                        "name": "Aegis Compliance Auditor",
-                        "organization": "Aegis AI Safety",
+                        "name": "Graphite Compliance Auditor",
+                        "organization": "Graphite AI Safety",
                         "semanticVersion": "1.0.0",
-                        "informationUri": "https://github.com/aegis-ai/aegis",
+                        "informationUri": "https://github.com/graphite-ai/graphite",
                         "rules": list(rules_dict.values()),
                     }
                 },
