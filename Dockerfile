@@ -29,7 +29,7 @@ COPY assets ./assets
 COPY tests ./tests
 COPY synthetic_companies ./synthetic_companies
 COPY sync_sources.yaml ./sync_sources.yaml
-RUN mkdir -p /app/regulatory_pdfs /app/assets && pip install '.[ocr]'
+RUN mkdir -p /app/regulatory_pdfs /app/assets && chown -R graphite:graphite /app && pip install '.[ocr]'
 
 USER graphite
 VOLUME ["/var/lib/graphite"]
