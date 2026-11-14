@@ -1,0 +1,16 @@
+# Sources for `aegis sync-laws` and the daily sync. Paths are relative to this file. Every entry is hashed: unchanged sources are skipped,
+# changed ones are replaced, and files that disappear are removed. Web pages must be https and publicly reachable.
+folders:
+  - path: regulatory_pdfs
+    jurisdiction: EU_AI_ACT
+    category: REGULATORY_PDF
+  # - path: policies/internal-guidance      # md, txt, docx, xlsx, pptx, html, rtf, odt, csv and pdf are all read
+  #   jurisdiction: EU_GDPR
+  #   category: REGULATORY_DOC
+urls: []
+  # EUR-Lex often answers automated clients with a browser-verification page; a blocked page is reported as an error, never indexed.
+  # - url: https://www.edpb.europa.eu/system/files/2023-04/edpb_guidelines_202202_art_5_gdpr_en.pdf
+  #   jurisdiction: EU_GDPR
+  # - url: https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-5
+  #   jurisdiction: EU_AI_ACT
+# remote_docs_tenant: acme        # index Notion/Jira/Slack/... (env-configured) into this tenant; never the shared global tenant

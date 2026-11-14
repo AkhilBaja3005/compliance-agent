@@ -122,14 +122,19 @@ class CodeDocDriftAgent(MicroAgent):
         a0 = asserts[0]
         doc_ev = [ev_chunk(chunk_by_id[a.source_chunk_id], a.claim_text) for a in asserts[:2] if a.source_chunk_id in chunk_by_id]
         state, code_ev, detail = ASSESSORS[claim_type](ix)
+        from src.agents.llm_client import build_focused_context
+
+        sl = next((x for x in ix.slices if any(e.artifact_id == x.slice_id for e in code_ev)), None)
+        card = next((c for c in ix.cards if any(e.artifact_id == c.module_id for e in code_ev)), None)
+        focus = build_focused_context(a0, sl, card)
         claim = f'Docs promise: "{a0.claim_text}"'
         if state == "CONTRADICTS":
             return Verdict("CONFIRMED_VIOLATION", 0.92, f"Code-vs-doc drift: {claim_type} promise contradicted by code",
                            f"Documentary promise is contradicted by implementation ({detail}).", doc_ev + code_ev,
-                           drift=f"{claim} | Code shows: {detail}.")
+                           drift=f"{claim} | Code shows: {detail}.", context=focus)
         if state == "SUPPORTS":
             return Verdict("PASS", 0.88, f"{claim_type} promise consistent with code", f"Implementation matches the documented promise ({detail}).",
-                           doc_ev + code_ev, drift=None)
+                           doc_ev + code_ev, drift=None, context=focus)
         return Verdict("SUSPECTED_GAP", 0.6, f"{claim_type} promise could not be verified in code",
                        f"Promise exists in docs but code evidence is insufficient ({detail}).", doc_ev + code_ev,
-                       drift=f"{claim} | Code evidence: {detail}.")
+                       drift=f"{claim} | Code evidence: {detail}.", context=focus)

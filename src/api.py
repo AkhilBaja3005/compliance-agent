@@ -85,7 +85,7 @@ async def lifespan(app: FastAPI):
     configure_logging(os.getenv("AEGIS_LOG_LEVEL", "INFO"))
     init_state()
     if os.getenv("AUTO_SYNC", "false").lower() == "true":
-        start_scheduler(24)
+        start_scheduler(float(os.getenv("AEGIS_SYNC_INTERVAL_HOURS", "24")))
     yield
     stop_scheduler()
 
@@ -306,6 +306,16 @@ def laws_sync(_: sec.Principal = Depends(sec.require("admin"))):
 def laws_simulate(req: SimulateRequest | None = None, _: sec.Principal = Depends(sec.require("admin"))):
     req = req or SimulateRequest()
     return simulate_law_amendment(req.jurisdiction, req.title, req.text)
+
+
+@app.post("/laws/ingest")
+def laws_ingest(deep_linkup: bool = False, _: sec.Principal = Depends(sec.require("admin"))):
+    """Run the full knowledge sync for the *configured* sources (sync_sources.yaml / AEGIS_SYNC_CONFIG). Request bodies cannot add paths or URLs."""
+    from src.law_sync.ingest import run_full_sync
+
+    rep = run_full_sync(deep_linkup=deep_linkup)
+    return {"rules_total": rep.rules_total, "rule_changes": rep.rule_changes, "rules_version": rep.rules_version, "moved_legacy_chunks": rep.moved_legacy_chunks,
+            "sources": [vars(r) for r in rep.sources], "errors": len(rep.errors)}
 
 
 @app.get("/laws/pending")

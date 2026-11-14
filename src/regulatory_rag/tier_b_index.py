@@ -66,6 +66,25 @@ def _make_embedder():
     return HashingEmbedder()
 
 
+_SHARED_EMBEDDER = None
+
+
+def embed_texts_batch(texts: list[str], batch_size: int = 64, embedder=None) -> list[list[float]]:
+    """Embed `texts` in batches (default 64) with one encoder call per batch; order is preserved. Empty input returns []."""
+    global _SHARED_EMBEDDER
+    if not texts:
+        return []
+    if embedder is None:
+        if _SHARED_EMBEDDER is None:
+            _SHARED_EMBEDDER = _make_embedder()
+        embedder = _SHARED_EMBEDDER
+    size = max(1, int(batch_size))
+    out: list[list[float]] = []
+    for i in range(0, len(texts), size):
+        out.extend([float(x) for x in row] for row in embedder.encode(texts[i:i + size]))
+    return out
+
+
 @dataclass
 class Hit:
     rule: RegulatoryRule
@@ -77,7 +96,7 @@ class _Snapshot:
         self.rules = list(rules.values())
         self.docs = [_rule_doc(r) for r in self.rules]
         self.bm25 = BM25Okapi([_tokens(d) for d in self.docs])
-        self.emb = embedder.encode(self.docs)
+        self.emb = np.asarray(embed_texts_batch(self.docs, embedder=embedder), dtype=np.float32)  # batched: one encoder call per 64 rules
 
 
 class HybridRetriever:

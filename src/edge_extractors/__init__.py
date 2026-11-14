@@ -47,6 +47,8 @@ class TriModalIndex:
     infra_facts: list[dict] = field(default_factory=list)
     source_statuses: list[dict] = field(default_factory=list)
     fairness_outcomes: dict | None = None
+    diff_base: str | None = None
+    diff_files: list[str] | None = None  # diff mode: only these changed files were scanned for code
     data_assets: list[dict] = field(default_factory=list)
 
     # ---- artifact registry used by Gate 1 (artifact_id -> (locator, sha256, tenant))
@@ -186,7 +188,8 @@ def build_systems(ix: TriModalIndex, declared) -> None:
 
 def build_index(company_dir: Path | str | None = None, tenant_id: str | None = None, *, github_source: str | Path | None = None,
                 confluence_source: str | Path | None = None, space_key: str | None = None,
-                github_token: str | None = None, doc_sources: list | None = None, data_sources: list | None = None) -> TriModalIndex:
+                github_token: str | None = None, doc_sources: list | None = None, data_sources: list | None = None,
+                diff_base: str | None = None) -> TriModalIndex:
     """Build the tri-modal index.
 
     Sources: `github_source` (local dir or https://github.com/org/repo), `confluence_source` (local folder, or
@@ -211,7 +214,7 @@ def build_index(company_dir: Path | str | None = None, tenant_id: str | None = N
             skip_top.add("github")
         if (root / "confluence").is_dir():
             skip_top.add("confluence")
-    gh = scan_github_source(gh_src, tenant_id, github_token) if gh_src is not None else None
+    gh = scan_github_source(gh_src, tenant_id, github_token, diff_base=diff_base) if gh_src is not None else None
     chunks: list[DocumentChunk] = []
     declared, pages, docs_origin = [], 0, "local"
     if cf_src is not None:
@@ -255,6 +258,7 @@ def build_index(company_dir: Path | str | None = None, tenant_id: str | None = N
         code_origin=gh.origin if gh else "none", docs_origin=docs_origin, doc_pages=pages,
         lang_files=dict(res.lang_files) if res else {}, unscanned=dict(res.unscanned) if res else {},
         infra_facts=list(res.infra_facts) if res else [], source_statuses=statuses,
+        diff_base=gh.diff_base if gh else None, diff_files=gh.diff_files if gh else None,
     )
     from dataclasses import asdict
 

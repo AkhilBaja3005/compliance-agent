@@ -39,6 +39,7 @@ class Verdict:
     risk_tier: RiskTier | None = None
     scan_basis: bool = False  # evidence-free PASS justified by an explicit exhaustive scan
     citation_urls: list[str] = field(default_factory=list)  # Linkup-verified sources
+    context: str = ""  # pruned prompt context (claim + mismatched lines + tags); never whole files
 
 
 def snippet(text: str, n: int = 280) -> str:
@@ -166,7 +167,7 @@ def assemble_finding(check: MandatoryCheck, v: Verdict, ctx: AuditContext) -> Co
         pass
     narrative = ctx.llm.structured(
         "You rewrite compliance audit summaries concisely. Never change facts, status or numbers.",
-        f"Check: {check.question}\nStatus: {status}\nSummary: {summary}", Narrative, lambda: Narrative(summary=summary))
+        f"Check: {check.question}\nStatus: {status}\nSummary: {summary}" + (f"\nEvidence context:\n{v.context}" if v.context else ""), Narrative, lambda: Narrative(summary=summary))
     final_summary = narrative.summary if narrative.summary.strip() else summary
     urls = list(dict.fromkeys(v.citation_urls + ([rule.linkup_source_url] if rule is not None and rule.linkup_source_url else [])))
     return ComplianceFinding(

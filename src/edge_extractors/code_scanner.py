@@ -5,6 +5,7 @@ Produces ASTSlice, BehavioralCapabilityCard and DependencyFact artifacts for a c
 from __future__ import annotations
 
 import ast
+import os
 import re
 from pathlib import Path
 from urllib.parse import urlparse
@@ -266,7 +267,7 @@ def _scan_notebook(raw: str, rel: str, tenant_id: str, result: "ScanResult") -> 
         code = "".join(cell.get("source", [])) if isinstance(cell.get("source"), list) else str(cell.get("source", ""))
         code = "\n".join(l for l in code.splitlines() if not l.lstrip().startswith(("%", "!")))
         if code.strip():
-            _scan_python_file(code, f"{rel}#cell{i}", tenant_id, result)
+            _cached("py", "py", code, f"{rel}#cell{i}", tenant_id, result, lambda c=code, i=i: _scan_python_file(c, f"{rel}#cell{i}", tenant_id, result))
 
 
 _BYPASS_SUFFIXES = {".py", ".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".env", ".ts", ".tsx", ".js", ".jsx", ".java", ".kt", ".go", ".cs", ".rs", ".rb", ".php", ".swift"}
@@ -289,6 +290,116 @@ def _scan_bypass_file(src: str, rel: str, tenant_id: str, result: "ScanResult") 
             capability_tags=tags, sha256_hash=sha256_text(f"{rel}:{i}:{line.strip()}")))
 
 
+# ----------------------------------------------------------------------------- content-addressed AST cache
+SCANNER_VERSION = "3"  # bump when extraction logic changes: invalidates every cached entry
+
+
+def sid_py(tenant_id: str, rel: str, start: int) -> str:
+    return "slice-" + sha256_text(":".join([tenant_id, rel, str(start)]))[:12]
+
+
+def sid_lang(tenant_id: str, rel: str, start: int, end: int, name: str) -> str:
+    return "slice-" + sha256_text(":".join([tenant_id, rel, str(start), str(end), name]))[:12]
+
+
+class AstCache:
+    """Parse-result cache keyed by the sha256 of a file's content (plus its path and scanner version).
+
+    A hit skips tree-sitter and returns freshly built `ASTSlice` / `BehavioralCapabilityCard` objects, rebound to the caller's
+    `tenant_id` (the tenant is part of every slice id, so ids are recomputed); commit metadata is stamped by the connector after the
+    scan, so cached entries never carry one. In-memory by default; `path` adds a JSON file (`.aegis_cache/ast_cache.json`).
+    """
+
+    MAX_ENTRIES = 5000
+
+    def __init__(self, path: str | Path | None = None):
+        self.path = Path(path) if path else None
+        self.entries: dict[str, dict] = {}
+        self.hits = self.misses = 0
+        self._dirty = False
+        if self.path and self.path.is_file():
+            try:
+                import json
+
+                data = json.loads(self.path.read_text(encoding="utf-8"))
+                if data.get("version") == SCANNER_VERSION:
+                    self.entries = data.get("entries", {})
+            except (OSError, ValueError):
+                self.entries = {}
+
+    @staticmethod
+    def key(kind: str, src: str, rel: str) -> str:
+        return f"{kind}:{sha256_text(src)}:{rel}"
+
+    def get(self, key: str, tenant_id: str):
+        e = self.entries.get(key)
+        if e is None:
+            self.misses += 1
+            return None
+        self.hits += 1
+        slices = []
+        for d in e["slices"]:
+            sl = ASTSlice.model_validate({**d, "tenant_id": tenant_id})
+            sl.slice_id = sid_py(tenant_id, sl.file_path, sl.start_line) if e["id_kind"] == "py" else sid_lang(tenant_id, sl.file_path, sl.start_line, sl.end_line, sl.function_name)
+            slices.append(sl)
+        cards = [BehavioralCapabilityCard.model_validate({**d, "tenant_id": tenant_id}) for d in e["cards"]]
+        return slices, cards, e.get("ret")
+
+    def put(self, key: str, id_kind: str, slices: list, cards: list, ret=None) -> None:
+        if len(self.entries) >= self.MAX_ENTRIES:
+            self.entries.pop(next(iter(self.entries)))  # drop the oldest
+        self.entries[key] = {"id_kind": id_kind, "slices": [s.model_dump(mode="json", exclude={"commit_sha", "origin"}) for s in slices],
+                             "cards": [c.model_dump(mode="json", exclude={"commit_sha"}) for c in cards], "ret": ret}
+        self._dirty = True
+
+    def flush(self) -> None:
+        if not (self.path and self._dirty):
+            return
+        import json
+        import os
+        import tempfile
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump({"version": SCANNER_VERSION, "entries": self.entries}, fh)
+        os.replace(tmp, self.path)  # atomic: a crash never leaves a half-written cache
+        self._dirty = False
+
+
+_AST_CACHE: AstCache | None = None
+
+
+def ast_cache() -> AstCache:
+    """Process-wide cache. Disk-backed when AEGIS_AST_CACHE_DIR is set (e.g. `.aegis_cache`), otherwise memory only."""
+    global _AST_CACHE
+    if _AST_CACHE is None:
+        d = os.getenv("AEGIS_AST_CACHE_DIR")
+        _AST_CACHE = AstCache(Path(d) / "ast_cache.json" if d else None)
+    return _AST_CACHE
+
+
+def set_ast_cache(cache: "AstCache | None") -> None:
+    global _AST_CACHE
+    _AST_CACHE = cache
+
+
+def _cached(kind: str, id_kind: str, src: str, rel: str, tenant_id: str, result: "ScanResult", scan_fn):
+    """Run `scan_fn(result)` unless an identical file (same content and path) was scanned before; reuse its slices and cards instead."""
+    cache = ast_cache()
+    key = cache.key(kind, src, rel)
+    hit = cache.get(key, tenant_id)
+    if hit is not None:
+        slices, cards, ret = hit
+        result.slices += slices
+        result.cards += cards
+        return ret
+    n_s, n_c = len(result.slices), len(result.cards)
+    ret = scan_fn()
+    cache.put(key, id_kind, result.slices[n_s:], result.cards[n_c:], ret if isinstance(ret, (bool, type(None))) else None)
+    return ret
+
+
 # ----------------------------------------------------------------------------- scanning
 class ScanResult:
     def __init__(self):
@@ -302,15 +413,18 @@ class ScanResult:
         self.infra_facts: list[dict] = []  # hosting/egress facts from IaC and config (see infra_scanner)
 
 
-def scan_code(company_dir: Path | str, tenant_id: str) -> ScanResult:
+def scan_code(company_dir: Path | str, tenant_id: str, only_files: "set[str] | None" = None) -> ScanResult:
+    """Scan a code tree. `only_files` (posix paths relative to the root) restricts the scan to those files: used by `aegis scan --diff`."""
     root = Path(company_dir)
     result = ScanResult()
     for path in _walk_files(root):
         rel = path.relative_to(root).as_posix()
+        if only_files is not None and rel not in only_files:
+            continue
         if path.suffix == ".py":
             result.py_files.append(rel)
             src = _read(path)
-            _scan_python_file(src, rel, tenant_id, result)
+            _cached("py", "py", src, rel, tenant_id, result, lambda: _scan_python_file(src, rel, tenant_id, result))
             if LOCAL_MODEL_RE.search(src):
                 result.uses_local_model = True
         elif (mf := __import__("src.edge_extractors.manifest_scanner", fromlist=["x"]).parse_manifest(path, rel, _read(path), tenant_id)) is not None:
@@ -325,7 +439,7 @@ def scan_code(company_dir: Path | str, tenant_id: str) -> ScanResult:
                 result.py_files.append(rel)  # counts as code present
                 ok = False
                 try:
-                    ok = scan_language_file(text, rel, path.suffix, tenant_id, result)
+                    ok = _cached("lang", "lang", text, rel, tenant_id, result, lambda: scan_language_file(text, rel, path.suffix, tenant_id, result))
                 except Exception:  # parser failure must not abort the audit; the signal scan still runs
                     ok = False
                 lang = LANGS[path.suffix][0]
@@ -348,6 +462,7 @@ def scan_code(company_dir: Path | str, tenant_id: str) -> ScanResult:
                 _msc.scan_infra_file(_t, rel, tenant_id, result)
         if path.suffix in {".md", ".txt", ".json", ".yaml", ".yml", ".toml", ".cfg", ".py"} or path.name.upper().startswith(("LICENSE", "MODEL_CARD")):
             result.dependencies.extend(_model_license_facts(_read(path), rel, tenant_id))
+    ast_cache().flush()
     return result
 
 
@@ -451,7 +566,7 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
         is_entry = info["is_route"] or name not in called_by_local
         sha = sha256_text(info["text"])
         sl = ASTSlice(
-            slice_id="slice-" + sha256_text(":".join([tenant_id, rel, str(info["start"])]))[:12],
+            slice_id=sid_py(tenant_id, rel, info["start"]),
             tenant_id=tenant_id, file_path=rel, start_line=info["start"], end_line=info["end"],
             code_snippet=info["text"], imports=imports, external_endpoints=eff_urls,
             has_pii_redaction=eff["pii"], has_hitl_gate=eff["hitl"], has_moderation_hook=eff["mod"],

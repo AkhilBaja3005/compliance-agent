@@ -97,9 +97,13 @@ def _pptx(path: Path) -> str:
 
 
 def _html(path: Path) -> str:
+    return html_to_text(path.read_text(encoding="utf-8", errors="replace"))
+
+
+def html_to_text(markup: str) -> str:
     from bs4 import BeautifulSoup
 
-    soup = BeautifulSoup(path.read_text(encoding="utf-8", errors="replace"), "html.parser")
+    soup = BeautifulSoup(markup, "html.parser")
     for t in soup(["script", "style", "noscript"]):
         t.decompose()
     out: list[str] = []

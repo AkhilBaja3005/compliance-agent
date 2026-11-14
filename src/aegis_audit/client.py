@@ -13,7 +13,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from aegis_audit.remediator import generate_remediation_patches
 from aegis_audit.report_pdf import render_audit_pdf
+from aegis_audit.sarif import render_audit_sarif
 
 
 @dataclass
@@ -70,11 +72,20 @@ class AuditSession:
         }
 
     def to_json(self, indent: int = 2) -> str:
-        return json.dumps(self.to_dict(), indent=indent)
+        return json.dumps(self.to_dict(), indent=indent, default=str)
 
     def save_pdf(self, output_path: str = "aegis_compliance_report.pdf") -> str:
         """Renders the exact 6-section executive A4 PDF report using WeasyPrint."""
         return render_audit_pdf(self.to_dict(), output_path=output_path)
+
+    def save_sarif(self, output_path: str = "aegis_compliance_report.sarif") -> Dict[str, Any]:
+        """Renders the OASIS SARIF v2.1.0 code scanning JSON output."""
+        return render_audit_sarif(self.to_dict(), output_path=output_path)
+
+    def generate_patches(self, repo_paths: Optional[List[str | Path]] = None, apply: bool = False, patch_out: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Generates unified git patches to automatically remediate statutory violations."""
+        paths = repo_paths or [Path.cwd()]
+        return generate_remediation_patches(self.to_dict(), paths, apply=apply, patch_out=patch_out)
 
     def print_rich_summary(self) -> None:
         """Prints an executive terminal dashboard using Rich."""
@@ -86,7 +97,7 @@ class AuditSession:
                 f"[bold white]{self.company_name}[/bold white] — [bold red]{self.overall_readiness}[/bold red]\n"
                 f"[dim]Scope: {self.scope} | Report ID: {self.report_id} | Coverage: {self.input_coverage_pct}%[/dim]\n"
                 f"[yellow]{self.readiness_summary}[/yellow]",
-                title="[bold blue]⚖️ AEGIS AI SAFETY & REGULATORY COMPLIANCE AUDITOR[/bold blue]",
+                title="[bold #70C5FF]⚖️ GRAPHITE AI SAFETY & REGULATORY COMPLIANCE AUDITOR[/bold #70C5FF]",
                 border_style="red" if "NOT" in self.overall_readiness else "green",
             )
         )
@@ -174,6 +185,7 @@ class ComplianceAuditor:
         target_dir: Optional[str] = None,
         github_url: Optional[str] = None,
         confluence_path: Optional[str] = None,
+        diff_base: Optional[str] = None,
     ) -> AuditSession:
         """Runs a complete multi-agent compliance audit across GitHub and Confluence assets."""
         from src.connectors.github_connector import is_github_url
@@ -191,8 +203,9 @@ class ComplianceAuditor:
                 tenant_id,
                 github_source=url,
                 confluence_source=confluence_path,
+                diff_base=diff_base,
             )
-            return self._build_session(real_report, company_name or repo_name, now_str, f"Live GitHub Repo ({url})")
+            return self._build_session(real_report, company_name or repo_name, now_str, self._scope_label(f"Live GitHub Repo ({url})", real_report))
 
         target_path = Path(target_dir or "./sample_connectors").resolve()
 
@@ -207,8 +220,8 @@ class ComplianceAuditor:
         if is_company_dir:
             from src.agents import run_audit
             tenant_id = target_path.name
-            real_report = run_audit(target_path, tenant_id)
-            return self._build_session(real_report, company_name, now_str, f"Scanned Repository ({target_path.name})")
+            real_report = run_audit(target_path, tenant_id, diff_base=diff_base)
+            return self._build_session(real_report, company_name, now_str, self._scope_label(f"Scanned Repository ({target_path.name})", real_report))
 
         # 7 Systems modeled on Northwind Labs Ltd (sample_connectors default)
         systems = [
@@ -584,81 +597,37 @@ class ComplianceAuditor:
         )
         return session
 
+    @staticmethod
+    def _scope_label(label: str, real_report) -> str:
+        """Append the incremental-scan marker (`[diff vs <base>: N changed file(s)]`) so a PR-gate report says what it covered."""
+        import re as _re
+
+        m = _re.search(r"\[diff vs [^\]]+\]", getattr(real_report, "scope", "") or "")
+        return f"{label} {m.group(0)}" if m else label
+
     def _build_session(self, real_report, company_name: str, assessed_at: str, scope: str) -> AuditSession:
-        from src.regulatory_rag.tier_a_rules import active_frameworks
-        _fw = active_frameworks()
-
-        def _in_scope(rule: str) -> bool:
-            return _fw is None or any(str(rule).upper().startswith(j) for j in _fw)
-
-        def _exposure(txt: str) -> str:
-            if _fw is None or "UK" in " ".join(_fw):
-                return txt
-            import re as _re
-            return _re.sub(r"\s*(and/or|and)\s+up to GBP.*?UK GDPR", "", txt or "")
-
-        def _summary(txt: str) -> str:
-            if _fw is None or "UK" in " ".join(_fw):
-                return txt
-            import re as _re
-
-            def _rel(m):
-                keep = [r.strip() for r in m.group(1).split(",") if r.strip() and "UK_" not in r and not r.strip().startswith("UK ")]
-                return f" Related: {', '.join(keep)}." if keep else ""
-            return _re.sub(r" Related: ([^()]*?)\.(?=\s*\()", _rel, txt or "")
-
-        def _f_to_dict(f):
-            return {
-                "finding_id": f.finding_id,
-                "severity": f.severity,
-                "status": f.status,
-                "due_date": f.due_date,
-                "days_remaining": f.days_remaining,
-                "confidence": f.confidence,
-                "title": f.title,
-                "system_id": f.system_id,
-                "system_name": f.system_name,
-                "primary_rule": f.primary_rule,
-                "also_engages": [r for r in f.also_engages if _in_scope(r)],
-                "summary": _summary(f.summary),
-                "code_vs_doc_drift": f.code_vs_doc_drift,
-                "evidence": [e.model_dump() if hasattr(e, "model_dump") else e for e in f.evidence],
-                "exposure_text": _exposure(f.exposure_text),
-                "owner": f.owner,
-                "effort_days": f.effort_days,
-                "human_review_required": f.human_review_required,
-                "remediation_steps": f.remediation_steps,
-                "history_status": f.history_status,
-                "linkup_citation_urls": f.linkup_citation_urls,
-            }
-
-        confirmed_dicts = [_f_to_dict(f) for f in real_report.confirmed_findings]
-        gaps_dicts = [_f_to_dict(f) for f in real_report.suspected_gaps]
-        quarantined_dicts = [_f_to_dict(f) for f in real_report.quarantined_for_human_review]
-        passed_dicts = [p.model_dump() if hasattr(p, "model_dump") else p for p in real_report.passed_checks]
-        systems_dicts = [s.model_dump() if hasattr(s, "model_dump") else s for s in real_report.system_inventory]
-
+        export_data = real_report.to_export_dict()
         return AuditSession(
-            report_id=real_report.report_id,
-            company_name=company_name or real_report.company_name,
-            assessed_at=assessed_at,
-            scope=scope,
-            rule_library_version=real_report.rule_library_version,
-            input_coverage_pct=int(real_report.input_coverage_pct),
-            overall_readiness=real_report.overall_readiness,
-            readiness_summary=real_report.readiness_summary,
-            bundle_sha256=real_report.bundle_sha256,
-            stack_telemetry=real_report.stack_telemetry,
-            system_inventory=systems_dicts,
-            compliance_matrix=[m.model_dump() if hasattr(m, "model_dump") else m for m in real_report.compliance_matrix],
-            confirmed_findings=confirmed_dicts,
-            suspected_gaps=gaps_dicts,
-            quarantined_for_human_review=quarantined_dicts,
-            passed_checks=passed_dicts,
-            agent_execution_trace=[{"step": t} for t in real_report.agent_execution_trace],
-            eval_results=real_report.eval_results,
-            fairness_metrics=real_report.fairness_metrics,
-            roadmap=real_report.roadmap,
-            input_coverage=real_report.input_coverage,
-            frameworks=real_report.frameworks,
+            report_id=export_data["report_id"],
+            company_name=company_name or export_data["company_name"],
+            assessed_at=assessed_at or export_data["assessed_at"],
+            scope=scope or export_data["scope"],
+            rule_library_version=export_data["rule_library_version"],
+            input_coverage_pct=export_data["input_coverage_pct"],
+            overall_readiness=export_data["overall_readiness"],
+            readiness_summary=export_data["readiness_summary"],
+            bundle_sha256=export_data["bundle_sha256"],
+            stack_telemetry=export_data["stack_telemetry"],
+            system_inventory=export_data["system_inventory"],
+            compliance_matrix=export_data["compliance_matrix"],
+            confirmed_findings=export_data["confirmed_findings"],
+            suspected_gaps=export_data["suspected_gaps"],
+            quarantined_for_human_review=export_data["quarantined_for_human_review"],
+            passed_checks=export_data["passed_checks"],
+            agent_execution_trace=export_data["agent_execution_trace"],
+            eval_results=export_data["eval_results"],
+            fairness_metrics=export_data["fairness_metrics"],
+            roadmap=export_data["roadmap"],
+            input_coverage=export_data["input_coverage"],
+            frameworks=export_data["frameworks"],
         )

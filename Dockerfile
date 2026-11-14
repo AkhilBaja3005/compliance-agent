@@ -9,6 +9,7 @@ WORKDIR /app
 COPY pyproject.toml CLAUDE.md ./
 COPY src ./src
 COPY regulatory_pdfs ./regulatory_pdfs
+COPY sync_sources.yaml ./sync_sources.yaml
 RUN pip install -e . pytesseract
 USER aegis
 ENV AEGIS_DATA_DIR=/data AEGIS_PDF_ROOT=/app/regulatory_pdfs

@@ -13,6 +13,7 @@ def _offline_env(monkeypatch):
     monkeypatch.setenv("BYOM_OFFLINE", "true")
     monkeypatch.setenv("COMPANIES_DIR", str(FIXTURES))
     monkeypatch.setenv("USE_DATABRICKS", "false")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "")  # LLMClient re-reads .env: an empty value stops a developer key from leaking into tests
     monkeypatch.setenv("AEGIS_FRAMEWORKS", "ALL")
     monkeypatch.setenv("AEGIS_AUTH_DISABLED", "true")  # security tests enable keys explicitly
     monkeypatch.delenv("AEGIS_API_KEYS", raising=False)

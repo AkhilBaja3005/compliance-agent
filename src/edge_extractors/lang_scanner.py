@@ -210,7 +210,7 @@ def scan_language_file(src: str, rel: str, ext: str, tenant_id: str, result) -> 
             eff_gen = True
         sha = sha256_text(v["text"])
         sl = ASTSlice(
-            slice_id="slice-" + sha256_text(":".join([tenant_id, rel, str(v["start"]), str(v["end"]), v["name"]]))[:12], tenant_id=tenant_id, file_path=rel,
+            slice_id=cs.sid_lang(tenant_id, rel, v["start"], v["end"], v["name"]), tenant_id=tenant_id, file_path=rel,
             start_line=v["start"], end_line=v["end"], code_snippet=v["text"], imports=imports_blob.splitlines()[:30],
             external_endpoints=eff_urls, has_pii_redaction=eff["pii"], has_hitl_gate=eff["hitl"], has_moderation_hook=eff["mod"],
             has_watermark_hook=eff["wm"], has_ai_disclosure=eff["disc"], disclosure_denied=eff["disc_denied"], sha256_hash=sha, function_name=v["name"], endpoint_regions={u: cs.classify_endpoint(u) for u in eff_urls},

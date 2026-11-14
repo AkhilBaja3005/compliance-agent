@@ -35,7 +35,7 @@ def _get_css() -> str:
         size: A4 portrait;
         margin: 14mm 12mm 16mm 12mm;
         @bottom-left {
-            content: "CONFIDENTIAL & PROPRIETARY — AEGIS AI COMPLIANCE AUDITOR";
+            content: "CONFIDENTIAL & PROPRIETARY — GRAPHITE AI COMPLIANCE AUDITOR • MADE BY GRAPHITE";
             font-size: 7pt;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #94A3B8;
@@ -73,6 +73,53 @@ def _get_css() -> str:
         border-bottom: 2px solid #0F172A;
         padding-bottom: 8px;
         margin-bottom: 12px;
+    }
+    .header-layout {
+        display: table;
+        width: 100%;
+    }
+    .header-left {
+        display: table-cell;
+        vertical-align: middle;
+    }
+    .header-right {
+        display: table-cell;
+        vertical-align: middle;
+        text-align: right;
+        width: 140px;
+    }
+    .brand-badge {
+        display: inline-flex;
+        align-items: center;
+        background-color: #F1F5F9;
+        border: 1px solid #CBD5E1;
+        border-radius: 4px;
+        padding: 4px 8px;
+    }
+    .brand-logo-img {
+        width: 28px;
+        height: 28px;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
+    .brand-text-block {
+        display: inline-block;
+        text-align: left;
+        vertical-align: middle;
+    }
+    .brand-title {
+        font-size: 8pt;
+        font-weight: 800;
+        color: #0F172A;
+        letter-spacing: 0.5px;
+        line-height: 1;
+    }
+    .brand-sub {
+        font-size: 6pt;
+        color: #64748B;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     .assessment-sub {
         font-size: 8pt;
@@ -443,8 +490,23 @@ def _get_css() -> str:
 
 
 
+def _get_logo_data_uri() -> str:
+    """Reads assets/graphite_report_logo.png and returns a base64 data URI."""
+    logo_path = Path(__file__).resolve().parent.parent.parent / "assets" / "graphite_report_logo.png"
+    if not logo_path.is_file():
+        logo_path = Path("assets/graphite_report_logo.png")
+    if logo_path.is_file():
+        try:
+            b64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
+            return f"data:image/png;base64,{b64}"
+        except Exception:
+            pass
+    return ""
+
+
 def render_html_report(report_data: Dict[str, Any]) -> str:
     """Generates the full HTML markup for the 6-section A4 audit report."""
+    logo_uri = _get_logo_data_uri()
     company = html.escape(str(report_data.get("company_name", "Enterprise Target")))
     report_id = html.escape(str(report_data.get("report_id", "AEGIS-AUDIT-2026-001")))
     assessed_at = html.escape(str(report_data.get("assessed_at", datetime.now(timezone.utc).strftime("%d %B %Y"))))
@@ -536,10 +598,23 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
 <!-- SECTION 1: EXECUTIVE SUMMARY -->
 <!-- ======================================================================= -->
 <div class="top-header">
-    <div class="assessment-sub">Aegis Regulatory Engine • Company-Wide Assessment · {fw_label}</div>
-    <div class="company-title-row">
-        <h1 class="company-name">{company}</h1>
-        <div class="report-date">Assessed: <strong>{assessed_at}</strong></div>
+    <div class="header-layout">
+        <div class="header-left">
+            <div class="assessment-sub">Graphite Regulatory Engine • Company-Wide Assessment · {fw_label}</div>
+            <div class="company-title-row">
+                <h1 class="company-name">{company}</h1>
+                <div class="report-date">Assessed: <strong>{assessed_at}</strong></div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="brand-badge">
+                {'<img class="brand-logo-img" src="' + logo_uri + '" alt="Graphite Logo">' if logo_uri else ''}
+                <div class="brand-text-block">
+                    <div class="brand-title">GRAPHITE</div>
+                    <div class="brand-sub">MADE BY GRAPHITE</div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1075,6 +1150,7 @@ Structured, phased execution plan to achieve full statutory compliance before st
 </table>
 
 <div class="telemetry-footer">
+    <div style="float:right; font-weight:bold; color:#70C5FF;">MADE BY GRAPHITE</div>
     <strong>STACK TELEMETRY & IMMUTABLE PROVENANCE:</strong><br>
     Databricks Serving Endpoint: <code>{databricks_ep}</code> | 
     Unity Catalog Table: <code>{uc_table}</code><br>

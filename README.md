@@ -14,7 +14,11 @@ make test                     # unit tests + the precision/recall gate
 make demo                     # audits three sample companies -> demo_output/*.pdf + summary.json
 ```
 
+Keep the regulatory knowledge base current: `aegis sync-laws` (rules + folders and URLs from `sync_sources.yaml`, or `--folder DIR --url https://...`); schedule it with `aegis sync-daemon` or cron ([runbook](docs/runbook.md)).
+
 Audit your own folder: `aegis scan -t <folder> -c "Company" -o report.pdf`. A folder may hold `github/` and `confluence/` subfolders, or just files.
+
+PR gate: `aegis scan -t <repo> --diff origin/main --fail-on high` audits only the code files changed since the base (`git diff --name-only <base>...HEAD`). Unchanged files are served from a content-addressed AST cache (`AEGIS_AST_CACHE_DIR=.aegis_cache` persists it between runs). Micro-agent checks run in parallel (`AEGIS_AGENT_WORKERS`, default 6) with deterministic ordering.
 
 ## Architecture
 

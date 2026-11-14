@@ -7,3 +7,4 @@ __pycache__/
 
 /demo_output/
 /data/
+.aegis_cache/

@@ -9,5 +9,13 @@ services:
       - aegis-data:/data
       - ./synthetic_companies:/app/companies:ro
     restart: unless-stopped
+  sync:
+    build: .
+    command: ["aegis", "sync-daemon", "--interval-hours", "24", "--config", "/app/sync_sources.yaml"]
+    env_file: [.env]
+    volumes:
+      - ./sync_sources.yaml:/app/sync_sources.yaml:ro
+      - ./regulatory_pdfs:/app/regulatory_pdfs:ro
+    restart: unless-stopped
 volumes:
   aegis-data:

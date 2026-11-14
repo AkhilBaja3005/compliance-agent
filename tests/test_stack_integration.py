@@ -183,9 +183,12 @@ def test_confluence_cloud_rest_v2(monkeypatch):
         if request.url.path.endswith("/api/v2/spaces"):
             assert request.url.params["keys"] == "AIGOV"
             return httpx.Response(200, json={"results": [{"id": "42"}]})
-        if request.url.path.endswith("/spaces/42/pages"):
+        if request.url.path.endswith("/spaces/42/pages"):  # listing is body-less; bodies are fetched per page (concurrently)
+            assert "body-format" not in request.url.params
+            return httpx.Response(200, json={"results": [{"id": "1", "title": "Policy"}], "_links": {}})
+        if request.url.path.endswith("/api/v2/pages/1"):
             assert request.url.params["body-format"] == "storage"
-            return httpx.Response(200, json=pages)
+            return httpx.Response(200, json=pages["results"][0])
         return httpx.Response(404)
 
     http = httpx.Client(auth=("a@b.c", "tok"), transport=httpx.MockTransport(handler))

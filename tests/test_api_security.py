@@ -195,3 +195,12 @@ def test_rule_review_gate_stages_then_approves(client, monkeypatch):
     ap = client.post(f"/laws/pending/{pend[0]['pending_id']}/approve", params={"reviewer_name": "Counsel"}, headers=H("adminkey-0001"))
     assert ap.status_code == 200 and ap.json()["changed"] is True and ap.json()["new_version"] != before
     assert client.post("/laws/pending/nope/reject", headers=H("adminkey-0001")).status_code == 404
+
+
+def test_laws_ingest_is_admin_only_and_takes_no_paths(client, tmp_path, monkeypatch):
+    (tmp_path / "x.md").write_text("# X\nRecord keeping obligations require logs of events over the system lifetime.\n")
+    (tmp_path / "s.yaml").write_text(f"folders:\n  - path: {tmp_path}\n")
+    monkeypatch.setenv("AEGIS_SYNC_CONFIG", str(tmp_path / "s.yaml"))
+    assert client.post("/laws/ingest", headers=H("auditorA-0002")).status_code == 403
+    r = client.post("/laws/ingest", params={"deep_linkup": "false"}, json={"folders": ["/etc"], "urls": ["https://evil.example"]}, headers=H("adminkey-0001"))
+    assert r.status_code == 200 and [s["source"].split("/")[-1] for s in r.json()["sources"]] == ["x.md"]  # request body cannot add sources

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -122,8 +123,12 @@ class ConfluenceCloudClient:
             raise LookupError(f"Confluence space '{space_key}' not found")
         return data["results"][0]["id"]
 
-    def pages(self, space_id: str, limit: int = 100):
-        url, params = f"/api/v2/spaces/{space_id}/pages", {"body-format": "storage", "limit": limit, "status": "current"}
+    def get_page(self, page_id: str) -> dict:
+        """One page with its storage-format body (used to fetch bodies concurrently after a body-less listing)."""
+        return self._get(f"/api/v2/pages/{page_id}", {"body-format": "storage"})
+
+    def pages(self, space_id: str, limit: int = 100, with_body: bool = True):
+        url, params = f"/api/v2/spaces/{space_id}/pages", {"limit": limit, "status": "current", **({"body-format": "storage"} if with_body else {})}
         while url:
             data = self._get(url, params)
             yield from data.get("results", [])
@@ -143,8 +148,20 @@ def scan_confluence_cloud(tenant_id: str, space_key: str | None = None, base_url
             raise ValueError("CONFLUENCE_URL, CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN and space_key are required")
         client = ConfluenceCloudClient(base_url, email, token)
     chunks, n = [], 0
-    for page in client.pages(client.space_id(space_key)):
-        body = ((page.get("body") or {}).get("storage") or {}).get("value", "")
+    space_id = client.space_id(space_key)
+    can_fetch = hasattr(client, "get_page")
+    # list page metadata first (cursor pagination is inherently sequential), then fetch the bodies concurrently
+    listing = list(client.pages(space_id, with_body=False)) if can_fetch else list(client.pages(space_id))
+    body_of = lambda pg: ((pg.get("body") or {}).get("storage") or {}).get("value")
+    missing = [pg for pg in listing if not body_of(pg)]
+    if missing and can_fetch:
+        workers = int(os.getenv("AEGIS_CONFLUENCE_WORKERS", "6"))
+        with ThreadPoolExecutor(max_workers=max(1, min(workers, len(missing)))) as pool:
+            fetched = list(pool.map(lambda pg: client.get_page(pg["id"]), missing))  # map preserves page order
+        by_id = {f["id"]: f for f in fetched}
+        listing = [by_id.get(pg["id"], pg) for pg in listing]
+    for page in listing:
+        body = body_of(page) or ""
         md = xhtml_to_markdown(body)
         title = page.get("title", f"page-{page.get('id')}")
         n += 1
