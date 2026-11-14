@@ -23,8 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY pyproject.toml CLAUDE.md ./
 COPY src ./src
-COPY tests/fixtures/companies ./tests/fixtures/companies
-COPY sample_connectors ./sample_connectors
+COPY tests ./tests
 COPY synthetic_companies ./synthetic_companies
 COPY regulatory_pdfs ./regulatory_pdfs
 COPY sync_sources.yaml ./sync_sources.yaml
