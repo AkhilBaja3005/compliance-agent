@@ -605,8 +605,11 @@ def demo_cmd(out_dir: str = typer.Option("demo_output", "--out-dir", help="Where
     n = len(get_store().snapshot())
     get_compliance_store().index_rules(get_store().snapshot())
     console.print(f"[bold]Rule library:[/bold] {n} rules indexed ({get_store().version})")
-    targets = [("sample_connectors/enterprise/aegis_health_uk", "Aegis Health UK"), ("sample_connectors/enterprise/meridian_omni_ai", "Meridian OmniTech"),
-               ("synthetic_companies/veylan_analytics_face_identity", "Veylan Analytics")]
+    targets = [
+        ("tests/fixtures/enterprise/aegis_health_uk" if Path("tests/fixtures/enterprise/aegis_health_uk").is_dir() else "sample_connectors/enterprise/aegis_health_uk", "Aegis Health UK"),
+        ("tests/fixtures/enterprise/meridian_omni_ai" if Path("tests/fixtures/enterprise/meridian_omni_ai").is_dir() else "sample_connectors/enterprise/meridian_omni_ai", "Meridian OmniTech"),
+        ("synthetic_companies/veylan_analytics_face_identity", "Veylan Analytics"),
+    ]
     summary = []
     for path, name in targets:
         if not Path(path).is_dir():

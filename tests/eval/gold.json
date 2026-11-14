@@ -6,7 +6,7 @@
     {"name": "company_c_medassist", "path": "tests/fixtures/companies/company_c_medassist", "expect_none": true},
     {"name": "veylan_face_identity", "path": "synthetic_companies/veylan_analytics_face_identity", "confirmed": ["BIO-01"], "not_confirmed": ["SAFE-01", "SAFE-02", "OSS-01"]},
     {"name": "merriton_text_verify", "path": "synthetic_companies/merriton_labs_text_verify", "expect_none": true},
-    {"name": "meridian_omni_ai", "path": "sample_connectors/enterprise/meridian_omni_ai", "confirmed": ["SAFE-02", "SAFE-03", "SAFE-04", "HITL-01", "PII-01", "OSS-01"]},
+    {"name": "meridian_omni_ai", "path": "tests/fixtures/enterprise/meridian_omni_ai", "confirmed": ["SAFE-02", "SAFE-03", "SAFE-04", "HITL-01", "PII-01", "OSS-01"]},
     {"name": "data_bad", "path": "tests/fixtures/data/bad", "confirmed": ["DATA-03", "DATA-05"], "not_confirmed": ["DATA-04"]},
     {"name": "data_clean", "path": "tests/fixtures/data/clean", "expect_none": true}
   ]
