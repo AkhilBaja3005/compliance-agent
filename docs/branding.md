@@ -29,6 +29,22 @@
 - Borders: `#CCE9FF`.
 - Human review accent: `#7E65AE`.
 
+## Severity and status colors
+
+Keep the brand palette for the interface. Use these semantic colors for warning
+levels, findings, charts, and status messages:
+
+| Level | Color | Hex |
+| --- | --- | --- |
+| Low / passed | Green | `#15803D` |
+| Medium / suspected gap | Yellow | `#CA8A04` |
+| High | Orange | `#EA580C` |
+| Critical / confirmed violation | Red | `#DC2626` |
+
+Badges and notices use matching pale backgrounds with darker text for readability.
+Human review remains purple (`#7E65AE`); informational and unspecified findings
+use neutral steel blue (`#7F97B2`). Keep text labels alongside colors.
+
 ## Logo
 
 Use [the icon-only PNG](../assets/graphite_report_logo.png) with separate

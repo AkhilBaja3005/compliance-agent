@@ -18,7 +18,7 @@ from typing import Protocol
 from src.dashboard.models import Job, ReportSummary, SettingsRecord, Sources, StorageStatus
 from src.schemas.findings import TriagedAuditReport
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("graphite.storage.dashboard")
 
 
 def now() -> datetime:
@@ -252,7 +252,7 @@ def get_dashboard_repository() -> DashboardRepository:
                 try:
                     repository = MongoDashboardRepository(store.db)
                 except Exception as exc:
-                    log.warning("MongoDB dashboard initialization failed: %s; using SQLite", type(exc).__name__)
+                    log.warning("MongoDB dashboard initialization failed: %s: %s; using SQLite", type(exc).__name__, exc)
                     repository = SQLiteDashboardRepository(path, "MongoDB dashboard storage unavailable; using SQLite.")
             else:
                 repository = SQLiteDashboardRepository(path, "MongoDB unavailable; using SQLite." if store.error else None)

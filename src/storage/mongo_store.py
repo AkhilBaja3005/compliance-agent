@@ -18,7 +18,7 @@ from rank_bm25 import BM25Okapi
 
 from src.schemas.findings import ComplianceFinding
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("graphite.storage.mongo_store")
 RULES, ARTIFACTS, HISTORY = "regulatory_rules", "tenant_artifacts", "audit_history"
 RULES_INDEX, ARTIFACTS_INDEX = "regulatory_rules_vector", "tenant_artifacts_vector"
 # Ingested regulatory PDFs share the `tenant_artifacts` collection under tenant "global_regulations" (its vector index has a tenant_id filter),
@@ -113,17 +113,21 @@ class MongoComplianceStore:
         self._lock = threading.RLock()
         self._mem: dict[str, _MemCollection] = {}
         if client is not None or self.uri:
+            stage = "client configuration"
             try:
                 if client is None:
                     from pymongo import MongoClient
 
                     client = MongoClient(self.uri, serverSelectionTimeoutMS=int(os.getenv("MONGODB_TIMEOUT_MS", "5000")))
+                    stage = "ping"
                     client.admin.command("ping")
+                stage = "database selection"
                 self.client, self.db, self.is_atlas = client, client[self.db_name], True
+                stage = "index initialization"
                 self.ensure_indexes()
             except Exception as exc:
                 self.error = f"{type(exc).__name__}: {exc}"
-                log.warning("MongoDB unavailable (%s); using in-memory fallback", self.error)
+                log.warning("MongoDB unavailable during %s: %s; using in-memory fallback", stage, self.error)
 
     # ------------------------------------------------------------------ plumbing
     @property
