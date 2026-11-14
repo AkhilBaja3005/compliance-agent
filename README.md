@@ -1,9 +1,5 @@
 # Graphite: AI Safety and EU Regulatory Compliance Auditor
 
-[![Live Demo](https://img.shields.io/badge/🤗%20Hugging%20Face-Live%20Dashboard%20Demo-blue?style=for-the-badge)](https://abaja-graphite.hf.space/dashboard/overview)
-
-> **Live Deployment:** [https://abaja-graphite.hf.space/dashboard/overview](https://abaja-graphite.hf.space/dashboard/overview)
-
 Graphite is an enterprise-grade AI safety and regulatory compliance auditing platform. It audits an organization's code repositories, governance documents, and data pipelines against the **EU AI Act (Regulation 2024/1689)** and the **EU General Data Protection Regulation (GDPR)**, producing evidence-backed, triaged audit reports in JSON, SARIF 2.1.0, and publication-ready 6-section PDFs.
 
 Findings are technical compliance observations for engineering and governance review, not legal advice.
