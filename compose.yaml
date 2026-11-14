@@ -1,0 +1,46 @@
+services:
+  aegis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${AEGIS_BIND_ADDRESS:-127.0.0.1}:${AEGIS_PORT:-8000}:8000"
+    environment:
+      AEGIS_DASHBOARD_DB: /var/lib/aegis/dashboard.sqlite3
+      AEGIS_HISTORY_FILE: /var/lib/aegis/finding-history.json
+      BYOM_OFFLINE: ${BYOM_OFFLINE:-true}
+      AUTO_SYNC: ${AUTO_SYNC:-false}
+      COMPANIES_DIR: ${COMPANIES_DIR:-/app/tests/fixtures/companies}
+      MONGODB_URI: ${MONGODB_URI:-}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-aegis_compliance}
+      MONGODB_TIMEOUT_MS: ${MONGODB_TIMEOUT_MS:-5000}
+      BYOM_BASE_URL: ${BYOM_BASE_URL:-http://127.0.0.1:11434/v1}
+      BYOM_MODEL_NAME: ${BYOM_MODEL_NAME:-llama3.1:8b}
+      BYOM_API_KEY: ${BYOM_API_KEY:-}
+      DATABRICKS_HOST: ${DATABRICKS_HOST:-}
+      DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
+      DATABRICKS_SERVING_ENDPOINT: ${DATABRICKS_SERVING_ENDPOINT:-}
+      DATABRICKS_WAREHOUSE_ID: ${DATABRICKS_WAREHOUSE_ID:-}
+      DATABRICKS_CATALOG: ${DATABRICKS_CATALOG:-compliance_catalog}
+      DATABRICKS_SCHEMA: ${DATABRICKS_SCHEMA:-audit_prod}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-}
+      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME:-}
+      LINKUP_API_KEY: ${LINKUP_API_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      CONFLUENCE_URL: ${CONFLUENCE_URL:-}
+      CONFLUENCE_USERNAME: ${CONFLUENCE_USERNAME:-}
+      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
+      CONFLUENCE_SPACE_KEY: ${CONFLUENCE_SPACE_KEY:-}
+    volumes:
+      - aegis-state:/var/lib/aegis
+    restart: unless-stopped
+    stop_grace_period: 2m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  aegis-state:

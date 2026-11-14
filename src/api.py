@@ -1,14 +1,19 @@
 """FastAPI surface: /companies, /audit/run, /laws/sync, /laws/simulate-update, /laws/status."""
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.agents import LLMClient, run_audit
+from src.dashboard.routes import STATIC, router as dashboard_router
 from src.edge_extractors import build_index
 from src.law_sync import simulate_law_amendment, sync_now
 from src.law_sync.scheduler import law_status, start_scheduler, stop_scheduler
@@ -34,13 +39,48 @@ def list_company_ids() -> list[str]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from src.dashboard.service import DashboardService
+    from src.storage.dashboard import get_dashboard_repository
+
+    app.state.dashboard = None
+    try:
+        dashboard = DashboardService(get_dashboard_repository(), list_company_ids, companies_root)
+        dashboard.start()
+        app.state.dashboard = dashboard
+    except Exception as exc:
+        logging.getLogger(__name__).error("Dashboard startup failed: %s", type(exc).__name__)
     if os.getenv("AUTO_SYNC", "false").lower() == "true":
         start_scheduler(24)
-    yield
-    stop_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler()
+        if app.state.dashboard is not None:
+            await asyncio.to_thread(app.state.dashboard.stop)
+            app.state.dashboard = None
 
 
 app = FastAPI(title="EU & UK AI Compliance Auditor", lifespan=lifespan)
+
+app.include_router(dashboard_router)
+app.mount("/dashboard/static", StaticFiles(directory=STATIC), name="dashboard-static")
+
+
+@app.middleware("http")
+async def dashboard_storage_errors(request: Request, call_next):
+    if request.url.path.startswith("/dashboard/api/"):
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            logging.getLogger(__name__).error("Dashboard request failed: %s", type(exc).__name__)
+            return JSONResponse(status_code=503, content={"detail": "Dashboard storage unavailable; check server logs"})
+    return await call_next(request)
+
+
+@app.get("/healthz")
+def healthz():
+    """Process health only: no external services, filesystem scans or model calls."""
+    return {"status": "ok"}
 
 
 class CompanyInfo(BaseModel):

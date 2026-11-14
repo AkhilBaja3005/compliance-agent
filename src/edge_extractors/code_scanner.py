@@ -337,8 +337,9 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
         regions = {u: classify_endpoint(u) for u in eff_urls}
         is_entry = info["is_route"] or name not in called_by_local
         sha = sha256_text(info["text"])
+        slice_key = f"{tenant_id}:{rel}:{info['start']}"
         sl = ASTSlice(
-            slice_id=f"slice-{sha256_text(f'{tenant_id}:{rel}:{info['start']}')[:12]}",
+            slice_id=f"slice-{sha256_text(slice_key)[:12]}",
             tenant_id=tenant_id, file_path=rel, start_line=info["start"], end_line=info["end"],
             code_snippet=info["text"], imports=imports, external_endpoints=eff_urls,
             has_pii_redaction=eff["pii"], has_hitl_gate=eff["hitl"], has_moderation_hook=eff["mod"],
