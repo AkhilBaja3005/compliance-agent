@@ -40,11 +40,16 @@ def _load_dotenv() -> None:
     path = os.path.join(os.getcwd(), ".env")
     if not os.path.isfile(path):
         return
-    for line in open(path, encoding="utf-8"):
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, _, v = line.partition("=")
-            os.environ.setdefault(k.strip(), v.strip())
+    with open(path, encoding="utf-8") as env_file:
+        for line in env_file:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                v = v.strip()
+                # Matching outer quotes delimit .env values, including connection URIs.
+                if len(v) >= 2 and v[0] == v[-1] and v[0] in ("'", '"'):
+                    v = v[1:-1]
+                os.environ.setdefault(k.strip(), v)
 
 
 def extract_json(content: str) -> str:
