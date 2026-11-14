@@ -122,22 +122,22 @@ graphite doctor
 graphite scan -t synthetic_companies/merriton_labs_text_verify -c "Merriton Labs" -o merriton_report.pdf
 
 # Export SARIF for GitHub Code Scanning
-graphite scan -t synthetic_companies/veylan_analytics_face_identity -c "Veylan Analytics" --sarif veylan_report.sarif
+graphite scan -t synthetic_companies/veylan_analytics_face_identity -c "Veylan Analytics" --sarif-out veylan_report.sarif
 
 # Audit incremental PR changes against a base branch
-graphite scan -t . --diff origin/main --fail-on high
+graphite scan -t synthetic_companies/merriton_labs_text_verify --diff HEAD~1 --fail-on high
 ```
 
 ### 4. Automated Statutory Remediation
 
-Generate unified diff patches to remediate confirmed violations:
+Generate unified diff patches to remediate confirmed violations using an audit report:
 
 ```bash
 # Generate patch file without modifying code
-graphite fix -t <repo_path> -o remediation.patch
+graphite fix --report report.json --repos <repo_path> --patch-out remediation.patch
 
 # Apply verified patches directly to disk
-graphite fix -t <repo_path> --apply
+graphite fix --report report.json --repos <repo_path> --apply
 ```
 
 ### 5. Regulatory Synchronization
