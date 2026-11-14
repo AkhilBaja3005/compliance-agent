@@ -73,8 +73,9 @@ class LinkupBase:
                 return hit[1]
         try:
             self.calls += 1
-            # Use depth="standard" for fast, low-cost search (~1-2 seconds per call instead of 25-30s "deep")
-            res = self._get_client().search(query=query, depth="standard", output_type="sourcedAnswer")
+            # Configurable depth (defaults to "standard" for speed and credit efficiency; supports "deep")
+            depth = os.getenv("LINKUP_DEPTH", "standard")
+            res = self._get_client().search(query=query, depth=depth, output_type="sourcedAnswer")
             sources = list(getattr(res, "sources", None) or [])
             cit = LinkupCitation(
                 query=query, answer=str(getattr(res, "answer", "") or ""),
@@ -95,18 +96,24 @@ class LinkupRegulatoryScout(LinkupBase):
         return RULE_QUERIES.get(rule.rule_id) or f"{rule.reference} {rule.title} official text and latest amendments"
 
     def enrich(self, rules: dict[str, RegulatoryRule]) -> dict[str, RegulatoryRule]:
-        """Return a copy of `rules` where rules with targeted live queries carry Linkup citations."""
+        """Return a copy of `rules` where every rule with a verified Linkup source carries its citation."""
         if not self.enabled:
             return rules
+        from concurrent.futures import ThreadPoolExecutor
         out, now = {}, datetime.now(timezone.utc)
-        # Only query the targeted priority rules (7 rules instead of all 21+) to preserve Linkup API credits
-        for rid, rule in rules.items():
-            if rid in RULE_QUERIES:
-                cit = self.ask(self.query_for(rule))
-                if cit and cit.first_url:
-                    rule = rule.model_copy(update={"linkup_source_url": cit.first_url, "linkup_snippet": cit.best_snippet,
-                                                   "linkup_verified_at": now})
-            out[rid] = rule
+
+        def _enrich_one(item: tuple[str, RegulatoryRule]) -> tuple[str, RegulatoryRule]:
+            rid, rule = item
+            cit = self.ask(self.query_for(rule))
+            if cit and cit.first_url:
+                rule = rule.model_copy(update={"linkup_source_url": cit.first_url, "linkup_snippet": cit.best_snippet,
+                                               "linkup_verified_at": now})
+            return rid, rule
+
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            results = ex.map(_enrich_one, rules.items())
+            for rid, rule in results:
+                out[rid] = rule
         return out
 
 

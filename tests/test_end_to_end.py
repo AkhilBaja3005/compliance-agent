@@ -266,21 +266,27 @@ def test_llm_client_unreachable_server_falls_back():
 
 
 # ------------------------------------------------------------------ API
-def test_api_endpoints(fixtures_dir):
+def test_api_endpoints(fixtures_dir, monkeypatch):
     from src.api import app
+    from src.law_sync.linkup_scout import set_scout, LinkupRegulatoryScout
 
-    client = TestClient(app)
-    comps = client.get("/companies").json()
-    assert {c["company_id"] for c in comps} == {"company_a_finscore", "company_b_voxgen", "company_c_medassist"}
-    rep = client.post("/audit/run", json={"company_id": "company_a_finscore"}).json()
-    assert rep["tenant_id"] == "company_a_finscore" and len(rep["confirmed_findings"]) >= 4 and rep["agent_execution_trace"]
-    bad = client.post("/audit/run", json={"company_id": "company_a_finscore", "inject_fake_citation": True}).json()
-    assert len(bad["quarantined_for_human_review"]) == 1
-    assert client.post("/audit/run", json={"company_id": "nope"}).status_code == 404
-    before = client.get("/laws/status").json()
-    v0 = before["law_index_version"]
-    assert client.post("/laws/sync").json()["changed"] is False
-    sim = client.post("/laws/simulate-update", json={"jurisdiction": "EU_AI_ACT"}).json()
-    assert sim["changed"] and sim["new_version"] != v0
-    st = client.get("/laws/status").json()
-    assert st["law_index_version"] == sim["new_version"] and st["rule_count"] == before["rule_count"] + 1
+    # Disable live linkup web search during rapid API endpoint unit test
+    set_scout(LinkupRegulatoryScout(api_key=None))
+    try:
+        client = TestClient(app)
+        comps = client.get("/companies").json()
+        assert {c["company_id"] for c in comps} == {"company_a_finscore", "company_b_voxgen", "company_c_medassist"}
+        rep = client.post("/audit/run", json={"company_id": "company_a_finscore"}).json()
+        assert rep["tenant_id"] == "company_a_finscore" and len(rep["confirmed_findings"]) >= 4 and rep["agent_execution_trace"]
+        bad = client.post("/audit/run", json={"company_id": "company_a_finscore", "inject_fake_citation": True}).json()
+        assert len(bad["quarantined_for_human_review"]) == 1
+        assert client.post("/audit/run", json={"company_id": "nope"}).status_code == 404
+        before = client.get("/laws/status").json()
+        v0 = before["law_index_version"]
+        assert client.post("/laws/sync").json()["changed"] is False
+        sim = client.post("/laws/simulate-update", json={"jurisdiction": "EU_AI_ACT"}).json()
+        assert sim["changed"] and sim["new_version"] != v0
+        st = client.get("/laws/status").json()
+        assert st["law_index_version"] == sim["new_version"] and st["rule_count"] == before["rule_count"] + 1
+    finally:
+        set_scout(None)

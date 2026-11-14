@@ -120,3 +120,53 @@ def stack_status():
             "databricks_model_serving": llm.databricks_endpoint or "offline-fallback",
             "unity_catalog": "enabled" if sink.enabled else "disabled (DATABRICKS_WAREHOUSE_ID unset)",
             "mlflow_tracing": "enabled" if __import__("src.agents.tracing", fromlist=["x"]).tracing_enabled() else "no-op"}
+
+
+class PDFIngestRequest(BaseModel):
+    pdf_path: str
+    jurisdiction: str = "EU_AI_ACT"
+    tenant_id: str = "global_regulations"
+    doc_category: str = "REGULATORY_PDF"
+
+
+@app.post("/admin/ingest-pdf")
+def admin_ingest_pdf(req: PDFIngestRequest):
+    """Admin endpoint to ingest and index a regulatory or policy PDF into MongoDB Atlas + local retriever."""
+    from src.edge_extractors.pdf_ingestor import ingest_pdf_file
+    from src.storage import get_compliance_store
+
+    p = Path(req.pdf_path).resolve()
+    if not p.is_file():
+        raise HTTPException(status_code=404, detail=f"PDF file not found at: {req.pdf_path}")
+
+    chunks = ingest_pdf_file(
+        pdf_path=p,
+        jurisdiction=req.jurisdiction,
+        tenant_id=req.tenant_id,
+        doc_category=req.doc_category,
+    )
+    store = get_compliance_store()
+    count = store.index_pdf_chunks(chunks)
+    return {
+        "status": "SUCCESS",
+        "filename": p.name,
+        "jurisdiction": req.jurisdiction,
+        "tenant_id": req.tenant_id,
+        "chunks_indexed": count,
+        "is_atlas": store.is_atlas,
+    }
+
+
+@app.get("/admin/search-rules")
+def admin_search_rules(q: str, jurisdiction: str | None = None, top_k: int = 5):
+    """Admin endpoint to query indexed statutory rules and PDF passages."""
+    from src.storage import get_compliance_store
+
+    store = get_compliance_store()
+    results = store.search_regulatory_knowledge(query=q, jurisdiction=jurisdiction, top_k=top_k)
+    return {
+        "query": q,
+        "jurisdiction": jurisdiction,
+        "count": len(results),
+        "results": results,
+    }

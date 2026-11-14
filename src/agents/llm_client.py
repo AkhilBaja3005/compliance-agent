@@ -53,7 +53,7 @@ class LLMClient:
         _load_dotenv()
         self.anthropic_key = os.getenv("ANTHROPIC_API_KEY")
         self.anthropic_model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest")
-        self.use_anthropic = bool(self.anthropic_key and not os.getenv("DATABRICKS_HOST"))
+        self.use_anthropic = bool(self.anthropic_key and not os.getenv("DATABRICKS_HOST")) and base_url is None
 
         self.db_host = (os.getenv("DATABRICKS_HOST") or "").rstrip("/")
         self.db_token = os.getenv("DATABRICKS_TOKEN") or ""

@@ -172,6 +172,162 @@ def sync_laws(
     console.print(f"[bold green]✓ Total {len(rules)} statutory rules actively indexed in MongoDB Atlas '{rules_col_name}' collection.[/bold green]\n")
 
 
+@app.command("ingest-pdf")
+def ingest_pdf(
+    path: str = typer.Argument(
+        ...,
+        help="Path to a PDF file or a directory of PDFs",
+    ),
+    jurisdiction: str = typer.Option(
+        "EU_AI_ACT",
+        "--jurisdiction",
+        "-j",
+        help="Statutory jurisdiction (EU_AI_ACT, UK_GDPR_ICO, etc.)",
+    ),
+    category: str = typer.Option(
+        "REGULATORY_PDF",
+        "--category",
+        "-c",
+        help="Document category (REGULATORY_PDF or COMPANY_DOC)",
+    ),
+    tenant_id: str = typer.Option(
+        "global_regulations",
+        "--tenant-id",
+        "-t",
+        help="Target tenant ID ('global_regulations' for public laws)",
+    ),
+):
+    """Parses and indexes regulatory or company policy PDFs into MongoDB Atlas + local retriever."""
+    from src.edge_extractors.pdf_ingestor import ingest_pdf_file
+    from src.storage import get_compliance_store
+    from src.agents.llm_client import _load_dotenv
+    _load_dotenv()
+
+    target_path = Path(path).resolve()
+    if not target_path.exists():
+        console.print(f"[bold red]Error: Path not found: {path}[/bold red]")
+        raise typer.Exit(1)
+
+    pdf_files = [target_path] if target_path.is_file() and target_path.suffix.lower() == ".pdf" else sorted(target_path.glob("**/*.pdf"))
+    if not pdf_files:
+        console.print(f"[bold yellow]No PDF files found in: {path}[/bold yellow]")
+        raise typer.Exit(0)
+
+    console.print(
+        Panel(
+            f"[bold cyan]Input Target:[/bold cyan] {path} ({len(pdf_files)} PDF file(s))\n"
+            f"[bold cyan]Jurisdiction:[/bold cyan] {jurisdiction} | [bold cyan]Category:[/bold cyan] {category}\n"
+            f"[bold cyan]Tenant ID:[/bold cyan] {tenant_id}",
+            title="[bold blue]📄 Aegis Admin PDF Ingestion & Indexer[/bold blue]",
+            border_style="blue",
+        )
+    )
+
+    store = get_compliance_store()
+    table = Table(title="PDF Ingestion & Indexing Summary", header_style="bold green")
+    table.add_column("PDF Filename", style="bold")
+    table.add_column("Pages", justify="right")
+    table.add_column("Chunks", justify="right")
+    table.add_column("Sample Locator", style="dim")
+    table.add_column("Status", style="green")
+
+    total_chunks = 0
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        task = progress.add_task("[cyan]Processing PDFs...", total=len(pdf_files))
+        for pdf_f in pdf_files:
+            progress.update(task, description=f"[cyan]Parsing & chunking {pdf_f.name}...")
+            chunks = ingest_pdf_file(
+                pdf_path=pdf_f,
+                jurisdiction=jurisdiction,
+                tenant_id=tenant_id,
+                doc_category=category,
+            )
+            count = store.index_pdf_chunks(chunks)
+            total_chunks += count
+
+            from pypdf import PdfReader
+            try:
+                pages_cnt = len(PdfReader(str(pdf_f)).pages)
+            except Exception:
+                pages_cnt = 1
+
+            sample_loc = chunks[0].exact_locator if chunks else "N/A"
+            table.add_row(
+                pdf_f.name,
+                str(pages_cnt),
+                str(count),
+                sample_loc[:35] + "...",
+                f"✓ INDEXED ({'Atlas' if store.is_atlas else 'Local'})",
+            )
+            progress.advance(task, 1)
+
+    console.print(table)
+    console.print(f"[bold green]✓ Successfully indexed {total_chunks} chunk(s) across {len(pdf_files)} file(s).[/bold green]\n")
+
+
+@app.command("query-rules")
+def query_rules(
+    query: str = typer.Argument(
+        ...,
+        help="Search query across statutory rules and ingested PDFs",
+    ),
+    jurisdiction: Optional[str] = typer.Option(
+        None,
+        "--jurisdiction",
+        "-j",
+        help="Filter by jurisdiction",
+    ),
+    top_k: int = typer.Option(
+        5,
+        "--top-k",
+        "-k",
+        help="Maximum results to return",
+    ),
+):
+    """Executes semantic + hybrid retrieval across indexed rules and PDF passages."""
+    from src.storage import get_compliance_store
+    from src.agents.llm_client import _load_dotenv
+    _load_dotenv()
+
+    console.print(
+        Panel(
+            f"[bold cyan]Query:[/bold cyan] {query}\n"
+            f"[bold cyan]Jurisdiction Filter:[/bold cyan] {jurisdiction or 'All'}\n"
+            f"[bold cyan]Top K:[/bold cyan] {top_k}",
+            title="[bold magenta]🔎 Aegis Regulatory Knowledge & PDF Search[/bold magenta]",
+            border_style="magenta",
+        )
+    )
+
+    store = get_compliance_store()
+    results = store.search_regulatory_knowledge(query=query, jurisdiction=jurisdiction, top_k=top_k)
+
+    if not results:
+        console.print("[yellow]No matching passages or statutory rules found.[/yellow]")
+        return
+
+    table = Table(title=f"Top {len(results)} Retrieval Results", header_style="bold blue")
+    table.add_column("Rank", style="dim", width=6)
+    table.add_column("Source / Locator", style="bold cyan", width=28)
+    table.add_column("Score", justify="right", width=8)
+    table.add_column("SHA-256", style="dim", width=12)
+    table.add_column("Passage / Excerpt", width=46)
+
+    for i, r in enumerate(results, 1):
+        loc = r.get("exact_locator") or r.get("reference") or r.get("rule_id", "Statutory Rule")
+        score = f"{r.get('score', 0.0):.3f}"
+        sha = str(r.get("sha256_hash", ""))[:10]
+        text_snip = (r.get("text") or r.get("title") or "")[:180].replace("\n", " ") + "..."
+        table.add_row(str(i), loc, score, sha, text_snip)
+
+    console.print(table)
+    console.print()
+
+
 def main():
     app()
 

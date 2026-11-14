@@ -67,6 +67,22 @@ def ev_dep(d: DependencyFact) -> EvidencePointer:
                            sha256_hash=d.sha256_hash, snippet=snippet(d.snippet))
 
 
+def ev_pdf_chunk(chunk_dict: dict) -> EvidencePointer:
+    loc = chunk_dict.get("exact_locator") or f"{chunk_dict.get('filename')}#page={chunk_dict.get('page_number', 1)}"
+    sha = chunk_dict.get("sha256_hash", "")
+    art_id = chunk_dict.get("chunk_id") or chunk_dict.get("filename", "regulatory.pdf")
+    snip = snippet(chunk_dict.get("text", ""))
+    return EvidencePointer(
+        source_type="Regulatory PDF",
+        artifact_id=art_id,
+        exact_locator=loc,
+        sha256_hash=sha,
+        snippet=snip,
+        type="Regulatory PDF",
+        item=chunk_dict.get("filename", "regulatory.pdf"),
+    )
+
+
 # ---- index selectors shared by agents
 def external_entries(ix: TriModalIndex) -> list[ASTSlice]:
     return [s for s in ix.slices if s.is_entrypoint and (s.calls_ai_sdk or s.calls_http or s.external_endpoints)]
@@ -130,6 +146,16 @@ def assemble_finding(check: MandatoryCheck, v: Verdict, ctx: AuditContext) -> Co
         related = [h.rule.rule_id for h in hits if h.rule.rule_id != check.regulatory_reference][:1]
         if related:
             summary += f" Related: {related[0]}."
+    except Exception:
+        pass
+    # Attach retrieved Regulatory PDF citations if available
+    try:
+        pdf_hits = ctx.retriever.search_regulatory_knowledge(f"{check.question} {v.title}", top_k=2)
+        for ph in pdf_hits:
+            if ph.get("source_type") in ("REGULATORY_PDF", "COMPANY_DOC") or "page" in str(ph.get("exact_locator", "")):
+                # If finding has less than 4 evidence pointers, append PDF chunk pointer
+                if len(v.evidence) < 5:
+                    v.evidence.append(ev_pdf_chunk(ph))
     except Exception:
         pass
     narrative = ctx.llm.structured(

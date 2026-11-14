@@ -16,7 +16,7 @@ Severity = Literal["Critical", "High", "Medium", "Low", "Info"]
 
 
 class EvidencePointer(BaseModel):
-    source_type: Literal["code", "doc", "capability_card", "dependency"]
+    source_type: Literal["code", "doc", "capability_card", "dependency", "regulatory_pdf", "pdf", "Regulatory PDF"]
     artifact_id: str
     exact_locator: str
     sha256_hash: str
