@@ -44,7 +44,7 @@ class ClinicalPIIRedactor:
 
     def __init__(self, region: str = "eu-west-2") -> None:
         self.region = region
-        self.endpoint_vpc = os.getenv("AEGIS_NHS_VPC_ENDPOINT", "https://eu-west-2.clinical-ai.nhs.uk/v1")
+        self.endpoint_vpc = os.getenv("GRAPHITE_NHS_VPC_ENDPOINT", "https://eu-west-2.clinical-ai.nhs.uk/v1")
         self.enforce_zero_retention = True
         self._init_presidio()
 

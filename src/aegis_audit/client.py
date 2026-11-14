@@ -568,7 +568,7 @@ class ComplianceAuditor:
         ]
 
         session = AuditSession(
-            report_id=f"AEGIS-NW-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}",
+            report_id=f"GRAPHITE-NW-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}",
             company_name=company_name,
             assessed_at=now_str,
             scope=f"GitHub Repositories ({len(systems)} systems) & Confluence AIGOV Space",

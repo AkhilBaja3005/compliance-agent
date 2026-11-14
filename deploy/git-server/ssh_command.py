@@ -20,10 +20,10 @@ def main() -> int:
     try:
         args = command(os.environ.get("SSH_ORIGINAL_COMMAND", ""))
     except ValueError:
-        print("AEGIS: SSH is restricted to Git operations on demo.git", file=sys.stderr)
+        print("GRAPHITE: SSH is restricted to Git operations on demo.git", file=sys.stderr)
         return 1
     env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "LANG": "C.UTF-8",
-           "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "AEGIS_PUSH_ID": uuid.uuid4().hex}
+           "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "GRAPHITE_PUSH_ID": uuid.uuid4().hex}
     if args[0] == "git-receive-pack":
         with open("/srv/git/.push.lock", "a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)

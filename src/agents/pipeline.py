@@ -87,7 +87,7 @@ def finalize_report(report: TriagedAuditReport, run: AgentRun, store, sink: Data
         setattr(report, name, [tmap[f.finding_id] for f in items])
     findings = report.all_findings()
 
-    report.report_id = f"AEGIS-{uuid.uuid4().hex[:12].upper()}"
+    report.report_id = f"GRAPHITE-{uuid.uuid4().hex[:12].upper()}"
     report.assessed_at = run.assessed_at
     from src.regulatory_rag.tier_a_rules import active_frameworks
     _fw = active_frameworks()

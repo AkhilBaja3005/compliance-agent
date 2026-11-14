@@ -1,7 +1,7 @@
 """API security: API-key auth with roles and tenant scopes, rate limiting, body-size limit, security headers, path/URL allow-lists.
 
-Keys come from AEGIS_API_KEYS="key:tenants:role,..." (tenants = `*` or `a|b|c`; role = admin | auditor | viewer). The API is
-closed by default: with no keys configured every protected route answers 503 unless AEGIS_AUTH_DISABLED=true (local development).
+Keys come from GRAPHITE_API_KEYS="key:tenants:role,..." (tenants = `*` or `a|b|c`; role = admin | auditor | viewer). The API is
+closed by default: with no keys configured every protected route answers 503 unless GRAPHITE_AUTH_DISABLED=true (local development).
 Keys are compared in constant time and are never logged; logs carry a short sha256 key id.
 """
 from __future__ import annotations
@@ -41,7 +41,7 @@ def key_id(key: str) -> str:
 
 def _load_keys() -> list[tuple[str, Principal]]:
     out = []
-    for item in os.getenv("AEGIS_API_KEYS", "").split(","):
+    for item in os.getenv("GRAPHITE_API_KEYS", "").split(","):
         item = item.strip()
         if not item:
             continue
@@ -55,7 +55,7 @@ def _load_keys() -> list[tuple[str, Principal]]:
 
 
 def auth_disabled() -> bool:
-    return os.getenv("AEGIS_AUTH_DISABLED", "").lower() == "true"
+    return os.getenv("GRAPHITE_AUTH_DISABLED", "").lower() == "true"
 
 
 def authenticate(request: Request) -> Principal:
@@ -63,7 +63,7 @@ def authenticate(request: Request) -> Principal:
         return Principal("dev-open", "admin", frozenset(), True)
     keys = _load_keys()
     if not keys:
-        raise HTTPException(503, "API authentication is not configured (set AEGIS_API_KEYS)")
+        raise HTTPException(503, "API authentication is not configured (set GRAPHITE_API_KEYS)")
     header = request.headers.get("authorization", "")
     presented = header[7:].strip() if header.lower().startswith("bearer ") else request.headers.get("x-api-key", "")
     found = None
@@ -117,7 +117,7 @@ limiter = RateLimiter()
 
 def rate_limit(heavy: bool = False):
     def dep(request: Request, p: Principal = Depends(authenticate)) -> None:
-        limit = int(os.getenv("AEGIS_RATE_LIMIT_HEAVY_PER_MIN" if heavy else "AEGIS_RATE_LIMIT_PER_MIN", "10" if heavy else "120"))
+        limit = int(os.getenv("GRAPHITE_RATE_LIMIT_HEAVY_PER_MIN" if heavy else "GRAPHITE_RATE_LIMIT_PER_MIN", "10" if heavy else "120"))
         wait = limiter.check(f"{p.key_id}:{'heavy' if heavy else 'std'}", limit)
         if wait is not None:
             raise HTTPException(429, "rate limit exceeded", headers={"Retry-After": str(int(wait) + 1)})
@@ -126,7 +126,7 @@ def rate_limit(heavy: bool = False):
 
 # ------------------------------------------------------------------ input allow-lists
 def allowed_git_hosts() -> set[str]:
-    return {h.strip().lower() for h in os.getenv("AEGIS_ALLOWED_GIT_HOSTS", "github.com").split(",") if h.strip()}
+    return {h.strip().lower() for h in os.getenv("GRAPHITE_ALLOWED_GIT_HOSTS", "github.com").split(",") if h.strip()}
 
 
 def validate_repo_source(value: str, principal: Principal, companies_root: Path) -> str:

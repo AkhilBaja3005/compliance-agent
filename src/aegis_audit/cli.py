@@ -206,7 +206,7 @@ def scan(
 def _build_sync_config(config: Optional[str], folder: list[str], url: list[str], jurisdiction: str, remote_docs_tenant: Optional[str], pdf_dir: str):
     from src.law_sync.ingest import FolderSource, SyncConfig, UrlSource, load_config
 
-    cfg = load_config(config) if (config or Path("sync_sources.yaml").is_file() or os.getenv("AEGIS_SYNC_CONFIG")) else SyncConfig()
+    cfg = load_config(config) if (config or Path("sync_sources.yaml").is_file() or os.getenv("GRAPHITE_SYNC_CONFIG")) else SyncConfig()
     j = "EU_AI_ACT" if "GDPR" not in jurisdiction.upper() else "EU_GDPR"
     cfg.folders += [FolderSource(str(Path(f).resolve()), j) for f in folder]
     cfg.urls += [UrlSource(u, j) for u in url]
@@ -239,7 +239,7 @@ def sync_laws(
     deep_linkup: bool = typer.Option(True, "--deep-linkup/--no-deep-linkup", help="Use Linkup deep web search for active legal amendments"),
     folder: list[str] = typer.Option([], "--folder", "-f", help="Folder to ingest (repeatable): PDF, md, txt, docx, xlsx, pptx, html, rtf, odt, csv"),
     url: list[str] = typer.Option([], "--url", "-u", help="https web page or PDF to ingest (repeatable)"),
-    config: Optional[str] = typer.Option(None, "--config", "-c", help="YAML/JSON file listing folders and urls (default ./sync_sources.yaml or $AEGIS_SYNC_CONFIG)"),
+    config: Optional[str] = typer.Option(None, "--config", "-c", help="YAML/JSON file listing folders and urls (default ./sync_sources.yaml or $GRAPHITE_SYNC_CONFIG)"),
     remote_docs_tenant: Optional[str] = typer.Option(None, "--remote-docs-tenant", help="Also index env-configured remote sources (Notion, Jira, Slack, ...) into this tenant"),
     pdf_dir: str = typer.Option("regulatory_pdfs", "--pdf-dir", help="Default folder when no --folder/--url/config is given ('' to skip)"),
 ):
@@ -265,7 +265,7 @@ def sync_laws(
 @app.command("sync-daemon")
 def sync_daemon(
     interval_hours: float = typer.Option(24.0, "--interval-hours", help="Hours between full syncs"),
-    config: Optional[str] = typer.Option(None, "--config", "-c", help="Sources file (default ./sync_sources.yaml or $AEGIS_SYNC_CONFIG)"),
+    config: Optional[str] = typer.Option(None, "--config", "-c", help="Sources file (default ./sync_sources.yaml or $GRAPHITE_SYNC_CONFIG)"),
     run_now: bool = typer.Option(True, "--run-now/--wait", help="Run one sync immediately, then on the interval"),
 ):
     """Long-running scheduler for the full sync (use as a separate process/container). For cron use `aegis sync-laws` instead."""
@@ -275,9 +275,9 @@ def sync_daemon(
     _load_dotenv()
     from src.observability import configure_logging
 
-    configure_logging(os.getenv("AEGIS_LOG_LEVEL", "INFO"))
+    configure_logging(os.getenv("GRAPHITE_LOG_LEVEL", "INFO"))
     if config:
-        os.environ["AEGIS_SYNC_CONFIG"] = config
+        os.environ["GRAPHITE_SYNC_CONFIG"] = config
     from src.law_sync.scheduler import start_scheduler
 
     start_scheduler(interval_hours, run_immediately=run_now)

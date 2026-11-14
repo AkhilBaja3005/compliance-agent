@@ -34,7 +34,7 @@ class DischargeSummarizerService:
 
     def __init__(self, region: str = "eu-west-2") -> None:
         self.region = region
-        self.cert_thumbprint = os.getenv("AEGIS_C2PA_SIGNING_CERT", "SHA256:B6:3C:99:A1:44:E2:NHS:ENCLAVE")
+        self.cert_thumbprint = os.getenv("GRAPHITE_C2PA_SIGNING_CERT", "SHA256:B6:3C:99:A1:44:E2:NHS:ENCLAVE")
         self.injection_patterns = [re.compile(p, re.I) for p in PROMPT_INJECTION_INDICATORS]
 
     def validate_clinical_safety(self, prompt: str) -> bool:

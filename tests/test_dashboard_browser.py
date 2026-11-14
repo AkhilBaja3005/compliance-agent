@@ -1,4 +1,4 @@
-"""Real Chromium + live Uvicorn checks. Opt in with AEGIS_BROWSER_TESTS=1."""
+"""Real Chromium + live Uvicorn checks. Opt in with GRAPHITE_BROWSER_TESTS=1."""
 from contextlib import contextmanager
 import os
 from pathlib import Path
@@ -10,7 +10,7 @@ import time
 import httpx
 import pytest
 
-pytestmark = pytest.mark.skipif(os.getenv("AEGIS_BROWSER_TESTS") != "1", reason="Set AEGIS_BROWSER_TESTS=1 and install Playwright Chromium")
+pytestmark = pytest.mark.skipif(os.getenv("GRAPHITE_BROWSER_TESTS") != "1", reason="Set GRAPHITE_BROWSER_TESTS=1 and install Playwright Chromium")
 ROOT = Path(__file__).resolve().parents[1]
 A, B, C = "company_a_finscore", "company_b_voxgen", "company_c_medassist"
 
@@ -22,8 +22,8 @@ def live_server(tmp_path):
         port = sock.getsockname()[1]
     url = f"http://127.0.0.1:{port}"
     env = {**os.environ, "BYOM_OFFLINE": "true", "AUTO_SYNC": "false",
-           "AEGIS_DASHBOARD_DB": str(tmp_path / "live.sqlite3"),
-           "AEGIS_HISTORY_FILE": str(tmp_path / "history.json"),
+           "GRAPHITE_DASHBOARD_DB": str(tmp_path / "live.sqlite3"),
+           "GRAPHITE_HISTORY_FILE": str(tmp_path / "history.json"),
            "COMPANIES_DIR": str(ROOT / "tests/fixtures/companies")}
     with (tmp_path / "server.log").open("w+") as log:
         process = subprocess.Popen([sys.executable, "-m", "uvicorn", "src.api:app", "--host", "127.0.0.1", "--port", str(port), "--workers", "1"],

@@ -404,7 +404,7 @@ class ClinicalPIIRedactor:
 
     def __init__(self, region: str = "eu-west-2") -> None:
         self.region = region
-        self.endpoint_vpc = os.getenv("AEGIS_NHS_VPC_ENDPOINT", "https://eu-west-2.clinical-ai.nhs.uk/v1")
+        self.endpoint_vpc = os.getenv("GRAPHITE_NHS_VPC_ENDPOINT", "https://eu-west-2.clinical-ai.nhs.uk/v1")
         self.enforce_zero_retention = True
         self._init_presidio()
 
@@ -639,7 +639,7 @@ async def evaluate_clinical_triage(
     sanitized_notes, pii_metrics = clinical_pii_redactor.redact_clinical_text(request.chief_complaint)
 
     # 3. Simulate Clinical Acuity Calculation
-    assessment_id = f"AEGIS-TR-{uuid.uuid4().hex[:10]}"
+    assessment_id = f"GRAPHITE-TR-{uuid.uuid4().hex[:10]}"
     spo2 = request.vitals.get("spo2", 98.0)
     pulse = request.vitals.get("pulse", 75.0)
 
@@ -783,7 +783,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-ENV AEGIS_NHS_VPC_ENDPOINT="https://eu-west-2.clinical-ai.nhs.uk/v1"
+ENV GRAPHITE_NHS_VPC_ENDPOINT="https://eu-west-2.clinical-ai.nhs.uk/v1"
 ENV DATA_RESIDENCY_REGION="eu-west-2"
 EXPOSE 8000
 CMD ["uvicorn", "src.routes.triage_router:router", "--host", "0.0.0.0", "--port", "8000"]
@@ -833,7 +833,7 @@ class DischargeSummarizerService:
 
     def __init__(self, region: str = "eu-west-2") -> None:
         self.region = region
-        self.cert_thumbprint = os.getenv("AEGIS_C2PA_SIGNING_CERT", "SHA256:B6:3C:99:A1:44:E2:NHS:ENCLAVE")
+        self.cert_thumbprint = os.getenv("GRAPHITE_C2PA_SIGNING_CERT", "SHA256:B6:3C:99:A1:44:E2:NHS:ENCLAVE")
         self.injection_patterns = [re.compile(p, re.I) for p in PROMPT_INJECTION_INDICATORS]
 
     def validate_clinical_safety(self, prompt: str) -> bool:
@@ -971,7 +971,7 @@ fastapi>=0.110.0
     dpia_clinical_triage = """# Data Protection Impact Assessment (DPIA) - Clinical Decision Support Triage API
 
 **Space:** CLINICAL_GOV  
-**Document ID:** DPIA-AEGIS-2025-V4.2  
+**Document ID:** DPIA-GRAPHITE-2025-V4.2  
 **Jurisdiction:** EU GDPR, Data Protection Act 2018, EU AI Act Article 27 (FRIA)  
 **Lead Reviewer:** Dr. Eleanor Vance, Caldicott Guardian & Chief Clinical Safety Officer  
 **Status:** Approved & Formally Registered with NHS England Information Governance  
@@ -994,7 +994,7 @@ The Aegis Clinical Triage Copilot provides emergency and acute care triage decis
     dpa_nhs = """# NHS National Data Processing Agreement (DPA) - Schedule 7 Technical & Organizational Standards
 
 **Space:** CLINICAL_GOV  
-**Document ID:** DPA-NHS-AEGIS-2025-REVISION-8  
+**Document ID:** DPA-NHS-GRAPHITE-2025-REVISION-8  
 **Data Controller:** NHS England / Partner Trust Boards  
 **Data Processor:** Aegis Health Systems Ltd  
 **Jurisdiction:** EU GDPR, EU AI Act, EU GDPR  

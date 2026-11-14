@@ -71,12 +71,12 @@ class SyncReport:
 
 
 def load_config(path: str | os.PathLike | None = None) -> SyncConfig:
-    """YAML/JSON config: `folders: [{path, jurisdiction, category}]`, `urls: [{url, jurisdiction, category}]`. Path from arg, AEGIS_SYNC_CONFIG, or ./sync_sources.yaml."""
+    """YAML/JSON config: `folders: [{path, jurisdiction, category}]`, `urls: [{url, jurisdiction, category}]`. Path from arg, GRAPHITE_SYNC_CONFIG, or ./sync_sources.yaml."""
     import json
 
     import yaml
 
-    p = Path(path or os.getenv("AEGIS_SYNC_CONFIG") or "sync_sources.yaml")
+    p = Path(path or os.getenv("GRAPHITE_SYNC_CONFIG") or "sync_sources.yaml")
     if not p.is_file():
         return SyncConfig()
     raw = yaml.safe_load(p.read_text(encoding="utf-8")) if p.suffix in {".yml", ".yaml"} else json.loads(p.read_text(encoding="utf-8"))

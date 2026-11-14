@@ -1,7 +1,7 @@
 # Data Protection Impact Assessment (DPIA) - Clinical Decision Support Triage API
 
 **Space:** CLINICAL_GOV  
-**Document ID:** DPIA-AEGIS-2025-V4.2  
+**Document ID:** DPIA-GRAPHITE-2025-V4.2  
 **Jurisdiction:** UK GDPR, Data Protection Act 2018, EU AI Act Article 27 (FRIA)  
 **Lead Reviewer:** Dr. Eleanor Vance, Caldicott Guardian & Chief Clinical Safety Officer  
 **Status:** Approved & Formally Registered with NHS England Information Governance  

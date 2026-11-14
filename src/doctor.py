@@ -67,17 +67,17 @@ def run_checks(live: bool = False, http_client=None) -> list[Check]:
     add("rule library", rules)
 
     def auth():
-        if os.getenv("AEGIS_AUTH_DISABLED", "").lower() == "true":
-            return "WARN", "AEGIS_AUTH_DISABLED=true: API is open (development only)"
+        if os.getenv("GRAPHITE_AUTH_DISABLED", "").lower() == "true":
+            return "WARN", "GRAPHITE_AUTH_DISABLED=true: API is open (development only)"
         from src import security
         n = len(security._load_keys())
-        return ("OK", f"{n} API key(s) configured") if n else ("FAIL", "AEGIS_API_KEYS not set: the API refuses all requests")
+        return ("OK", f"{n} API key(s) configured") if n else ("FAIL", "GRAPHITE_API_KEYS not set: the API refuses all requests")
     add("API auth", auth)
 
     def data_dir():
-        d = os.getenv("AEGIS_DATA_DIR")
+        d = os.getenv("GRAPHITE_DATA_DIR")
         if not d:
-            return "WARN", "AEGIS_DATA_DIR unset: jobs, reports and sign-offs are kept in memory only"
+            return "WARN", "GRAPHITE_DATA_DIR unset: jobs, reports and sign-offs are kept in memory only"
         os.makedirs(d, exist_ok=True)
         probe = os.path.join(d, ".doctor")
         open(probe, "w").close()
@@ -175,10 +175,10 @@ def run_checks(live: bool = False, http_client=None) -> list[Check]:
     add("Confluence", confluence)
 
     def remote_docs():
-        on = os.getenv("AEGIS_REMOTE_DOC_SOURCES", "").lower() == "true"
+        on = os.getenv("GRAPHITE_REMOTE_DOC_SOURCES", "").lower() == "true"
         from src.connectors.doc_sources import sources_from_env
         names = [s.name for s in sources_from_env()] if on else []
-        return ("OK", "enabled: " + ", ".join(names)) if names else ("SKIP", "AEGIS_REMOTE_DOC_SOURCES not enabled")
+        return ("OK", "enabled: " + ", ".join(names)) if names else ("SKIP", "GRAPHITE_REMOTE_DOC_SOURCES not enabled")
     add("Remote doc sources", remote_docs)
     return out
 

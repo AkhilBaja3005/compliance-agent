@@ -17,8 +17,8 @@ H = lambda k: {"Authorization": f"Bearer {k}"}
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setenv("AEGIS_AUTH_DISABLED", "false")
-    monkeypatch.setenv("AEGIS_API_KEYS", KEYS)
+    monkeypatch.setenv("GRAPHITE_AUTH_DISABLED", "false")
+    monkeypatch.setenv("GRAPHITE_API_KEYS", KEYS)
     sec.limiter.reset()
     metrics.reset()
     api.init_state(force=True)
@@ -27,8 +27,8 @@ def client(monkeypatch):
 
 
 def test_closed_by_default_without_keys(monkeypatch):
-    monkeypatch.setenv("AEGIS_AUTH_DISABLED", "false")
-    monkeypatch.delenv("AEGIS_API_KEYS", raising=False)
+    monkeypatch.setenv("GRAPHITE_AUTH_DISABLED", "false")
+    monkeypatch.delenv("GRAPHITE_API_KEYS", raising=False)
     with TestClient(api.app) as c:
         assert c.get("/companies").status_code == 503
         assert c.get("/dashboard/api/companies/company_a_finscore/snapshot").status_code == 503
@@ -69,11 +69,11 @@ def test_dashboard_uses_api_roles_tenant_scopes_and_source_guards(client, monkey
     local = {"sources": {"confluence_path": "/etc"}}
     assert client.put(base + "/settings", json=local, headers=H("auditorA-0002")).status_code == 403
     assert client.put(base + "/settings", json=local, headers=H("adminkey-0001")).status_code == 400
-    monkeypatch.setenv("AEGIS_ALLOWED_GIT_HOSTS", "internal.example")
+    monkeypatch.setenv("GRAPHITE_ALLOWED_GIT_HOSTS", "internal.example")
     remote = {"sources": {"github_url": "https://github.com/owner/repo"}}
     assert client.put(base + "/settings", json=remote, headers=H("auditorA-0002")).status_code == 400
     assert client.put(base + "/settings", json={}, headers=H("auditorA-0002")).status_code == 200
-    monkeypatch.setenv("AEGIS_RATE_LIMIT_HEAVY_PER_MIN", "1")
+    monkeypatch.setenv("GRAPHITE_RATE_LIMIT_HEAVY_PER_MIN", "1")
     assert client.post(base + "/runs", headers=H("auditorA-0002")).status_code == 202
     assert client.post(base + "/runs", headers=H("auditorA-0002")).status_code == 429
 
@@ -94,7 +94,7 @@ def test_dashboard_csp_allows_assets_and_storage_errors_keep_security_headers(cl
 
 
 def test_rate_limit_on_heavy_endpoint(client, monkeypatch):
-    monkeypatch.setenv("AEGIS_RATE_LIMIT_HEAVY_PER_MIN", "2")
+    monkeypatch.setenv("GRAPHITE_RATE_LIMIT_HEAVY_PER_MIN", "2")
     body = {"company_id": "company_a_finscore"}
     codes = [client.post("/audit/jobs", json=body, headers={**H("auditorA-0002"), "Idempotency-Key": f"k{i}"}).status_code for i in range(3)]
     assert codes[:2] == [202, 202] and codes[2] == 429
@@ -103,7 +103,7 @@ def test_rate_limit_on_heavy_endpoint(client, monkeypatch):
 
 
 def test_body_size_limit(client, monkeypatch):
-    monkeypatch.setenv("AEGIS_MAX_BODY_BYTES", "50")
+    monkeypatch.setenv("GRAPHITE_MAX_BODY_BYTES", "50")
     r = client.post("/audit/run", json={"company_id": "company_a_finscore", "github_url": "https://github.com/" + "x" * 100}, headers=H("auditorA-0002"))
     assert r.status_code == 413
 
@@ -122,7 +122,7 @@ def test_local_paths_are_admin_only_and_confined(client, tmp_path):
 
 
 def test_ingest_pdf_confined_to_pdf_root(client, monkeypatch, tmp_path):
-    monkeypatch.setenv("AEGIS_PDF_ROOT", str(tmp_path))
+    monkeypatch.setenv("GRAPHITE_PDF_ROOT", str(tmp_path))
     outside = client.post("/admin/ingest-pdf", json={"pdf_path": "/etc/hosts"}, headers=H("adminkey-0001"))
     assert outside.status_code == 400
     assert client.post("/admin/ingest-pdf", json={"pdf_path": str(tmp_path / "x.pdf")}, headers=H("auditorA-0002")).status_code == 403
@@ -220,7 +220,7 @@ def test_rate_limiter_window_math():
 
 
 def test_rule_review_gate_stages_then_approves(client, monkeypatch):
-    monkeypatch.setenv("AEGIS_RULE_REVIEW_REQUIRED", "true")
+    monkeypatch.setenv("GRAPHITE_RULE_REVIEW_REQUIRED", "true")
     before = client.get("/laws/status", headers=H("viewerA-0004")).json()["law_index_version"]
     r = client.post("/laws/simulate-update", json={"jurisdiction": "EU_AI_ACT", "title": "Art. 50 amendment", "text": "Amended transparency text."}, headers=H("adminkey-0001")).json()
     assert r["changed"] is False and any("STAGED" in l for l in r["log"])
@@ -235,7 +235,7 @@ def test_rule_review_gate_stages_then_approves(client, monkeypatch):
 def test_laws_ingest_is_admin_only_and_takes_no_paths(client, tmp_path, monkeypatch):
     (tmp_path / "x.md").write_text("# X\nRecord keeping obligations require logs of events over the system lifetime.\n")
     (tmp_path / "s.yaml").write_text(f"folders:\n  - path: {tmp_path}\n")
-    monkeypatch.setenv("AEGIS_SYNC_CONFIG", str(tmp_path / "s.yaml"))
+    monkeypatch.setenv("GRAPHITE_SYNC_CONFIG", str(tmp_path / "s.yaml"))
     assert client.post("/laws/ingest", headers=H("auditorA-0002")).status_code == 403
     r = client.post("/laws/ingest", params={"deep_linkup": "false"}, json={"folders": ["/etc"], "urls": ["https://evil.example"]}, headers=H("adminkey-0001"))
     assert r.status_code == 200 and [s["source"].split("/")[-1] for s in r.json()["sources"]] == ["x.md"]  # request body cannot add sources

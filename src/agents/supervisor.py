@@ -47,7 +47,7 @@ class SupervisorAgent:
         self.trace_id: str | None = None
         self.checks = {c.check_id: c for c in checklist}
         self.order = [c.check_id for c in checklist]
-        self.max_workers = max_workers or int(os.getenv("AEGIS_AGENT_WORKERS", "6"))
+        self.max_workers = max_workers or int(os.getenv("GRAPHITE_AGENT_WORKERS", "6"))
 
     # ---- graph nodes
     def supervisor_node(self, state: AuditState) -> dict:

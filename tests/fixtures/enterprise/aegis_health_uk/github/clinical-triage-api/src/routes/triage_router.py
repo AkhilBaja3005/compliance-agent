@@ -125,7 +125,7 @@ async def evaluate_clinical_triage(
     sanitized_notes, pii_metrics = clinical_pii_redactor.redact_clinical_text(request.chief_complaint)
 
     # 3. Simulate Clinical Acuity Calculation
-    assessment_id = f"AEGIS-TR-{uuid.uuid4().hex[:10]}"
+    assessment_id = f"GRAPHITE-TR-{uuid.uuid4().hex[:10]}"
     spo2 = request.vitals.get("spo2", 98.0)
     pulse = request.vitals.get("pulse", 75.0)
 

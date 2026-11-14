@@ -62,7 +62,7 @@ def main() -> int:
     args = parser.parse_args()
     started = time.monotonic()
     input_text = sys.stdin.read(1024 * 1024 + 1)
-    token = os.environ.get("AEGIS_PUSH_ID", "")
+    token = os.environ.get("GRAPHITE_PUSH_ID", "")
     if not re.fullmatch(r"[0-9a-f]{32}", token):
         token = hashlib.sha256(f"{os.getppid()}:{input_text}".encode()).hexdigest()[:32]
     result = {"push_id": token, "recorded_at": datetime.now(timezone.utc).isoformat()}
@@ -90,10 +90,10 @@ def main() -> int:
         os.chmod(temporary, 0o600)
         temporary.replace(destination)
     except OSError:
-        print("AEGIS ERROR: cannot persist the push decision", file=sys.stderr)
+        print("GRAPHITE ERROR: cannot persist the push decision", file=sys.stderr)
         return 2
     decision = result["decision"]
-    print(f"AEGIS {decision}: report {token}{suffix}", file=sys.stderr)
+    print(f"GRAPHITE {decision}: report {token}{suffix}", file=sys.stderr)
     for regression in result.get("regressions", []):
         print(f"  {regression['commit'][:12]} {regression['check_id']} "
               f"{regression['exact_locator']} ({regression['qualified_name']})", file=sys.stderr)

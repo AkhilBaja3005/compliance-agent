@@ -599,7 +599,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     """Generates the full HTML markup for the 6-section A4 audit report."""
     logo_uri = _get_logo_data_uri()
     company = html.escape(str(report_data.get("company_name", "Enterprise Target")))
-    report_id = html.escape(str(report_data.get("report_id", "AEGIS-AUDIT-2026-001")))
+    report_id = html.escape(str(report_data.get("report_id", "GRAPHITE-AUDIT-2026-001")))
     assessed_at = html.escape(str(report_data.get("assessed_at", datetime.now(timezone.utc).strftime("%d %B %Y"))))
     scope = html.escape(str(report_data.get("scope", "GitHub Org & Confluence Workspace (S1–S7)")))
     rule_lib = html.escape(str(report_data.get("rule_library_version", "EU-2026.11")))

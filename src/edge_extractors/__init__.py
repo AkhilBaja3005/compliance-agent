@@ -225,7 +225,7 @@ def build_index(company_dir: Path | str | None = None, tenant_id: str | None = N
     if root is not None and (cf_src is None or skip_top):
         chunks += [c for c in parse_documents(root, tenant_id, skip_top) if c.chunk_id not in {x.chunk_id for x in chunks}]
     statuses: list[dict] = []
-    if doc_sources is None and os.getenv("AEGIS_REMOTE_DOC_SOURCES", "").lower() == "true":
+    if doc_sources is None and os.getenv("GRAPHITE_REMOTE_DOC_SOURCES", "").lower() == "true":
         from src.connectors.doc_sources import sources_from_env
 
         doc_sources = sources_from_env()

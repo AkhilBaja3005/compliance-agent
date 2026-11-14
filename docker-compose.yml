@@ -4,9 +4,9 @@ services:
     ports: ["8000:8000"]
     env_file: [.env]
     environment:
-      AEGIS_DATA_DIR: /var/lib/aegis
-      AEGIS_DASHBOARD_DB: /var/lib/aegis/dashboard.sqlite3
-      AEGIS_HISTORY_FILE: /var/lib/aegis/finding-history.json
+      GRAPHITE_DATA_DIR: /var/lib/aegis
+      GRAPHITE_DASHBOARD_DB: /var/lib/aegis/dashboard.sqlite3
+      GRAPHITE_HISTORY_FILE: /var/lib/aegis/finding-history.json
     volumes:
       - aegis-data:/var/lib/aegis
       - ./synthetic_companies:/app/companies:ro

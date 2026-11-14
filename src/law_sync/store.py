@@ -27,7 +27,7 @@ class LawStore:
         self.last_synced_at: datetime | None = None
         self.history: list[LawSyncResult] = []
         self._listeners: list = []
-        self.pending: dict[str, dict] = {}  # staged updates awaiting human approval (AEGIS_RULE_REVIEW_REQUIRED=true)
+        self.pending: dict[str, dict] = {}  # staged updates awaiting human approval (GRAPHITE_RULE_REVIEW_REQUIRED=true)
 
     def _make_version(self) -> str:
         return f"{SEED_VERSION_BASE}.{self._version_counter}+{_index_hash(self._rules)[:8]}"
@@ -47,10 +47,10 @@ class LawStore:
     def add_listener(self, fn) -> None:
         self._listeners.append(fn)
 
-    # --- review gate: with AEGIS_RULE_REVIEW_REQUIRED=true, changed rule content is staged, not applied, until an admin approves it
+    # --- review gate: with GRAPHITE_RULE_REVIEW_REQUIRED=true, changed rule content is staged, not applied, until an admin approves it
     @staticmethod
     def review_required() -> bool:
-        return os.getenv("AEGIS_RULE_REVIEW_REQUIRED", "").lower() == "true"
+        return os.getenv("GRAPHITE_RULE_REVIEW_REQUIRED", "").lower() == "true"
 
     def _diff(self, new_rules: dict[str, RegulatoryRule]) -> list[RuleChange]:
         old, changes = self._rules, []

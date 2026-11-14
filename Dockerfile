@@ -5,10 +5,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PYTHONPATH=/app \
-    AEGIS_DATA_DIR=/var/lib/aegis \
-    AEGIS_DASHBOARD_DB=/var/lib/aegis/dashboard.sqlite3 \
-    AEGIS_HISTORY_FILE=/var/lib/aegis/finding-history.json \
-    AEGIS_PDF_ROOT=/app/regulatory_pdfs \
+    GRAPHITE_DATA_DIR=/var/lib/aegis \
+    GRAPHITE_DASHBOARD_DB=/var/lib/aegis/dashboard.sqlite3 \
+    GRAPHITE_HISTORY_FILE=/var/lib/aegis/finding-history.json \
+    GRAPHITE_PDF_ROOT=/app/regulatory_pdfs \
     COMPANIES_DIR=/app/tests/fixtures/companies
 
 # WeasyPrint native libraries, Git for repository sources, and optional PDF OCR.

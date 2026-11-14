@@ -241,7 +241,7 @@ _lock = threading.RLock()
 
 
 def get_dashboard_repository() -> DashboardRepository:
-    path = os.getenv("AEGIS_DASHBOARD_DB") or str(Path(__file__).resolve().parents[2] / ".aegis" / "dashboard.sqlite3")
+    path = os.getenv("GRAPHITE_DASHBOARD_DB") or str(Path(__file__).resolve().parents[2] / ".aegis" / "dashboard.sqlite3")
     key = (path, os.getenv("MONGODB_URI"), os.getenv("MONGODB_DATABASE"), os.getenv("MONGODB_DB_NAME"))
     with _lock:
         if key not in _repositories:

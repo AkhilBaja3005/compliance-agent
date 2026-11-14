@@ -38,7 +38,7 @@ def test_notebook_cells_are_scanned_with_cell_locator():
 
 def test_unsupported_language_becomes_suspected_gap_not_pass(monkeypatch):
     from src.agents import run_audit
-    monkeypatch.setenv("AEGIS_FRAMEWORKS", "ALL")
+    monkeypatch.setenv("GRAPHITE_FRAMEWORKS", "ALL")
     ix = build_index(LANGS / "unscanned" / "bad", "u")
     assert ix.unscanned == {".scala": 1} and ix.has_code
     rep = run_audit(LANGS / "unscanned" / "bad", "u")
@@ -48,7 +48,7 @@ def test_unsupported_language_becomes_suspected_gap_not_pass(monkeypatch):
 
 def test_fully_parsed_repo_passes_coverage_check(monkeypatch):
     from src.agents import run_audit
-    monkeypatch.setenv("AEGIS_FRAMEWORKS", "ALL")
+    monkeypatch.setenv("GRAPHITE_FRAMEWORKS", "ALL")
     rep = run_audit(LANGS / "go" / "clean", "g")
     assert next(f for f in rep.all_findings() if f.check_id == "COV-01").status == "PASS"
 

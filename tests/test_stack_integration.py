@@ -99,7 +99,7 @@ def test_report_and_finding_carry_every_contract_field(fixtures_dir):
     f = next(x for x in r.confirmed_findings if x.check_id == "HITL-01")
     assert f.severity == "High" and f.system_id == "S1" and f.owner and f.remediation_steps and f.due_date and f.primary_rule == f.regulatory_reference
     assert f.confidence == f.confidence_score and f.evidence[0].type == f.evidence[0].source_type and f.evidence[0].item == f.evidence[0].artifact_id
-    assert r.report_id.startswith("AEGIS-") and len(r.bundle_sha256) == 64 and r.assessed_at
+    assert r.report_id.startswith("GRAPHITE-") and len(r.bundle_sha256) == 64 and r.assessed_at
     assert r.system_inventory and r.system_inventory[0].system_id == "S1" and r.system_inventory[0].detected_in_code
     assert r.compliance_matrix and r.roadmap and r.fairness_metrics["status"] in {"SUSPECTED_GAP", "DOCUMENTED", "NOT_APPLICABLE"}
     assert r.input_coverage_pct == 75.0 and r.overall_readiness == "NOT_READY"
@@ -310,7 +310,7 @@ def test_mongo_unreachable_falls_back_and_history_file_persists(tmp_path, monkey
     assert not store.is_atlas and store.error and store.search_rules("q") is None
     saver, kind = store.checkpointer()
     assert kind == "memory"
-    monkeypatch.setenv("AEGIS_HISTORY_FILE", str(tmp_path / "hist.json"))
+    monkeypatch.setenv("GRAPHITE_HISTORY_FILE", str(tmp_path / "hist.json"))
     s1 = MongoComplianceStore()
     f = ComplianceFinding(finding_id="y-1", tenant_id="y", jurisdiction="EU_AI_ACT", regulatory_reference="EU_AI_ACT:Art.10",
                           risk_tier="HIGH_RISK", status="SUSPECTED_GAP", confidence_score=0.9, title="t", summary="s")
@@ -450,7 +450,7 @@ def test_api_stack_status_and_connector_options(fixtures_dir, monkeypatch):
     st = c.get("/stack/status").json()
     assert (st["linkup"].startswith("disabled") or st["linkup"].startswith("live")) and st["mongodb"]["mode"] in ("memory", "live-atlas") and st["databricks_model_serving"] in ("offline-fallback", "anthropic-claude-direct", "live")
     rep = c.post("/audit/run", json={"company_id": "company_c_medassist", "github_url": str(fixtures_dir / "company_c_medassist")}).json()
-    assert rep["report_id"].startswith("AEGIS-")
+    assert rep["report_id"].startswith("GRAPHITE-")
 
 
 def test_search_rules_ignores_pdf_chunks_without_rule_id():

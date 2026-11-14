@@ -43,7 +43,7 @@ def test_parquet_and_jsonl_and_dbt_and_proto(tmp_path):
 
 def _checks(path, monkeypatch):
     from src.agents import run_audit
-    monkeypatch.setenv("AEGIS_FRAMEWORKS", "EU_AI_ACT")
+    monkeypatch.setenv("GRAPHITE_FRAMEWORKS", "EU_AI_ACT")
     rep = run_audit(path, "d")
     return {f.check_id: f for f in rep.all_findings()}, rep
 

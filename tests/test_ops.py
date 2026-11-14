@@ -17,13 +17,13 @@ def _by(checks):
 def test_doctor_config_mode_never_fails_on_unset_services(monkeypatch):
     for v in ("LINKUP_API_KEY", "MONGODB_URI", "DATABRICKS_HOST", "DATABRICKS_TOKEN", "GITHUB_TOKEN", "CONFLUENCE_URL", "MLFLOW_TRACKING_URI"):
         monkeypatch.delenv(v, raising=False)
-    monkeypatch.setenv("AEGIS_AUTH_DISABLED", "false")
-    monkeypatch.delenv("AEGIS_API_KEYS", raising=False)
+    monkeypatch.setenv("GRAPHITE_AUTH_DISABLED", "false")
+    monkeypatch.delenv("GRAPHITE_API_KEYS", raising=False)
     c = _by(run_checks())
     assert c["Linkup"].status == "SKIP" and c["MongoDB Atlas"].status == "SKIP" and c["Databricks Model Serving"].status == "SKIP"
     assert c["code parsers"].status == "OK" and c["rule library"].status == "OK"
     assert c["API auth"].status == "FAIL" and exit_code(list(c.values())) == 1  # closed API is a failure the operator must see
-    monkeypatch.setenv("AEGIS_API_KEYS", "k-123456:*:admin")
+    monkeypatch.setenv("GRAPHITE_API_KEYS", "k-123456:*:admin")
     assert _by(run_checks())["API auth"].status == "OK"
 
 
@@ -46,8 +46,8 @@ def test_doctor_live_github_uses_header_only_and_hides_token(monkeypatch):
 
 def test_doctor_cli_exit_code(monkeypatch):
     from aegis_audit.cli import app
-    monkeypatch.setenv("AEGIS_AUTH_DISABLED", "false")
-    monkeypatch.setenv("AEGIS_API_KEYS", "")  # empty (not unset) so the CLI's .env loading cannot refill it
+    monkeypatch.setenv("GRAPHITE_AUTH_DISABLED", "false")
+    monkeypatch.setenv("GRAPHITE_API_KEYS", "")  # empty (not unset) so the CLI's .env loading cannot refill it
     res = CliRunner().invoke(app, ["doctor"])
     assert res.exit_code == 1 and "API auth" in res.output
 

@@ -155,7 +155,7 @@ def scan_confluence_cloud(tenant_id: str, space_key: str | None = None, base_url
     body_of = lambda pg: ((pg.get("body") or {}).get("storage") or {}).get("value")
     missing = [pg for pg in listing if not body_of(pg)]
     if missing and can_fetch:
-        workers = int(os.getenv("AEGIS_CONFLUENCE_WORKERS", "6"))
+        workers = int(os.getenv("GRAPHITE_CONFLUENCE_WORKERS", "6"))
         with ThreadPoolExecutor(max_workers=max(1, min(workers, len(missing)))) as pool:
             fetched = list(pool.map(lambda pg: client.get_page(pg["id"]), missing))  # map preserves page order
         by_id = {f["id"]: f for f in fetched}

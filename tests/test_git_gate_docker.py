@@ -18,18 +18,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.mark.parametrize("runtime", ["docker", "podman"])
 def test_ssh_clone_push_rejection_and_restart(tmp_path, runtime):
-    if (not any(os.getenv(key) == "1" for key in ("AEGIS_CONTAINER_SMOKE", "AEGIS_DOCKER_SMOKE"))
+    if (not any(os.getenv(key) == "1" for key in ("GRAPHITE_CONTAINER_SMOKE", "GRAPHITE_DOCKER_SMOKE"))
             or shutil.which(runtime) is None):
-        pytest.skip("Set AEGIS_CONTAINER_SMOKE=1 with Docker or Podman and a Compose provider installed")
+        pytest.skip("Set GRAPHITE_CONTAINER_SMOKE=1 with Docker or Podman and a Compose provider installed")
     with socket.socket() as web_sock, socket.socket() as ssh_sock:
         web_sock.bind(("127.0.0.1", 0))
         ssh_sock.bind(("127.0.0.1", 0))
         web_port, ssh_port = web_sock.getsockname()[1], ssh_sock.getsockname()[1]
     key = tmp_path / "identity"
     subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
-    env = {**os.environ, "AEGIS_AUTHORIZED_KEYS": str(key) + ".pub",
-           "AEGIS_PORT": str(web_port), "AEGIS_BIND_ADDRESS": "127.0.0.1",
-           "AEGIS_GIT_PORT": str(ssh_port), "AEGIS_GIT_BIND_ADDRESS": "127.0.0.1",
+    env = {**os.environ, "GRAPHITE_AUTHORIZED_KEYS": str(key) + ".pub",
+           "GRAPHITE_PORT": str(web_port), "GRAPHITE_BIND_ADDRESS": "127.0.0.1",
+           "GRAPHITE_GIT_PORT": str(ssh_port), "GRAPHITE_GIT_BIND_ADDRESS": "127.0.0.1",
            "BYOM_OFFLINE": "true", "AUTO_SYNC": "false", "COMPANIES_DIR": "/app/tests/fixtures/companies"}
     for name in ("MONGODB_URI", "LINKUP_API_KEY", "DATABRICKS_HOST", "DATABRICKS_TOKEN", "DATABRICKS_WAREHOUSE_ID",
                  "MLFLOW_TRACKING_URI", "GITHUB_TOKEN", "CONFLUENCE_URL", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):

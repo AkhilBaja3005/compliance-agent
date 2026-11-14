@@ -41,7 +41,7 @@ class Job:
 
 
 class ReportStore:
-    """Finished reports by id (memory; mirrored to AEGIS_DATA_DIR/reports when set)."""
+    """Finished reports by id (memory; mirrored to GRAPHITE_DATA_DIR/reports when set)."""
 
     def __init__(self, data_dir: Path | None):
         self._mem: dict[str, tuple[str, dict]] = {}
@@ -69,8 +69,8 @@ class ReportStore:
 class JobManager:
     def __init__(self, run_fn: Callable[[dict], dict], reports: ReportStore, workers: int | None = None, timeout_s: float | None = None, data_dir: Path | None = None):
         self.run_fn, self.reports = run_fn, reports
-        self.timeout_s = timeout_s if timeout_s is not None else float(os.getenv("AEGIS_JOB_TIMEOUT_S", "900"))
-        self.pool = ThreadPoolExecutor(max_workers=workers or int(os.getenv("AEGIS_WORKERS", "2")), thread_name_prefix="aegis-job")
+        self.timeout_s = timeout_s if timeout_s is not None else float(os.getenv("GRAPHITE_JOB_TIMEOUT_S", "900"))
+        self.pool = ThreadPoolExecutor(max_workers=workers or int(os.getenv("GRAPHITE_WORKERS", "2")), thread_name_prefix="aegis-job")
         self.jobs: dict[str, Job] = {}
         self.idem: dict[tuple[str, str], str] = {}
         self._lock = threading.RLock()

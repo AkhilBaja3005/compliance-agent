@@ -295,7 +295,7 @@ def test_api_endpoints(fixtures_dir, monkeypatch):
 
 
 def test_eu_ai_act_only_scope(fixtures_dir, monkeypatch):
-    monkeypatch.setenv("AEGIS_FRAMEWORKS", "EU_AI_ACT")
+    monkeypatch.setenv("GRAPHITE_FRAMEWORKS", "EU_AI_ACT")
     rep = audit(fixtures_dir, "company_a_finscore")
     assert "EU AI Act" in rep.scope
     assert rep.all_findings()

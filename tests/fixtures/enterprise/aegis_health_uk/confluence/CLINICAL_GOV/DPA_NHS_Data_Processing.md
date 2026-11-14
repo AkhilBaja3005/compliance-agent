@@ -1,7 +1,7 @@
 # NHS National Data Processing Agreement (DPA) - Schedule 7 Technical & Organizational Standards
 
 **Space:** CLINICAL_GOV  
-**Document ID:** DPA-NHS-AEGIS-2025-REVISION-8  
+**Document ID:** DPA-NHS-GRAPHITE-2025-REVISION-8  
 **Data Controller:** NHS England / Partner Trust Boards  
 **Data Processor:** Aegis Health Systems Ltd  
 **Jurisdiction:** UK GDPR, UK Data (Use and Access) Bill 2025, EU GDPR  

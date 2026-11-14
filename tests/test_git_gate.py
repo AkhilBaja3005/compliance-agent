@@ -74,7 +74,7 @@ class Server:
 
     def push(self, *refs):
         push_id = uuid.uuid4().hex
-        env = {**os.environ, "AEGIS_PUSH_ID": push_id}
+        env = {**os.environ, "GRAPHITE_PUSH_ID": push_id}
         # A client-side bypass must not bypass the server's hook.
         result = git(self.client, "push", "--no-verify", str(self.repo), *(refs or ("main",)), check=False, env=env)
         report = json.loads((self.reports / f"{push_id}.json").read_text())

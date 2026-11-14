@@ -160,7 +160,7 @@ Graphite includes an interactive web dashboard for leadership overviews, enginee
 ### Local Development Server
 
 ```bash
-AEGIS_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --host 127.0.0.1 --port 8000
+GRAPHITE_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --host 127.0.0.1 --port 8000
 ```
 
 - **Executive Overview:** [http://localhost:8000/dashboard/overview](http://localhost:8000/dashboard/overview)
@@ -169,7 +169,7 @@ AEGIS_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --host 
 
 ### API Endpoints
 
-Authentication is enforced by default via API key headers (`X-API-Key`). Configure access using `AEGIS_API_KEYS="key:tenants:role,..."`.
+Authentication is enforced by default via API key headers (`X-API-Key`). Configure access using `GRAPHITE_API_KEYS="key:tenants:role,..."`.
 
 | Route | Role | Purpose |
 |---|---|---|
@@ -190,7 +190,7 @@ Authentication is enforced by default via API key headers (`X-API-Key`). Configu
 
 ```bash
 # Launch dashboard and scanner stack
-AEGIS_AUTH_DISABLED=true docker compose up --build -d
+GRAPHITE_AUTH_DISABLED=true docker compose up --build -d
 
 # View live logs
 docker compose logs -f aegis
@@ -209,7 +209,7 @@ mkdir -p .aegis
 cp "$HOME/.ssh/id_ed25519.pub" .aegis/authorized_keys
 
 # Start with git profile enabled
-AEGIS_AUTH_DISABLED=true docker compose --profile git up --build -d
+GRAPHITE_AUTH_DISABLED=true docker compose --profile git up --build -d
 
 # Clone and push through the compliance gate
 git clone ssh://git@localhost:2222/demo.git
@@ -239,11 +239,11 @@ Copy `.env.example` to `.env` to configure optional remote services:
 
 ```ini
 # Core scope
-AEGIS_FRAMEWORKS=EU_AI_ACT,EU_GDPR
+GRAPHITE_FRAMEWORKS=EU_AI_ACT,EU_GDPR
 
 # Multi-tenant Auth & API
-AEGIS_AUTH_DISABLED=false
-AEGIS_API_KEYS=admin-secret:*:admin,auditor-key:acme|corp:auditor
+GRAPHITE_AUTH_DISABLED=false
+GRAPHITE_API_KEYS=admin-secret:*:admin,auditor-key:acme|corp:auditor
 
 # Storage & Atlas
 MONGODB_URI=mongodb+srv://...
