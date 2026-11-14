@@ -1,0 +1,79 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  sync-to-huggingface:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::Secret HF_TOKEN is not set in GitHub repository settings!"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 1. Create an orphan branch with zero history
+          git checkout --orphan hf-clean
+
+          # 2. Unstage and remove all binary files from the index
+          git rm -rf --cached --ignore-unmatch \
+            assets/*.png assets/*.jpg assets/*.jpeg \
+            *.pdf reports/*.pdf \
+            regulatory_pdfs/*.pdf \
+            "*.png" "*.jpg" "*.jpeg" "*.pdf"
+
+          # Remove from filesystem as well
+          rm -rf assets/*.png assets/*.jpg assets/*.jpeg *.pdf reports/*.pdf regulatory_pdfs/*.pdf
+
+          # 3. Prepend Hugging Face YAML frontmatter to README if missing
+          if ! grep -q "app_port: 8000" README.md; then
+            cat << 'EOF' > /tmp/hf_header.txt
+          ---
+          title: Graphite AI Safety & Regulatory Compliance Auditor
+          emoji: ⚖️
+          colorFrom: indigo
+          colorTo: gray
+          sdk: docker
+          app_port: 8000
+          pinned: false
+          ---
+
+          EOF
+            cat /tmp/hf_header.txt README.md > /tmp/new_readme.md
+            mv /tmp/new_readme.md README.md
+          fi
+
+          # 4. Stage and commit only clean source files
+          git add -A
+          git commit -m "deploy: clean source release for Hugging Face Spaces"
+
+          # 5. Push single clean commit to Hugging Face Spaces
+          git remote add hf "https://abaja:${HF_TOKEN}@huggingface.co/spaces/abaja/graphite"
+          git push hf hf-clean:main --force
+
+      - name: Trigger Hugging Face Factory Rebuild
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "Triggering Hugging Face factory rebuild to invalidate Docker caches..."
+          status_code=$(curl -s -o /tmp/hf_restart_response.json -w "%{http_code}" -X POST "https://huggingface.co/api/spaces/abaja/graphite/restart?factory=true" \
+            -H "Authorization: Bearer ${HF_TOKEN}")
+          echo "Hugging Face restart API responded with HTTP: $status_code"
+          cat /tmp/hf_restart_response.json
+          if [ "$status_code" -ne 200 ]; then
+            echo "::warning::Hugging Face restart API returned HTTP $status_code"
+          fi
