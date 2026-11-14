@@ -1,5 +1,9 @@
 # Graphite: AI Safety and EU Regulatory Compliance Auditor
 
+[![Live Demo](https://img.shields.io/badge/🤗%20Hugging%20Face-Live%20Dashboard%20Demo-blue?style=for-the-badge)](https://abaja-graphite.hf.space/dashboard/overview)
+
+> **Live Deployment:** [https://abaja-graphite.hf.space/dashboard/overview](https://abaja-graphite.hf.space/dashboard/overview)
+
 Graphite is an enterprise-grade AI safety and regulatory compliance auditing platform. It audits an organization's code repositories, governance documents, and data pipelines against the **EU AI Act (Regulation 2024/1689)** and the **EU General Data Protection Regulation (GDPR)**, producing evidence-backed, triaged audit reports in JSON, SARIF 2.1.0, and publication-ready 6-section PDFs.
 
 Findings are technical compliance observations for engineering and governance review, not legal advice.
@@ -170,6 +174,12 @@ Graphite includes an interactive web dashboard for leadership overviews, enginee
 Open the dashboard and select a company, then choose **Run audit** to create the first assessment. Startup never triggers an audit. Both views refresh every five seconds and preserve the selected company. Failed runs retain the previous completed assessment; empty and disconnected states remain explicit.
 
 The finding explorer supports status, severity, system, jurisdiction and text filters, with expandable evidence, citations, ownership and remediation steps. The UI shows assessment time, refresh time, audit activity, coverage, engine fallback modes, and the latest 30 assessments.
+
+### Live Hosted Deployment (Hugging Face Spaces)
+
+- **Interactive Leadership Dashboard:** [https://abaja-graphite.hf.space/dashboard/overview](https://abaja-graphite.hf.space/dashboard/overview)
+- **Engineering Findings Explorer:** [https://abaja-graphite.hf.space/dashboard/findings](https://abaja-graphite.hf.space/dashboard/findings)
+- **API Documentation (Swagger):** [https://abaja-graphite.hf.space/docs](https://abaja-graphite.hf.space/docs)
 
 ### Local Development Server
 
