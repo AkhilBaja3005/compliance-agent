@@ -13,8 +13,8 @@ from src.edge_extractors.doc_parser import extract_assertions, parse_text
 from src.schemas.artifacts import ComplianceAssertion, DocumentChunk
 
 LOCAL_SUFFIXES = {".md", ".markdown", ".txt", ".xhtml", ".html", ".htm", ".xml"}
-_SYS_LINE = re.compile(r"^\W*(?:system\s+)?(S[1-7])\b\s*[:\-–—|)]\s*(?P<name>[^|\n:—–-][^|\n]*?)(?:\s*[-–—:]\s*(?P<desc>.+))?\s*$", re.I)
-_SYS_ROW = re.compile(r"^\|\s*(S[1-7])\s*\|\s*([^|]+?)\s*\|(?:\s*([^|]*?)\s*\|)?", re.I)
+_SYS_LINE = re.compile(r"^\W*(?:system\s+)?(S[1-7]|[A-Z]{2,6}-\d{1,3})\b\s*[:\-–—|)]\s*(?P<name>[^|\n:—–-][^|\n]*?)(?:\s*[-–—:]\s*(?P<desc>.+))?\s*$", re.I)
+_SYS_ROW = re.compile(r"^\|\s*\**(S[1-7]|[A-Z]{2,6}-\d{1,3})\**\s*\|\s*([^|]+?)\s*\|(?:\s*([^|]*?)\s*\|)?", re.I)
 
 
 @dataclass
@@ -64,7 +64,17 @@ def extract_system_declarations(chunks: list[DocumentChunk]) -> list[SystemDecla
                 sid, name, desc = m.group(1).upper(), m.group("name").strip(" *`"), (m.group("desc") or "").strip()
             if sid not in found:
                 found[sid] = SystemDeclaration(sid, name, desc, ch.chunk_id)
-    return [found[k] for k in sorted(found)]
+    # Non-S IDs (e.g. MER-01) are mapped to the next free S1..S7 slot, in order of appearance
+    out, taken = [], {k for k in found if re.fullmatch(r"S[1-7]", k)}
+    free = (f"S{i}" for i in range(1, 8) if f"S{i}" not in taken)
+    for k, d in found.items():
+        if not re.fullmatch(r"S[1-7]", k):
+            nid = next(free, None)
+            if nid is None:
+                continue
+            d.system_id = nid
+        out.append(d)
+    return sorted(out, key=lambda d: int(d.system_id[1:]))
 
 
 def _finish(chunks: list[DocumentChunk], origin: str, pages: int) -> ConfluenceScan:

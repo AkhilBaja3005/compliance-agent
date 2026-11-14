@@ -146,6 +146,10 @@ def sync_laws(
         task = progress.add_task("[magenta]Loading statutory rules & EUR-Lex baseline...", total=100)
         time.sleep(0.3)
         rules = law_store.snapshot()
+        from src.regulatory_rag.tier_a_rules import active_frameworks
+        _fw = active_frameworks()
+        if _fw is not None:  # scope: only rules of in-scope frameworks are enriched and indexed
+            rules = {k: r for k, r in rules.items() if str(r.jurisdiction) in _fw}
         progress.update(task, advance=33, description="[magenta]Enriching with Linkup deep web citations...")
         if deep_linkup and scout.enabled:
             rules = scout.enrich(rules)
@@ -183,8 +187,10 @@ def sync_laws(
     ip_linkup = sum(1 for r in ip_rules if r.linkup_source_url)
 
     t.add_row("EU AI Act", "Regulation (EU) 2024/1689 (Art 5, 14, 50)", str(len(eu_rules)), str(eu_linkup), "✓ SYNCHRONIZED")
-    t.add_row("UK Data Regime", "UK DUAA 2025 & UK GDPR Art 22 ADM", str(len(uk_rules)), str(uk_linkup), "✓ SYNCHRONIZED")
-    t.add_row("IP & Licensing", "EU CDSM / UK TDM & GPL Copyleft", str(len(ip_rules)), str(ip_linkup), "✓ SYNCHRONIZED")
+    if uk_rules:
+        t.add_row("UK Data Regime", "UK DUAA 2025 & UK GDPR Art 22 ADM", str(len(uk_rules)), str(uk_linkup), "✓ SYNCHRONIZED")
+    if ip_rules:
+        t.add_row("IP & Licensing", "EU CDSM / UK TDM & GPL Copyleft", str(len(ip_rules)), str(ip_linkup), "✓ SYNCHRONIZED")
     console.print(t)
 
     console.print(f"[bold green]✓ Total {len(rules)} statutory rules actively indexed in MongoDB Atlas '{rules_col_name}' collection.[/bold green]")

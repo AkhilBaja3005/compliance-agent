@@ -54,6 +54,20 @@ DECISION_RE = re.compile(
     r"diagnos\w*|shortlist|screen_candidate)\b",
     re.I,
 )
+# Route-level AI-surface heuristics (Closed-World: a generative/decision HTTP route with no visible SDK call is
+# still an AI system until proven otherwise). Matched on route name + decorator path with `_ / -` split to spaces.
+GEN_ROUTE_RE = re.compile(
+    r"\b(chat|generat\w*|synthes\w*|clon\w*|deepfake|image|voice|audio|video|copilot|completion|assistant|"
+    r"summari[sz]\w*|concierge|ideation)\b", re.I)
+DECISION_ROUTE_RE = re.compile(
+    r"\b(rank\w*|screen\w*|candidate|shortlist\w*|recruit\w*|hiring|resume|cv|underwrit\w*|triage|discharge|"
+    r"score|scoring|decision|decide|approve|eligib\w*|credit|loan|diagnos\w*)\b", re.I)
+
+
+def _route_text(name: str, decorators: list[str]) -> str:
+    return re.sub(r"[_/\-]+", " ", " ".join([name, *decorators]))
+
+
 PII_INDICATOR_RE = re.compile(
     r"\b(email|ssn|national_insurance|ni_number|dob|date_of_birth|address|phone|passport|patient|income|"
     r"account_number|full_name|first_name|last_name|customer|applicant|salary|nhs_number|diagnosis)\b",
@@ -302,8 +316,12 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
         eff_gen = any(infos[g]["own_gen"] and (infos[g]["own_ai"] or infos[g]["own_http"] or GEN_CALL_RE.search(infos[g]["text"])) for g in group) and (eff_ai or eff_http)
         eff = {k: any(infos[g]["flags"][k] for g in group) for k in ("pii", "hitl", "mod", "wm")}
         touches = eff_ai or eff_http
-        decision_hit = bool(DECISION_RE.search(name)) or any(DECISION_RE.search(d) for d in info["decorators"])
-        if not touches and not (decision_hit and info["is_route"]):
+        rtxt = _route_text(name, info["decorators"])
+        decision_hit = bool(DECISION_RE.search(name)) or any(DECISION_RE.search(d) for d in info["decorators"]) \
+            or (info["is_route"] and bool(DECISION_ROUTE_RE.search(rtxt)))
+        name_gen = bool(re.match(r"(generate|summari[sz]e|synthesi[sz]e|clone)_", name))  # non-route generator (e.g. service method)
+        route_gen = (info["is_route"] and bool(GEN_ROUTE_RE.search(rtxt))) or name_gen
+        if not touches and not ((decision_hit and info["is_route"]) or route_gen):
             continue
 
         if not eff_urls and eff_ai:
@@ -314,6 +332,8 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
                     if re.search(rf"\b{sdk}\b", imports_blob + "\n" + info["text"], re.I):
                         eff_urls = [url]
                         break
+        if route_gen:
+            eff_gen = True
         regions = {u: classify_endpoint(u) for u in eff_urls}
         is_entry = info["is_route"] or name not in called_by_local
         sha = sha256_text(info["text"])

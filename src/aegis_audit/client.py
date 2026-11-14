@@ -174,6 +174,7 @@ class ComplianceAuditor:
                 any(p.name.startswith("company_") for p in [target_path])
                 or (target_path / "code").is_dir()
                 or (target_path / "docs").is_dir()
+                or ((target_path / "github").is_dir() and (target_path / "confluence").is_dir())
                 or any(target_path.glob("*.py"))
             )
             and not (target_path / "enterprise").is_dir()

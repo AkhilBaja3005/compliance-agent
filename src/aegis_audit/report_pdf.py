@@ -625,7 +625,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
 <!-- ======================================================================= -->
 <h2>Section 2: AI System Inventory & Regulatory Classification</h2>
 <p style="color:#475569; font-size:7.5pt; margin-bottom:8px;">
-Comprehensive register of identified generative, machine learning, and automated decision-making services across Northwind Labs codebases and procurement contracts.
+Comprehensive register of identified generative, machine learning, and automated decision-making services across {company} codebases and procurement contracts.
 Purple badges denote undeclared systems uncovered via automated AST edge extraction.
 </p>
 

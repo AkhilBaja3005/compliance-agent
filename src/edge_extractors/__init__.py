@@ -114,17 +114,25 @@ def build_systems(ix: TriModalIndex, declared) -> None:
         systems[d.system_id] = AISystemRecord(system_id=d.system_id, system_name=d.name, description=d.description,
                                               declared_in_docs=True, sector=ix.sector, tenant_id=ix.tenant_id)
     used: set[str] = set()
+    # Multi-repo layout (>=2 top-level repo dirs holding AI entry points): one system per repo, not per route.
+    tops = {sl.file_path.split("/")[0] for sl in code_sys if "/" in sl.file_path}
+    by_repo = len(tops) >= 2
+    repo_sid: dict[str, str] = {}
     for sl in code_sys:
-        toks = _tokens(sl.function_name) | _tokens(Path(sl.file_path).stem)
-        sid = next((k for k, rec in systems.items() if k not in used and (_tokens(rec.system_name) & toks)), None)
+        repo = sl.file_path.split("/")[0]
+        toks = _tokens(repo) if by_repo else _tokens(sl.function_name) | _tokens(Path(sl.file_path).stem)
+        sid = repo_sid.get(repo) if by_repo else None
+        if sid is None:
+            sid = next((k for k, rec in systems.items() if k not in used and (_tokens(rec.system_name) & toks)), None)
         if sid is None:
             free = [f"S{i}" for i in range(1, 8) if f"S{i}" not in systems]
             if not free:
                 continue  # inventory is capped at S1..S7
             sid = free[0]
-            systems[sid] = AISystemRecord(system_id=sid, system_name=sl.function_name.replace("_", " ").title(),
+            systems[sid] = AISystemRecord(system_id=sid, system_name=(repo.replace("-", " ").replace("_", " ").title() if by_repo else sl.function_name.replace("_", " ").title()),
                                           sector=ix.sector, tenant_id=ix.tenant_id)
         used.add(sid)
+        repo_sid[repo] = sid
         rec = systems[sid]
         rec.detected_in_code = True
         rec.locators.append(sl.locator)
