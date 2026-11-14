@@ -166,7 +166,9 @@ GRAPHITE_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --ho
 
 - **Executive Overview:** [http://localhost:8000/dashboard/overview](http://localhost:8000/dashboard/overview)
 - **Finding Explorer:** [http://localhost:8000/dashboard/findings](http://localhost:8000/dashboard/findings)
-- **Interactive OpenAPI Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Interactive OpenAPI Documentation (Swagger):** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Interactive ReDoc Documentation:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Full API Specification & Endpoints Guide:** [docs/api.md](docs/api.md)
 
 ### API Endpoints
 
