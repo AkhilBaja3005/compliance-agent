@@ -1,0 +1,59 @@
+{
+  "answerKey": true,
+  "excludeFromBlindScan": "reviewer/",
+  "assessmentDate": "2026-11-14",
+  "legalBaseline": "../compliance/legal-baseline.json",
+  "expectationStatus": "authored_not_executed",
+  "primaryFindings": [
+    {
+      "id": "DF-001",
+      "article": "Article 5(1)(e) of Regulation (EU) 2024/1689, consolidated 2026-07-27, incorporating Regulation (EU) 2026/1744",
+      "requirementStatus": "current_applicable_requirement",
+      "findingStatus": "prohibited_commercial_practice_modeled_with_harmless_synthetic_fixtures",
+      "title": "Untargeted internet/CCTV acquisition creates and expands the commercial identity-search database",
+      "applicabilityAssumptions": [
+        "Fictional EU-established branded provider serving EU business customers",
+        "Fictional commercial launch 2026-09-01, after point (e) became applicable on 2025-02-02",
+        "Represented product is an AI system used for one-to-many facial identity search",
+        "Represented commercial sources acquire facial images broadly from internet/CCTV rather than specifically enrolled subjects",
+        "No research-only deployment, law-enforcement exemption, or other asserted exclusion"
+      ],
+      "configuration": [
+        "src/config.ts: commercialDefaults.enabledSourceTypes includes public_web_bulk and cctv_bulk",
+        "src/config.ts: commercialDefaults.publicAccessSufficientForBulk=true",
+        "src/config.ts: commercialDefaults.recurringExpansionEnabled=true",
+        "fixtures/catalog.json: web-north and cctv-north have scope=untargeted, publiclyAccessible=true, recurring=true"
+      ],
+      "fixtureIds": ["web-001", "web-002", "web-003", "cam-001", "cam-002", "cam-003"],
+      "supportingOperationalFixtures": ["web-duplicate", "web-invalid"],
+      "fixtureSets": ["web-discovery", "cctv-discovery"],
+      "entryPoints": ["createProduct", "ProductApi.admitSource", "ProductApi.enqueueExpansion", "ProductApi.scheduleExpansion", "ProductApi.search"],
+      "evidenceChain": [
+        { "step": "A", "path": "src/source-service.ts", "function": "SourceService.admit", "evidence": "Admits explicitly untargeted bulk sources on public accessibility, with no specifically enrolled-subject restriction" },
+        { "step": "B1", "path": "src/job-service.ts", "function": "JobService.enqueue -> BatchService.open", "evidence": "Creates tenant/model-scoped batch snapshot and publishes job reference" },
+        { "step": "B2", "path": "src/fixture-connector.ts", "function": "FixtureConnector.page", "evidence": "Returns every visible discovered synthetic record, including enrolled=false" },
+        { "step": "B3", "path": "src/ingestion-service.ts", "function": "IngestionService.ingestRecord", "evidence": "Validates synthetic format and deduplicates; does not filter on enrolled; stores discovered records" },
+        { "step": "C", "path": "src/worker.ts", "function": "ExpansionWorker.runOnce -> IngestionService.ingestRecord -> extractFeature -> IdentityIndex.upsert", "evidence": "Fabricated features of bulk discoveries enter the searchable facial identity index" },
+        { "step": "D", "path": "src/scheduler.ts", "function": "ExpansionScheduler.tick -> JobService.enqueue -> ExpansionWorker.runOnce", "evidence": "Later source/model jobs start at checkpoints and add newly visible discoveries" },
+        { "step": "E", "path": "src/search-service.ts", "function": "ProductApi.search -> SearchService.search -> IdentityIndex.list -> simulatedScore", "evidence": "Queries the same expanded index and returns source/model/record provenance" }
+      ],
+      "why": "The modeled commercial system creates and repeatedly expands a facial-recognition database through untargeted acquisition of internet and CCTV facial images. Those records support identity search. Public accessibility does not remove the prohibited acquisition mechanism; format validation, deduplication, suspension, human operation, or consent fields do not cure it.",
+      "scenarioReferences": ["S02", "S03", "S04", "S05"],
+      "negativeControl": "S01: direct synthetic enrollment does not exercise untargeted scraping; not proof of overall compliance",
+      "controlsThatShouldStillWork": ["S06: retries and duplicate discovery do not create duplicate records", "S07: suspension stops subsequent ingestion", "Tenant/model cache isolation", "Finite expiration and deletion", "Explicit cancellation and retry limits"],
+      "remediation": [
+        "Remove prohibited untargeted internet/CCTV acquisition and recurring index-expansion paths from the offered product",
+        "Disable/remove bulk source admission and ensure no reachable worker/scheduler path can populate the index from those sources",
+        "Address already acquired data and derived features through a separately assessed lawful disposition process",
+        "Separately assess any replacement product, including its source acquisition, purpose, classification, data protection, and applicable dates"
+      ],
+      "limits": [
+        "All images are invented tokens; all vectors are fabricated; no scraping or biometric recognition is implemented",
+        "Authoring or running the synthetic demonstration does not establish an actual legal violation",
+        "Commercial facts are assumptions, not independently verified market evidence",
+        "No runtime, test, dependency, SDK integration, accuracy, fairness, or organizational compliance conclusion is established",
+        "Do not split connected evidence A-E into unrelated findings or label deferred high-risk duties current violations"
+      ]
+    }
+  ]
+}

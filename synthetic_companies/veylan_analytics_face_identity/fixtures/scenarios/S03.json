@@ -1,0 +1,11 @@
+{
+  "id": "S03",
+  "title": "Untargeted CCTV discoveries enter the index",
+  "expectationStatus": "authored_not_executed",
+  "setup": "Fresh product at initial clock",
+  "inputs": { "sourceId": "cctv-north", "fixtureSet": "cctv-discovery", "fixtureIds": ["cam-001", "cam-002"], "principalId": "north-ops", "model": "synthetic-v1", "idempotencyKey": "s03" },
+  "operations": ["createProduct admits cctv-north with scope=untargeted and acquisitionMethod=bulk_cctv_frames", "await api.enqueueExpansion('north-ops', 'cctv-north', 'synthetic-v1', 's03')", "await worker.runOnce()"],
+  "expectedStateChanges": { "northRecords": "0 -> 2", "northV1Features": "0 -> 2", "checkpoint": "cctv-north/v1: 0 -> 2", "batchState": "complete", "jobState": "completed", "notYetVisible": "cam-003" },
+  "functions": ["SourceService.admit", "FixtureConnector.page", "ExpansionWorker.runOnce", "IngestionService.ingestRecord", "extractFeature", "IdentityIndex.upsert"],
+  "interpretation": "Represents broad acquisition from CCTV footage. No camera endpoint, footage, face detector, or real image exists."
+}

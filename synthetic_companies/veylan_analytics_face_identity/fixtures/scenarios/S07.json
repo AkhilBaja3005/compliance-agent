@@ -1,0 +1,11 @@
+{
+  "id": "S07",
+  "title": "Suspension blocks queued and subsequent ingestion",
+  "expectationStatus": "authored_not_executed",
+  "setup": "Fresh product at initial clock",
+  "inputs": { "sourceId": "web-north", "admin": "north-admin", "operator": "north-ops", "model": "synthetic-v1" },
+  "operations": ["await api.enqueueExpansion('north-ops', 'web-north', 'synthetic-v1', 's07')", "api.suspendSource('north-admin', 'web-north')", "await worker.runOnce()", "attempt enqueueExpansion with new key s07-after", "clock.advance(3600000); await api.scheduleExpansion('north-admin')"],
+  "expectedStateChanges": { "sourceStatus": "active -> suspended", "jobState": "queued -> cancelled with SOURCE_SUSPENDED", "batchState": "cancelled", "webRecords": 0, "webFeatures": 0, "subsequentEnqueue": "SOURCE_SUSPENDED", "scheduler": "Only the active CCTV source receives a job", "searchCache": "Tenant revision increments; suspended sources are excluded from future results" },
+  "functions": ["SourceService.suspend", "SourceService.active", "ExpansionWorker.runOnce", "IngestionService.ingestRecord", "ExpansionScheduler.tick", "SearchService.search"],
+  "interpretation": "Operational suspension does not cure the modeled commercial acquisition policy."
+}

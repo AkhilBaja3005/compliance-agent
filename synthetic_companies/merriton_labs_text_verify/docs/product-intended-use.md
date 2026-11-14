@@ -1,0 +1,15 @@
+# Intended commercial use · product assumption record 2
+
+Owner: fictional Product Lead, Lea Example. Effective assessment date: 2026-11-14. DemoText Verify is assumed to be an EU-established provider offering an AI system under its own name to EU business editorial teams. Customers operate the system as deployers. The fictional commercial launch is 2026-09-01. These are authored assumptions, not verified corporate facts.
+
+The sole supported purpose is `business_editorial_review`. An editor supplies a marketing draft or business article to obtain a specialised classifier's pattern score or abstention and predefined limitation messages. English is supported in this slice. The UI's two-letter language field permits explicit unsupported-language abstention; it does not claim to verify a user's language declaration. Input is 40–20,000 characters and at most 40,000 UTF-8 bytes. No language-detection model is present.
+
+The product does not rank applicants, assess employees, grade students, investigate misconduct, impose discipline, decide eligibility, score personal reputation or identify an author. It has no biometrics, emotion recognition, scraping, public publishing, external decision integrations, rewriting, generative chat or content generation. It integrates a specialised classifier and neither trains nor distributes a general-purpose AI model. No generic LLM is used as a detector.
+
+Model `dtv-1.0` supports marketing; `dtv-1.1` supports marketing and business articles. A domain mismatch or unavailable/withdrawn release is rejected. Uncertainty, false positives, edited text, translation, short prose, quotations and mixed authorship require independent editorial care. The numeric score measures classifier patterns, not a probability of authorship. The confidence indicator is not independently calibrated. No universal accuracy or fairness statement is supported.
+
+Editors can retain or dismiss an advisory flag; the resulting judgment is separately attributed and never alters the analysis. An administrator can submit, read and delete within their tenant but cannot record an editor judgment. The integration operator is an internal service role, not a selectable customer account. There are no downstream sanctions or automatic publication actions.
+
+The purpose field records the actual requested use for each item, including batches. Only the exact permitted value passes. Tenant defaults never substitute for it. This does not discover every disguised purpose or prevent all customer misuse. Sales claims, customer terms, support reports and actual deployment context must also remain in scope. A request for education, recruitment, personnel, individual attribution, generation or other expanded use goes to the Product Lead for a new applicability review before feature work or release.
+
+Local operation deliberately simulates inference and labels that fact in the page and each result. The synthetic evaluations describe hypothetical commercial releases, not measured capabilities of the local fake. Replacing the fake requires representative evaluation of the actual specialised endpoint and separate operational review.

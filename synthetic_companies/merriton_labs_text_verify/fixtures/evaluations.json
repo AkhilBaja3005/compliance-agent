@@ -1,0 +1,12 @@
+{
+  "synthetic": true,
+  "provenance": "Hand-authored arithmetic examples for two hypothetical commercial classifier releases. These are not measured results from the local fake, a benchmark run, a downloaded dataset or evidence of real performance.",
+  "cohort": "24 invented English business drafts per release: 12 labelled human, 12 labelled synthetic. No demographic, language-wide or universal claims.",
+  "positive_label": "synthetic_pattern_flag",
+  "voluntary_policy": {"flag_score_at_least": 0.65, "abstain_confidence_below": 0.65, "minimum_scored_precision_for_demo_approval": 0.75, "legal_mandate": false},
+  "evaluations": [
+    {"evaluation_id": "eval-1", "model_version": "dtv-1.0", "domain": "marketing", "total": 24, "scored": 20, "abstained": 4, "abstained_human": 2, "abstained_synthetic": 2, "tp": 8, "fp": 2, "tn": 8, "fn": 2, "precision_among_scored": 0.8, "recall_among_scored": 0.8},
+    {"evaluation_id": "eval-2", "model_version": "dtv-1.1", "domain": "marketing_and_business_article", "total": 24, "scored": 22, "abstained": 2, "abstained_human": 1, "abstained_synthetic": 1, "tp": 9, "fp": 2, "tn": 9, "fn": 2, "precision_among_scored": 0.8181818181818182, "recall_among_scored": 0.8181818181818182}
+  ],
+  "approval_note": "Registry approvals bind model_version and evaluation_id. Synthetic owner records illustrate a voluntary release review, not regulatory approval. Production would require measured representative validation, immutable model identity and independently reviewed evidence."
+}

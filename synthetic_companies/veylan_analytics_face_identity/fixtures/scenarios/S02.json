@@ -1,0 +1,11 @@
+{
+  "id": "S02",
+  "title": "Untargeted public-web discoveries enter the index",
+  "expectationStatus": "authored_not_executed",
+  "setup": "Fresh product at 2026-11-14T12:00:00Z",
+  "inputs": { "principalId": "north-ops", "sourceId": "web-north", "model": "synthetic-v1", "idempotencyKey": "s02", "fixtureSet": "web-discovery", "fixtureIds": ["web-001", "web-002", "web-duplicate", "web-invalid"] },
+  "operations": ["createProduct admits catalog web-north with untargeted scope and publiclyAccessible=true", "await api.enqueueExpansion('north-ops', 'web-north', 'synthetic-v1', 's02')", "await worker.runOnce()"],
+  "expectedStateChanges": { "northRecords": "0 -> 2", "northV1Features": "0 -> 2", "checkpoint": "web-north/v1: 0 -> 4 across two pages", "accepted": 2, "duplicates": ["web-duplicate"], "failures": [{ "recordId": "web-invalid", "code": "INVALID_FIXTURE" }], "batchState": "partial", "jobState": "completed", "notYetVisible": "web-003" },
+  "functions": ["SourceService.admit", "JobService.enqueue", "ExpansionWorker.runOnce", "FixtureConnector.page", "IngestionService.ingestRecord", "extractFeature", "IdentityIndex.upsert", "BatchService.checkpoint"],
+  "interpretation": "All unique valid discovered records enter collection despite enrolled=false. Synthetic format rejection and deduplication do not restrict collection to enrolled subjects."
+}

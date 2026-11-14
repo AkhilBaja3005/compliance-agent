@@ -1,0 +1,60 @@
+{
+  "syntheticOnly": true,
+  "tenants": [
+    { "id": "north", "name": "North Demo Logistics (fictional EU customer)" },
+    { "id": "south", "name": "South Demo Facilities (fictional EU customer)" }
+  ],
+  "principals": [
+    { "id": "north-admin", "tenantId": "north", "role": "admin" },
+    { "id": "north-ops", "tenantId": "north", "role": "operator" },
+    { "id": "north-review", "tenantId": "north", "role": "viewer" },
+    { "id": "south-admin", "tenantId": "south", "role": "admin" },
+    { "id": "south-ops", "tenantId": "south", "role": "operator" }
+  ],
+  "sources": [
+    {
+      "id": "enroll-north", "tenantId": "north", "type": "direct_enrollment",
+      "scope": "enrolled_subjects", "acquisitionMethod": "subject_submission",
+      "publiclyAccessible": false, "status": "active", "recurring": false,
+      "lineage": { "fixtureSet": "enrollment-north", "upstreamLabel": "Synthetic subject submissions" }
+    },
+    {
+      "id": "web-north", "tenantId": "north", "type": "public_web_bulk",
+      "scope": "untargeted", "acquisitionMethod": "bulk_public_discovery",
+      "publiclyAccessible": true, "status": "active", "recurring": true,
+      "lineage": { "fixtureSet": "web-discovery", "upstreamLabel": "Broad public internet discovery, no enrolled-subject list" }
+    },
+    {
+      "id": "cctv-north", "tenantId": "north", "type": "cctv_bulk",
+      "scope": "untargeted", "acquisitionMethod": "bulk_cctv_frames",
+      "publiclyAccessible": true, "status": "active", "recurring": true,
+      "lineage": { "fixtureSet": "cctv-discovery", "upstreamLabel": "Broad publicly accessible camera-footage discovery" }
+    },
+    {
+      "id": "enroll-south", "tenantId": "south", "type": "direct_enrollment",
+      "scope": "enrolled_subjects", "acquisitionMethod": "subject_submission",
+      "publiclyAccessible": false, "status": "active", "recurring": false,
+      "lineage": { "fixtureSet": "enrollment-south", "upstreamLabel": "Separate tenant synthetic submissions" }
+    }
+  ],
+  "sets": {
+    "enrollment-north": [
+      { "id": "enroll-001", "imageToken": "synthetic:enrolled_alpha", "subjectRef": "subject-enrolled-a", "enrolled": true, "availableAt": "2026-11-14T11:00:00Z" }
+    ],
+    "enrollment-south": [
+      { "id": "south-001", "imageToken": "synthetic:web_alpha", "subjectRef": "subject-south-a", "enrolled": true, "availableAt": "2026-11-14T11:00:00Z" }
+    ],
+    "web-discovery": [
+      { "id": "web-001", "imageToken": "synthetic:web_alpha", "subjectRef": "subject-web-a", "enrolled": false, "availableAt": "2026-11-14T11:00:00Z" },
+      { "id": "web-002", "imageToken": "synthetic:web_beta", "subjectRef": "subject-web-b", "enrolled": false, "availableAt": "2026-11-14T11:01:00Z" },
+      { "id": "web-duplicate", "imageToken": "synthetic:web_alpha", "subjectRef": "subject-web-a", "enrolled": false, "availableAt": "2026-11-14T11:02:00Z" },
+      { "id": "web-invalid", "imageToken": "synthetic:broken", "subjectRef": "subject-broken", "enrolled": false, "availableAt": "2026-11-14T11:03:00Z", "fault": "invalid_fixture" },
+      { "id": "web-003", "imageToken": "synthetic:web_gamma", "subjectRef": "subject-web-c", "enrolled": false, "availableAt": "2026-11-14T13:00:00Z" }
+    ],
+    "cctv-discovery": [
+      { "id": "cam-001", "imageToken": "synthetic:cam_alpha", "subjectRef": "subject-cam-a", "enrolled": false, "availableAt": "2026-11-14T11:00:00Z" },
+      { "id": "cam-002", "imageToken": "synthetic:cam_beta", "subjectRef": "subject-cam-b", "enrolled": false, "availableAt": "2026-11-14T11:01:00Z" },
+      { "id": "cam-003", "imageToken": "synthetic:cam_gamma", "subjectRef": "subject-cam-c", "enrolled": false, "availableAt": "2026-11-14T14:00:00Z" }
+    ]
+  }
+}

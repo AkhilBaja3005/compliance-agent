@@ -1,0 +1,41 @@
+{
+  "assessment_date": "2026-11-14",
+  "commercial_launch_assumption": "2026-09-01",
+  "instrument": "Regulation (EU) 2024/1689",
+  "consolidated_as_of": "2026-07-27",
+  "incorporates": ["Regulation (EU) 2026/1744"],
+  "pinned_celex": "02024R1689-20260727",
+  "amendment_celex": "32026R1744",
+  "scope": "Specified fictional editorial product and authored synthetic organizational evidence only",
+  "status": "requires external verification",
+  "source_retrieval": {
+    "eur_lex": "Requested exact consolidation and amendment URLs returned an anti-bot page; no silent substitution with original regulation.",
+    "service_desk": "Commission pages explicitly identify their text as based on the 27 July 2026 consolidation; amended Article 4 and Article 113 wording consulted.",
+    "legal_verification_limit": "Full authoritative amendment and consolidation were not independently retrieved; obtain and verify official complete texts before real legal reliance."
+  },
+  "sources": {
+    "consolidation": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02024R1689-20260727",
+    "amendment": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R1744",
+    "article_4": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-4",
+    "article_6": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-6",
+    "annex_III": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/annex-3",
+    "article_50": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50",
+    "article_113": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-113"
+  },
+  "application_dates": [
+    {"provision": "Chapters I and II, subject to amended exceptions", "date": "2025-02-02", "assessment": "Article 4 is current"},
+    {"provision": "General application including Article 50", "date": "2026-08-02", "assessment": "Current at assumed launch and assessment"},
+    {"provision": "Article 5(1) first subparagraph (ba),(bb) and Article 5(1a),(1b)", "date": "2026-12-02", "assessment": "Future at assessment; not used as present editorial requirements"},
+    {"provision": "Chapter III Sections 1-3 except Article 6(5), Annex III high-risk route", "date": "2027-12-02", "assessment": "Future and outside specified product purpose"},
+    {"provision": "Chapter III Sections 1-3 except Article 6(5), Annex I high-risk route", "date": "2028-08-02", "assessment": "Future and outside specified product purpose"}
+  ],
+  "assessments": [
+    {"provision": "Article 4 as amended", "classification": "legal control", "status": "implemented in source", "evidence": "Role-specific support and company onboarding gate; actual effectiveness requires external verification"},
+    {"provision": "Article 50(1),(5)", "classification": "legal control", "status": "implemented in source", "evidence": "Visible pre-submission notice and current result envelopes; accessibility requires external verification"},
+    {"provision": "Article 6 and Annex III", "classification": "applicability assessment", "status": "not applicable under stated assumptions", "evidence": "No listed purpose or Annex I safety product; not a derogation based merely on advisory labeling"},
+    {"provision": "Article 50(2)-(4)", "classification": "applicability assessment", "status": "not applicable under stated assumptions", "evidence": "No synthetic-content generation, deepfakes, public-interest text publishing, emotion recognition or biometric categorization"},
+    {"provision": "GPAI-model-provider obligations", "classification": "applicability assessment", "status": "not applicable under stated assumptions", "evidence": "Integrates a specialist classifier; does not train or distribute a general-purpose model"}
+  ],
+  "voluntary_controls": ["Purpose enforcement", "Release approvals", "Confidence abstention policy", "Evaluation thresholds", "Human editorial review", "Onboarding access gate", "Tenant isolation", "Idempotency", "Deletion and tombstones", "Sanitized audit events"],
+  "exclusions": ["No legal certification", "No verified production compliance", "No independent accessibility determination", "No real attendance or individual literacy proof", "No other legislation assessed or relabelled as AI Act obligations"]
+}

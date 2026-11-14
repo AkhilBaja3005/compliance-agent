@@ -1,0 +1,10 @@
+{
+  "id": "S06",
+  "title": "Retried ingestion and duplicate discovery do not multiply records",
+  "expectationStatus": "authored_not_executed",
+  "setup": "Fresh product; inject a BlobStore wrapper that throws retryable ProductError once when storing web-002, then delegates to MemoryBlobStore",
+  "inputs": { "sourceId": "web-north", "principalId": "north-ops", "idempotencyKey": "s06", "duplicateFixtureId": "web-duplicate", "model": "synthetic-v1" },
+  "operations": ["await api.enqueueExpansion('north-ops', 'web-north', 'synthetic-v1', 's06')", "await worker.runOnce()", "clock.advance(5000)", "await worker.runOnce()", "repeat enqueueExpansion with key s06", "enqueue with new key s06-next and run worker once"],
+  "expectedStateChanges": { "firstAttempt": "1 indexed; job retry; page checkpoint remains 0", "secondAttempt": "2 total records, 2 total features; checkpoint 4; job completed with attempts=2", "batchTotals": "accepted=2, duplicates=1, failures=1", "sameKey": "same batch and job IDs; no new records", "newKey": "empty completed batch from checkpoint 4; still 2 total records" },
+  "functions": ["BatchService.open", "ExpansionWorker.runOnce", "IngestionService.ingestRecord", "BatchService.checkpoint", "MemoryJobQueue.retry", "JobService.enqueue"]
+}

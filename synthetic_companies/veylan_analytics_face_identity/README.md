@@ -1,0 +1,19 @@
+# DemoFace Identity
+
+DemoFace Identity is a fictional EU-established B2B provider of one-to-many identity search for EU business customers. Its fictional commercial launch is **2026-09-01**. This repository is the product's small application core: source admission, batch ingestion, expansion jobs, fabricated feature extraction, indexing, and candidate search.
+
+The represented commercial design creates and grows a facial-recognition database through broad internet and CCTV image acquisition. That modeled commercial practice is prohibited by Article 5(1)(e) under the pinned legal baseline. The implemented demonstration is harmless synthetic machinery: opaque `synthetic:` tokens, invented identities, hash-derived numbers, and local fixture pages. Creating or running these fabricated fixtures does **not** itself establish an actual legal violation. This is neither a working biometric system nor a compliance scanner.
+
+TypeScript on Node.js 22 uses small injected interfaces. Local memory storage and a local leased queue are the defaults. Optional AWS SDK v3 S3 and SQS adapters store synthetic records and move job envelopes. There is no live internet/CCTV connector, model download, facial detector, image decoder, real inference, listener, environment credential lookup, or client initialization at import.
+
+The commercial defaults in `src/config.ts` enable direct enrollment, public-web bulk discovery, CCTV bulk discovery, and recurring expansion. `src/source-service.ts` explicitly treats public accessibility as sufficient for admitting an untargeted bulk source. The connector returns every visible fixture; bulk ingestion does not require `enrolled=true`. Direct submissions require an enrolled subject. Search actually reads the resulting index. Suspension, authorization, deduplication, expiry, and retry controls do not cure that acquisition policy.
+
+The assessment is fixed at **2026-11-14**, using Regulation (EU) 2024/1689 consolidated **2026-07-27**, incorporating Regulation (EU) 2026/1744. See [the baseline](compliance/legal-baseline.json) and [applicability](compliance/applicability.md). The Commission's [Article 5 text](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-5) supports the primary description; [Article 113](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-113) supplies the amended application dates. The exact EUR-Lex documents are pinned even though direct retrieval encountered browser verification.
+
+Start a static review with [architecture](docs/architecture.md), [intended use](docs/product-intended-use.md), `src/composition.ts`, and `fixtures/catalog.json`. `loadCatalog()` performs an explicit local file read; `createProduct(catalog)` wires the product and admits the catalog's source configurations. Neither construction nor import starts a worker or network request. The injected clock starts at `2026-11-14T12:00:00Z`. Workers and scheduler ticks are explicit application calls.
+
+Seven readable [scenario specifications](fixtures/scenarios/S01.json) identify inputs, operations, functions, and **authored, unexecuted** expectations. Three focused test files characterize the product behavior. Passing the pathway tests would confirm the intentionally defective modeled behavior, not compliance. See [operating boundaries](docs/operations.md) and [SDK documentation/uncertainties](docs/sdk-adapters.md).
+
+`reviewer/` contains the separate answer key. Exclude that directory when evaluating a scanner; the policy, source scope, lineage, recurrence, and search path remain visible in ordinary product files.
+
+No project code, tests, compilation, installations, services, or infrastructure provisioning were executed. No lockfiles, models, datasets, generated build output, or credentials are supplied. Runtime behavior, dependency resolution, type compatibility, and real infrastructure integration remain unverified.

@@ -1,0 +1,10 @@
+{
+  "id": "S04",
+  "title": "Recurring expansion adds a later discovery",
+  "expectationStatus": "authored_not_executed",
+  "setup": "Fresh product with injected FixedClock; first scheduler tick at initial time",
+  "inputs": { "principalId": "north-admin", "model": "synthetic-v1", "laterFixtureId": "web-003", "laterToken": "synthetic:web_gamma" },
+  "operations": ["await api.scheduleExpansion('north-admin') creates web and CCTV jobs", "await worker.runOnce() twice", "clock.advance(3600000)", "await api.scheduleExpansion('north-admin') creates next web and CCTV jobs", "await worker.runOnce() twice", "api.search('north-ops', {imageToken:'synthetic:web_gamma', model:'synthetic-v1', limit:1})"],
+  "expectedStateChanges": { "northRecords": "0 -> 4 -> 5", "northV1Features": "0 -> 4 -> 5", "webCheckpoint": "0 -> 4 -> 5", "cctvCheckpoint": "0 -> 2 -> 2", "laterWebBatchAccepted": 1, "laterCctvBatchAccepted": 0, "topSourceRecordId": "web-003" },
+  "functions": ["ExpansionScheduler.tick", "RetentionService.sweep", "JobService.enqueue", "BatchService.open", "FixtureConnector.page", "IngestionService.ingestRecord", "BatchService.checkpoint", "SearchService.search"]
+}

@@ -1,0 +1,108 @@
+{
+  "product": "DemoText Verify",
+  "assessment_date": "2026-11-14",
+  "legal_snapshot": "../compliance/legal-baseline.json",
+  "scope": "Intended commercial editorial classifier, authored source and synthetic organization; local inference is deterministic simulation",
+  "status_vocabulary": ["implemented in source", "synthetic organizational evidence", "not applicable under stated assumptions", "requires external verification"],
+  "verification_performed": "Read-only official documentation browsing, source writing and text inspection/file counting only. No project execution or test execution.",
+  "controls": [
+    {
+      "id": "C01", "classification": "legal control", "basis": "Article 50(1),(5)",
+      "status": "implemented in source",
+      "claim": "Clear pre-submission AI interaction notice is server-rendered before submission is enabled; retained on direct routes, errors and retries.",
+      "functions": ["app/api.py:create_app.editor", "app/api.py:create_app.product_error", "app/api.py:create_app.invalid_request", "app/notices.py:Notices.current", "app/static/editor.js:showNotice", "app/static/editor.js:action"],
+      "files": ["app/templates/editor.html", "app/static/editor.css"],
+      "fixtures": ["fixtures/scenarios.json#S01", "fixtures/scenarios.json#S09"],
+      "tests": ["tests/test_transparency.py::test_notice_before_submission_and_direct_navigation", "tests/test_transparency.py::test_notice_remains_on_error_and_retry"],
+      "limits": "Authored tests are unexecuted. Source cannot certify applicable accessibility requirements, real first-use delivery or comprehension. No mandated checkbox/consent mechanism asserted."
+    },
+    {
+      "id": "C02", "classification": "voluntary safeguard", "basis": "Preserves assessed intended-use boundaries",
+      "status": "implemented in source",
+      "claim": "Actual per-item purpose is checked before writes, inference and cache access, including batches and queued execution.",
+      "functions": ["app/validation.py:validate_use", "app/service.py:VerifyService.submit", "app/service.py:VerifyService.checked_record", "app/service.py:VerifyService.process"],
+      "fixtures": ["fixtures/scenarios.json#S03", "fixtures/scenarios.json#S06"],
+      "tests": ["tests/test_boundaries.py::test_purposes_rejected_before_any_side_effect", "tests/test_boundaries.py::test_batch_validates_all_items_first", "tests/test_boundaries.py::test_cache_does_not_bypass_current_policy"],
+      "limits": "Cannot detect every undisclosed purpose; actual deployment, sales and customer misuse require review."
+    },
+    {
+      "id": "C03", "classification": "organizational evidence", "basis": "Article 4 as amended; support measures, no guaranteed individual attainment",
+      "status": "synthetic organizational evidence",
+      "claim": "Named owner, role-specific material and version-bound authored participation records demonstrate a support plan.",
+      "functions": ["app/onboarding.py:Onboarding.require", "app/service.py:VerifyService.authorize", "app/worker.py:run_one"],
+      "files": ["compliance/ai-literacy.md", "training/editors.md", "training/admins.md", "training/operators.md"],
+      "fixtures": ["fixtures/participation.json", "fixtures/scenarios.json#S10"],
+      "tests": ["tests/test_boundaries.py::test_role_specific_onboarding_records_and_gate"],
+      "limits": "Access gate is implemented company policy. Records are synthetic, not proof of real delivery, effectiveness, comprehension or literacy."
+    },
+    {
+      "id": "C04", "classification": "voluntary safeguard", "basis": "Honest advisory results and context-specific reliability policy",
+      "status": "implemented in source",
+      "claim": "Structured score, abstention and safe failure states; no proof-of-authorship claims; model-specific limitations on result and export paths.",
+      "functions": ["app/validation.py:normalize_output", "app/presentation.py:result_envelope", "app/exports.py:export_advice", "app/static/editor.js:renderResult", "app/fake_classifier.py:FakeClassifier.classify"],
+      "fixtures": ["fixtures/evaluations.json", "fixtures/texts.json", "fixtures/scenarios.json#S02", "fixtures/scenarios.json#S09"],
+      "tests": ["tests/test_lifecycle.py::test_abstention_has_no_score", "tests/test_transparency.py::test_updated_notice_and_limitations_on_every_delivery"],
+      "limits": "Synthetic counts are internally consistent authored examples, not a benchmark execution. Thresholds are voluntary; no actual accuracy, calibration or fairness verification."
+    },
+    {
+      "id": "C05", "classification": "voluntary safeguard", "basis": "Version-bound company release review",
+      "status": "implemented in source",
+      "claim": "Model/domain compatibility and matching version/evaluation approval checked at request, execution and result delivery; withdrawal blocks existing work.",
+      "functions": ["app/registry.py:Registry.require", "app/service.py:VerifyService.process"],
+      "fixtures": ["fixtures/evaluations.json#eval-1", "fixtures/evaluations.json#eval-2", "fixtures/scenarios.json#S05"],
+      "tests": ["tests/test_boundaries.py::test_model_compatibility_and_withdrawal", "tests/test_lifecycle.py::test_version_change_recomputes_and_response_mismatch_fails"],
+      "limits": "Approvals/owners are synthetic. Remote model identity and real evaluation/release process require external verification."
+    },
+    {
+      "id": "C06", "classification": "voluntary safeguard", "basis": "Tenant isolation and input handling",
+      "status": "implemented in source",
+      "claim": "Trusted principals, tenant-scoped records/cache/jobs, role checks, bounded input and non-echoing errors.",
+      "functions": ["app/auth.py:Directory.resolve", "app/service.py:VerifyService.authorize", "app/memory.py:MemoryStorage.get", "app/cache.py:cache_key", "app/http_limits.py:BodyLimit.__call__", "app/errors.py:safe_error"],
+      "fixtures": ["fixtures/scenarios.json#S04", "fixtures/scenarios.json#S06"],
+      "tests": ["tests/test_boundaries.py::test_tenant_isolation_across_delivery_and_mutation", "tests/test_boundaries.py::test_cache_is_tenant_and_model_scoped", "tests/test_transparency.py::test_notice_remains_on_error_and_retry"],
+      "limits": "Local account selection is not production authentication. No penetration test or deployment review performed."
+    },
+    {
+      "id": "C07", "classification": "voluntary safeguard", "basis": "Explicit provider failures and bounded attempts",
+      "status": "implemented in source",
+      "claim": "Real SDK-backed specialised classifier and reference queue adapters with explicit injection, no import-time clients, automatic SDK retries disabled and no live fallback.",
+      "functions": ["app/aws_clients.py:make_aws_clients", "app/sagemaker.py:SageMakerClassifier.classify", "app/sqs.py:SqsQueue.send", "app/sqs.py:SqsQueue.receive", "app/sqs.py:SqsQueue.ack", "app/service.py:VerifyService.fail", "app/service.py:VerifyService.retry"],
+      "files": ["docs/sdk-contract.md"],
+      "fixtures": ["fixtures/scenarios.json#S07"],
+      "tests": ["tests/test_lifecycle.py::test_provider_timeout_is_not_an_answer", "tests/test_lifecycle.py::test_sagemaker_contract_and_timeout_mapping", "tests/test_lifecycle.py::test_sqs_reference_only_mapping"],
+      "limits": "No SDK client or product API was invoked. Endpoint, permissions, provider retention and SDK resolution are unverified."
+    },
+    {
+      "id": "C08", "classification": "voluntary safeguard", "basis": "Deletion, idempotency and stale-job safety",
+      "status": "implemented in source",
+      "claim": "Delete clears payload/derived data/cache and local pending/leased work, invalidates input fingerprints and leaves retry-blocking tombstones; late jobs cannot recreate records.",
+      "functions": ["app/service.py:VerifyService.delete", "app/service.py:VerifyService.submit", "app/service.py:VerifyService.process", "app/memory.py:MemoryStorage.purge", "app/fake_queue.py:FakeQueue.cancel", "app/sqs.py:SqsQueue.cancel"],
+      "fixtures": ["fixtures/scenarios.json#S08"],
+      "tests": ["tests/test_lifecycle.py::test_deleted_work_cannot_be_recreated", "tests/test_lifecycle.py::test_deletion_erases_cache_features_and_fingerprint"],
+      "limits": "SQS unseen references expire externally; no submitted text is in the queue. Provider data capture/retention and durable production tombstones are not verified. Minimal identifiers/audit records remain."
+    },
+    {
+      "id": "C09", "classification": "voluntary safeguard", "basis": "Editorial accountability and minimal audit evidence",
+      "status": "implemented in source",
+      "claim": "Human judgment is attributed separately from analysis; fixed audit fields omit text, credentials and arbitrary exception messages; no sanctions integration.",
+      "functions": ["app/service.py:VerifyService.judge", "app/audit.py:Audit.emit", "app/presentation.py:result_envelope"],
+      "fixtures": ["fixtures/scenarios.json#S01", "fixtures/scenarios.json#S07", "fixtures/scenarios.json#S08"],
+      "tests": ["tests/test_transparency.py::test_judgment_is_separate_from_analysis", "tests/test_lifecycle.py::test_provider_timeout_is_not_an_answer", "tests/test_lifecycle.py::test_deletion_erases_cache_features_and_fingerprint"],
+      "limits": "Does not prove human review quality or prevent off-platform sanctions. Audit is in-memory synthetic operational evidence, not a real production log."
+    },
+    {
+      "id": "C10", "classification": "applicability assessment", "basis": "Pinned amended legal snapshot and specified purpose",
+      "status": "not applicable under stated assumptions",
+      "claim": "No Annex I safety function, Annex III intended use, GPAI-model provision or generation/marking activity is assumed. Advisory wording alone is not the rationale.",
+      "files": ["docs/product-intended-use.md", "compliance/legal-baseline.json", "compliance/applicability.md"],
+      "fixtures": ["fixtures/scenarios.json#S03", "fixtures/scenarios.json#S05"],
+      "functions": ["app/validation.py:validate_use", "app/registry.py:Registry.require"],
+      "tests": ["tests/test_boundaries.py::test_purposes_rejected_before_any_side_effect"],
+      "limits": "Legal interpretation and actual commercial/deployment facts require external verification; future high-risk dates are not current deadlines."
+    }
+  ],
+  "external_verification": {
+    "status": "requires external verification",
+    "items": ["Complete authoritative consolidation and amendment", "Actual EU provider/deployer facts and marketed uses", "Browser and assistive-technology accessibility", "Real staff support and effectiveness", "Measured classifier performance and immutable remote versions", "SDK installation, type compatibility and data-plane integration", "Provider-side data capture/retention/deletion and location", "Production authentication, secure deployment and durable atomic storage", "Any new legal or intended-use changes after the pinned snapshot"]
+  }
+}

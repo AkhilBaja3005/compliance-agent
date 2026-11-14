@@ -1,0 +1,10 @@
+{
+  "id": "S05",
+  "title": "Search uses the bulk-expanded index",
+  "expectationStatus": "authored_not_executed",
+  "setup": "Complete S02 on a fresh product; alternatively complete S03 and use synthetic:cam_alpha",
+  "inputs": { "principalId": "north-review", "imageToken": "synthetic:web_alpha", "model": "synthetic-v1", "limit": 1 },
+  "operations": ["api.search('north-review', inputs without principalId)", "repeat identical search to use tenant/model/revision-aware cache"],
+  "expectedStateChanges": { "recordCount": "unchanged at 2", "topSubjectRef": "subject-web-a", "topScore": 1, "provenance": { "tenantId": "north", "sourceId": "web-north", "sourceType": "public_web_bulk", "sourceRecordId": "web-001", "model": "synthetic-v1", "fixtureSet": "web-discovery" }, "audit": "Two identity.searched events", "decision": "No automated consequential action" },
+  "functions": ["ProductApi.search", "SearchService.search", "syntheticVector", "SearchCache.key", "IdentityIndex.list", "simulatedScore"]
+}

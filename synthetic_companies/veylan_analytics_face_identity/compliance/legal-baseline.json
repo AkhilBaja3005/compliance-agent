@@ -1,0 +1,67 @@
+{
+  "assessmentDate": "2026-11-14",
+  "jurisdiction": "European Union",
+  "regulation": "Regulation (EU) 2024/1689",
+  "consolidatedAsOf": "2026-07-27",
+  "incorporates": ["Regulation (EU) 2026/1744"],
+  "snapshotPolicy": "Pinned assessment; do not substitute the original unamended regulation or advance dates implicitly",
+  "sources": [
+    {
+      "role": "pinned_consolidated_legal_text",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02024R1689-20260727",
+      "retrieval": "Official URL attempted; browser-verification challenge prevented direct text verification"
+    },
+    {
+      "role": "pinned_amending_regulation",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R1744",
+      "retrieval": "Official URL attempted; browser-verification challenge prevented direct text verification"
+    },
+    {
+      "role": "official_article_text_crosscheck",
+      "url": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-5",
+      "retrieval": "Read; page explicitly identifies the 27 July 2026 consolidation and Digital Omnibus amendments"
+    },
+    {
+      "role": "official_application_dates_crosscheck",
+      "url": "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-113",
+      "retrieval": "Read; amended application provisions used for this snapshot"
+    }
+  ],
+  "statusVocabulary": [
+    "current_applicable_requirement",
+    "future_requirement",
+    "not_applicable",
+    "voluntary_safeguard",
+    "organizational_evidence_needed"
+  ],
+  "primaryRequirement": {
+    "article": "Article 5(1)(e)",
+    "status": "current_applicable_requirement",
+    "appliesFrom": "2025-02-02",
+    "dateBasis": "Article 113(a); point (e) is not one of the newly deferred points (ba)/(bb)",
+    "description": "Prohibits marketing, putting into service for this purpose, or use of AI systems creating or expanding facial-recognition databases by untargeted scraping of internet facial images or CCTV footage",
+    "findingScope": "Modeled fictional commercial practice; not a finding of an actual violation by the synthetic fixture program"
+  },
+  "futureTiming": [
+    {
+      "reference": "Article 113(c)(i)",
+      "status": "future_requirement",
+      "appliesFrom": "2027-12-02",
+      "coverage": "Chapter III Sections 1-3 except Article 6(5), for Article 6(2)/Annex III high-risk systems",
+      "condition": "Any replacement product needs a separate classification and applicability assessment; not a current violation here"
+    },
+    {
+      "reference": "Article 113(c)(ii)",
+      "status": "future_requirement",
+      "appliesFrom": "2028-08-02",
+      "coverage": "Chapter III Sections 1-3 except Article 6(5), for Article 6(1)/Annex I high-risk systems",
+      "condition": "Timing context only; no Annex I safety component is represented"
+    }
+  ],
+  "limits": [
+    "Scope and commercial launch facts are authored assumptions, not independently established organizational facts",
+    "No actual collection, biometric processing, commercial deployment, or enforcement decision is established",
+    "This baseline is selective, not a complete AI Act, GDPR, or national-law assessment",
+    "No invented statutory retention period, accuracy threshold, fairness gap, training pass mark, or universal review requirement"
+  ]
+}

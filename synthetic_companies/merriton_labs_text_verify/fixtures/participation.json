@@ -1,0 +1,12 @@
+{
+  "status": "synthetic organizational evidence",
+  "owner": "Mira Example, fictional Product Education Lead",
+  "limits": "Authored acknowledgments, not proof of real attendance, understanding or effective training. No legally required examination or individual attainment guarantee is asserted.",
+  "records": [
+    {"tenant": "atlas", "subject": "atlas-editor", "role": "editor", "material_version": "editors-2", "acknowledged_at": "2026-11-11T10:00:00Z", "synthetic": true},
+    {"tenant": "atlas", "subject": "atlas-admin", "role": "admin", "material_version": "admins-2", "acknowledged_at": "2026-11-11T10:15:00Z", "synthetic": true},
+    {"tenant": "birch", "subject": "birch-editor", "role": "editor", "material_version": "editors-2", "acknowledged_at": "2026-11-12T10:00:00Z", "synthetic": true},
+    {"tenant": "birch", "subject": "birch-admin", "role": "admin", "material_version": "admins-2", "acknowledged_at": "2026-11-12T10:15:00Z", "synthetic": true},
+    {"tenant": "atlas", "subject": "synthetic-operator", "role": "operator", "material_version": "operators-2", "acknowledged_at": "2026-11-13T10:00:00Z", "synthetic": true}
+  ]
+}

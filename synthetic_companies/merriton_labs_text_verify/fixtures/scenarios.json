@@ -1,0 +1,98 @@
+{
+  "schema_version": "1",
+  "synthetic": true,
+  "fixed_clock": "2026-11-14T12:00:00Z",
+  "default_request": {"text_fixture": "texts.json#editorial", "purpose": "business_editorial_review", "language": "en", "domain": "marketing", "model_version": "dtv-1.1"},
+  "scenarios": [
+    {
+      "id": "S01", "classification": "legal control", "basis": "Article 50(1),(5) interaction notice; advice wording is a voluntary safeguard",
+      "given": {"identity": "atlas-editor", "route": "/", "key": "scenario-01"},
+      "actions": ["Load page before any POST", "Submit default_request", "run_one", "Read and export result", "Retain advisory flag"],
+      "expected_outputs": {"notice_before_enabled_submit": "notice-2", "mode": "deterministic_simulation", "state": "scored", "score": 0.68, "confidence": 0.76, "advice_not_authorship_proof": true, "judgment_kind": "human_editorial_judgment"},
+      "side_effects": ["One record and one idempotency binding", "One classifier call", "Tenant/model/digest cache entry", "Sanitized submitted/analyzed/reviewed audit events"],
+      "functions": ["create_app.editor", "renderResult", "VerifyService.submit", "VerifyService.process", "VerifyService.judge", "result_envelope", "export_advice"],
+      "tests": ["test_notice_before_submission_and_direct_navigation", "test_updated_notice_and_limitations_on_every_delivery", "test_judgment_is_separate_from_analysis"]
+    },
+    {
+      "id": "S02", "classification": "voluntary safeguard", "basis": "Reliability policy, not a universal statutory confidence threshold",
+      "given": {"variants": [{"text_fixture": "texts.json#short"}, {"text_fixture": "texts.json#unsupported_language", "language": "fr"}]},
+      "actions": ["Submit each variant", "run_one per item"],
+      "expected_outputs": {"state": "abstained", "score": null, "reasons": ["low_confidence", "unsupported_language"], "limitations_present": true},
+      "side_effects": ["Unsupported language makes zero classifier calls", "Short English input makes one simulated classifier call"],
+      "functions": ["VerifyService.process", "FakeClassifier.classify", "normalize_output"],
+      "tests": ["test_abstention_has_no_score"]
+    },
+    {
+      "id": "S03", "classification": "voluntary safeguard", "basis": "Enforces assessed scope; applicability depends on actual purpose",
+      "given": {"purposes": ["recruitment", "education", "grading", "misconduct", "employee_evaluation", "eligibility", "reputation", "other"]},
+      "actions": ["POST each purpose", "POST batch containing one allowed and one recruitment item"],
+      "expected_outputs": {"http_status": 422, "code": "purpose_rejected"},
+      "side_effects": ["Zero classifier calls", "Zero cache reads", "Zero records or queued work for rejected batch"],
+      "functions": ["validate_use", "VerifyService.submit"],
+      "tests": ["test_purposes_rejected_before_any_side_effect", "test_batch_validates_all_items_first"]
+    },
+    {
+      "id": "S04", "classification": "voluntary safeguard", "basis": "Tenant isolation; not stand-alone AI Act compliance proof",
+      "given": {"record_owner": "atlas-editor", "intruder": "birch-editor"},
+      "actions": ["Read/export/retry/review/delete Atlas id as Birch", "Submit identical text as Birch", "Process a forged Birch job referencing the Atlas id"],
+      "expected_outputs": {"cross_tenant_status": 404, "code": "not_found", "cache_keys_differ": true},
+      "side_effects": ["Atlas record unchanged by Birch", "Separate inference per tenant", "Forged reference does no work"],
+      "functions": ["Directory.resolve", "MemoryStorage.get", "cache_key", "VerifyService.process"],
+      "tests": ["test_tenant_isolation_across_delivery_and_mutation", "test_cache_is_tenant_and_model_scoped"]
+    },
+    {
+      "id": "S05", "classification": "voluntary safeguard", "basis": "Version-bound company release review",
+      "given": {"mismatch": {"model_version": "dtv-1.0", "domain": "business_article"}, "withdrawn": "dtv-1.1"},
+      "actions": ["Submit mismatch", "Queue valid work, then withdraw release", "Process queued job", "Attempt read or cached repeat"],
+      "expected_outputs": {"http_status": 409, "code": "model_unavailable", "queued_record_internal_state": "failed"},
+      "side_effects": ["Zero inference for rejected or withdrawn work", "No fabricated output", "Deletion still possible"],
+      "functions": ["Registry.require", "VerifyService.submit", "VerifyService.process", "VerifyService.read"],
+      "tests": ["test_model_compatibility_and_withdrawal", "test_version_change_recomputes_and_response_mismatch_fails"]
+    },
+    {
+      "id": "S06", "classification": "voluntary safeguard", "basis": "Revalidation before cache delivery",
+      "given": {"warm_cache": true},
+      "actions": ["Read with recruitment purpose", "Resubmit same text with unsupported purpose", "Revoke onboarding before processing an identical allowed submission", "Revoke a trusted principal"],
+      "expected_outputs": {"purpose_status": 422, "revoked_status": 403, "cached_result_bypasses_policy": false},
+      "side_effects": ["No extra inference", "Rejected purpose does not retrieve cache", "Revoked queued work fails"],
+      "functions": ["VerifyService.authorize", "VerifyService.checked_record", "VerifyService.process"],
+      "tests": ["test_cache_does_not_bypass_current_policy"]
+    },
+    {
+      "id": "S07", "classification": "voluntary safeguard", "basis": "Honest failure serialization",
+      "given": {"classifier_failure": "provider_timeout"},
+      "actions": ["Submit allowed draft", "run_one", "Read and export failed envelope"],
+      "expected_outputs": {"state": "failed", "error_code": "provider_timeout", "analysis": null, "notice": "notice-2"},
+      "side_effects": ["No cache entry", "Sanitized failure event", "At most three explicitly requested attempts"],
+      "functions": ["SageMakerClassifier.classify", "VerifyService.fail", "safe_error"],
+      "tests": ["test_provider_timeout_is_not_an_answer", "test_sagemaker_contract_and_timeout_mapping"]
+    },
+    {
+      "id": "S08", "classification": "voluntary safeguard", "basis": "Deletion and retry safety; no separate AI Act deletion obligation asserted",
+      "given": {"states": ["queued", "failed", "scored"]},
+      "actions": ["Delete record", "Replay original job", "Retry id", "Repeat original idempotency key"],
+      "expected_outputs": {"state": "deleted", "retry_http_status": 410, "idempotency_http_status": 410},
+      "side_effects": ["Input/features/output/judgment/cache erased", "Local pending and leased references removed", "Input-derived idempotency fingerprint erased", "Minimal tenant/id tombstone remains", "Remote reference-only messages are non-executable, physical expiry requires external verification"],
+      "functions": ["VerifyService.delete", "MemoryStorage.purge", "FakeQueue.cancel", "SqsQueue.cancel", "VerifyService.process"],
+      "tests": ["test_deleted_work_cannot_be_recreated", "test_deletion_erases_cache_features_and_fingerprint"]
+    },
+    {
+      "id": "S09", "classification": "legal control", "basis": "Article 50 interaction information; preservation of model limitations is a voluntary safeguard",
+      "given": {"warm_cache": true, "new_notice": "notice-3-test", "new_limitation": "New synthetic release warning."},
+      "actions": ["Replace active notice and append model warning", "Direct navigation, API read, idempotent repeat, cached new submission, review response, retry response, export, error response"],
+      "expected_outputs": {"current_notice_on_all_paths": true, "historical_submitted_notice_retained": true, "current_and_analysis_limitations_retained": true},
+      "side_effects": ["Cache holds inference only", "Updated presentation makes no additional classifier call"],
+      "functions": ["result_envelope", "create_app", "renderResult", "export_advice"],
+      "tests": ["test_updated_notice_and_limitations_on_every_delivery", "test_notice_remains_on_error_and_retry"]
+    },
+    {
+      "id": "S10", "classification": "organizational evidence", "basis": "Article 4 support materials; onboarding gate is a company choice",
+      "given": {"records_fixture": "participation.json", "roles": ["editor", "admin", "operator"], "synthetic": true},
+      "actions": ["Match each record to current material version", "Remove record and attempt work", "Inspect documented evidence limits"],
+      "expected_outputs": {"versions": ["editors-2", "admins-2", "operators-2"], "missing_record_status": 403, "individual_literacy_guaranteed": false},
+      "side_effects": ["Unonboarded work makes no inference", "No claimed examination, certificate or real attendance"],
+      "functions": ["Onboarding.require", "VerifyService.authorize", "run_one"],
+      "tests": ["test_role_specific_onboarding_records_and_gate"]
+    }
+  ]
+}

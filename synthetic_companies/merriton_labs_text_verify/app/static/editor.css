@@ -1,0 +1,13 @@
+:root { font-family: system-ui, sans-serif; color: #172b3a; background: #f4f6f7; }
+main { max-width: 48rem; margin: 2rem auto; padding: 1.5rem; background: white; }
+#ai-notice { border: 2px solid #31566c; padding: 1rem; margin-bottom: 1rem; }
+label { display: block; font-weight: 600; margin-top: 1rem; }
+input, textarea, select, button { font: inherit; max-width: 100%; padding: .6rem; }
+textarea { box-sizing: border-box; width: 100%; }
+button { margin: .8rem .5rem .5rem 0; cursor: pointer; }
+button:disabled { cursor: default; }
+a { color: #004d7a; text-decoration: underline; }
+:focus-visible { outline: 3px solid #6333aa; outline-offset: 3px; }
+#status { min-height: 1.5rem; font-weight: 600; }
+[hidden] { display: none !important; }
+@media (max-width: 40rem) { main { margin: 0; padding: 1rem; } }

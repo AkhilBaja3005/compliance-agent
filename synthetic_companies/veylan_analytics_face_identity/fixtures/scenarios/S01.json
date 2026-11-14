@@ -1,0 +1,15 @@
+{
+  "id": "S01",
+  "title": "Direct synthetic enrollment",
+  "expectationStatus": "authored_not_executed",
+  "setup": "Fresh createProduct(await loadCatalog()); fixed initial clock; all source configurations admitted, no records indexed",
+  "inputs": { "principalId": "north-ops", "sourceId": "enroll-north", "model": "synthetic-v1", "idempotencyKey": "s01", "fixtureIds": ["enroll-001"] },
+  "operations": [
+    "api.enqueueExpansion('north-ops', 'enroll-north', 'synthetic-v1', 's01')",
+    "await worker.runOnce()",
+    "api.search('north-ops', {imageToken:'synthetic:enrolled_alpha', model:'synthetic-v1', limit:1})"
+  ],
+  "expectedStateChanges": { "northRecords": "0 -> 1", "northV1Features": "0 -> 1", "checkpoint": "enroll-north/v1: 0 -> 1", "batchState": "complete", "jobState": "completed", "topSourceRecordId": "enroll-001" },
+  "functions": ["BatchService.open", "FixtureConnector.page", "IngestionService.ingestRecord", "extractFeature", "IdentityIndex.upsert", "SearchService.search"],
+  "interpretation": "Negative control for the specific untargeted scraping prohibition; no claim that all biometric-product requirements are satisfied. Admission of unused bulk configurations is not exercised by this scenario."
+}
