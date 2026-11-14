@@ -25,8 +25,39 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create a clean deployment branch for Hugging Face without binary assets
+          git checkout -b hf-deploy
+
+          # Remove binary files that Hugging Face Spaces rejects via pre-receive hook
+          git rm -rf --ignore-unmatch \
+            assets/*.png assets/*.jpg assets/*.jpeg \
+            *.pdf reports/*.pdf \
+            regulatory_pdfs/*.pdf
+
+          # Ensure Dockerfile and README have HF-specific frontmatter & config
+          if ! grep -q "app_port: 8000" README.md; then
+            cat << 'EOF' > /tmp/hf_readme_header.txt
+          ---
+          title: Graphite AI Safety & Regulatory Compliance Auditor
+          emoji: ⚖️
+          colorFrom: indigo
+          colorTo: gray
+          sdk: docker
+          app_port: 8000
+          pinned: false
+          ---
+
+          EOF
+            cat /tmp/hf_readme_header.txt README.md > /tmp/new_readme.md
+            mv /tmp/new_readme.md README.md
+            git add README.md
+          fi
+
+          git commit -m "deploy: sync clean source tree to Hugging Face Spaces" || true
+
           git remote add hf "https://abaja:${HF_TOKEN}@huggingface.co/spaces/abaja/graphite"
-          git push hf main --force
+          git push hf hf-deploy:main --force
 
       - name: Trigger Hugging Face Factory Rebuild
         env:
