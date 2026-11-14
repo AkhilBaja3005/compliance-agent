@@ -183,6 +183,51 @@ GRAPHITE_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --ho
 - **Interactive ReDoc Documentation:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
 - **Full API Specification & Endpoints Guide:** [docs/api.md](docs/api.md)
 
+### What Happens When You Click "↻ Run audit" in the Dashboard?
+
+Clicking **"↻ Run audit"** in the top navigation bar triggers a full regulatory and technical audit for the currently selected company/repository.
+
+1. **API Trigger:** The dashboard sends a request to the backend:
+   ```http
+   POST /dashboard/api/companies/{company_id}/runs
+   ```
+2. **AST Parsing & Evidence Extraction:**
+   - The edge extractors traverse the target codebase, configuration files, and documentation.
+   - Extracts AST call chains, model invocation points, prompt templates, training/inference pipelines, and policy assertions.
+   - Computes deterministic SHA-256 evidence hashes for every analyzed artifact.
+3. **Execution of 7 Specialized Compliance Agents:**
+   - **Risk Classification Agent:** Determines risk tiers under the EU AI Act (Prohibited AI Art 5, High-Risk Annex III/Art 6, GPAI Art 51-53, or Minimal Risk).
+   - **PII & Data Governance Agent:** Scans data flows and pipeline schemas for personal data, special category data (GDPR Art 9), and third-country data transfers (GDPR Art 44–49).
+   - **Human Oversight (HITL) Agent:** Audits fallback routines, override mechanisms, and human intervention logs (EU AI Act Art 14).
+   - **Transparency & Watermarking Agent:** Checks synthetic media watermarking, AI disclosures, and user-facing notifications (EU AI Act Art 50).
+   - **Robustness & Cybersecurity Agent:** Evaluates model input sanitization, adversarial prompt testing, fail-safe degradation, and technical file completeness (EU AI Act Art 15).
+   - **Open Source & Model Licensing Agent:** Cross-references licenses of all dependencies, foundation models, and weights against prohibited or copyleft triggers.
+   - **Code-vs-Documentation Drift Agent:** Checks for discrepancies between technical documentation claims and actual AST code implementation.
+4. **4 Validation Guardrail Gates:**
+   - **Gate 1 (Citation Verification):** Validates citations against verified statutory text.
+   - **Gate 2 (Tenant Data Isolation):** Ensures strict separation of cross-tenant proprietary evidence.
+   - **Gate 3 (Entailment):** Cryptographically ties findings to AST code evidence or doc locators (enforces Closed-World Assumption).
+   - **Gate 4 (Severity & Legal Framing):** Assigns statutory severity (CRITICAL, HIGH, MEDIUM, LOW) and formats findings strictly as technical compliance observations.
+5. **Report Generation & Dashboard Refresh:**
+   - The resulting `TriagedAuditReport` is persisted in the report store (`ReportStore`).
+   - The UI polls every 5 seconds, updating the **Compliance Readiness Score Gauge**, **Priority Action Matrix**, and **Engineering Findings** with real-time evidence locators, remediation guidance, and exportable PDF/SARIF artifacts.
+
+### Comparison: Dashboard "Run audit" vs. CLI (`graphite audit run`)
+
+The Dashboard and CLI share the **identical underlying audit engine** (`src/agents/orchestrator.py:run_audit`), ensuring 100% deterministic parity between developer terminals, CI pipelines, and executive dashboards.
+
+| Dimension | Dashboard ("↻ Run audit") | CLI (`graphite audit run`) |
+|---|---|---|
+| **Trigger Mechanism** | Browser UI button (`POST /dashboard/api/companies/{id}/runs`) | Terminal command / CI pipeline script |
+| **Audit Engine** | `src.agents.orchestrator.run_audit` | `src.agents.orchestrator.run_audit` |
+| **Analyzed Assets** | Selected company fixture or configured repository | Workspace, directory, or remote git repository |
+| **Agent Execution** | All 7 specialized auditing agents | All 7 specialized auditing agents |
+| **Guardrail Gates** | 4 verification & quarantine gates | 4 verification & quarantine gates |
+| **Evidence Hashes** | SHA-256 file hashes & exact line locators | SHA-256 file hashes & exact line locators |
+| **Output Formats** | Interactive UI, executive charts, downloadable PDF/SARIF/JSON | Terminal stdout, rich summary tables, SARIF 2.1.0, JSON, PDF |
+| **Primary Audience** | Compliance officers, risk leaders, engineering managers | Developers, security engineers, CI/CD runners (GitHub Actions) |
+| **Execution Mode** | Asynchronous background run with real-time UI polling | Synchronous exit codes (`0` pass, `1` blocking violations) |
+
 ### API Endpoints
 
 Authentication is enforced by default via API key headers (`X-API-Key`). Configure access using `GRAPHITE_API_KEYS="key:tenants:role,..."`.
