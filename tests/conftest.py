@@ -25,7 +25,7 @@ def _offline_env(monkeypatch, tmp_path):
     for var in ("LINKUP_API_KEY", "MONGODB_URI", "MONGODB_DB_NAME", "MONGODB_DATABASE", "DATABRICKS_HOST", "DATABRICKS_TOKEN",
                 "DATABRICKS_WAREHOUSE_ID", "DATABRICKS_SERVING_ENDPOINT", "MLFLOW_TRACKING_URI", "GITHUB_TOKEN",
                 "CONFLUENCE_URL", "CONFLUENCE_EMAIL", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN", "AEGIS_HISTORY_FILE"):
-        monkeypatch.delenv(var, raising=False)
+        monkeypatch.setenv(var, "")  # blank, not unset: code that reloads .env must not re-fill them from a developer's file
     from src.law_sync import reset_overlay, reset_store, set_scout
     from src.storage import reset_compliance_store, set_compliance_store
     from src.security import limiter
