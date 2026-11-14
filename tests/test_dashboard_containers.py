@@ -52,6 +52,10 @@ def test_container_health_audit_and_persistence(runtime):
         healthy()
         for page in ("overview", "findings"):
             assert httpx.get(url + f"/dashboard/{page}").status_code == 200
+        logo = httpx.get(url + "/dashboard/assets/graphite_report_logo.png")
+        assert logo.status_code == 200
+        assert logo.headers["content-type"] == "image/png"
+        assert logo.content == (ROOT / "assets" / "graphite_report_logo.png").read_bytes()
         base = url + "/dashboard/api/companies/company_a_finscore"
         assert httpx.get(base + "/snapshot").json()["latest_report"] is None
         settings = {"sources": {}, "schedule": {"enabled": True, "frequency": "weekly"}}
