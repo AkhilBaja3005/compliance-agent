@@ -23,12 +23,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY pyproject.toml CLAUDE.md ./
 COPY src ./src
-COPY assets ./assets
 COPY tests ./tests
 COPY synthetic_companies ./synthetic_companies
-COPY regulatory_pdfs ./regulatory_pdfs
 COPY sync_sources.yaml ./sync_sources.yaml
-RUN pip install '.[ocr]'
+RUN mkdir -p /app/regulatory_pdfs /app/assets && pip install '.[ocr]'
 
 USER graphite
 VOLUME ["/var/lib/graphite"]
