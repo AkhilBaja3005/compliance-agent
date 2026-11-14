@@ -1,4 +1,4 @@
-# Aegis Health Systems Ltd - Automated Governance & Red-Team Configuration
+# Graphite Health Systems Ltd - Automated Governance & Red-Team Configuration
 version: "3.2.0"
 governance_tier: "ENTERPRISE_CLINICAL_GRADE"
 system_classification: "EU_AI_ACT_ANNEX_III_HIGH_RISK"

@@ -1,6 +1,6 @@
 """Grounded Clinical Discharge Summarizer with Machine-Readable C2PA Provenance.
 
-Module: aegis.discharge.summarizer
+Module: graphite.discharge.summarizer
 Compliance Standards:
 - EU AI Act Article 50(2) (Machine-Readable Marking & Cryptographic Watermarking)
 - EU AI Act Article 10 (Grounded Citation & Anti-Hallucination Verification)
@@ -17,7 +17,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-logger = logging.getLogger("aegis.discharge.summarizer")
+logger = logging.getLogger("graphite.discharge.summarizer")
 
 PROMPT_INJECTION_INDICATORS = [
     r"ignore\s+(all\s+)?(previous|prior)\s+instructions",
@@ -84,7 +84,7 @@ class DischargeSummarizerService:
         """Injects machine-readable C2PA cryptographic provenance metadata pursuant to Art. 50(2)."""
         content_hash = hashlib.sha256(discharge_document_text.encode("utf-8")).hexdigest()
         c2pa_manifest = {
-            "claim_generator": "Aegis Health Systems C2PA Generator v1.4",
+            "claim_generator": "Graphite Health Systems C2PA Generator v1.4",
             "format": "application/x-c2pa-manifest",
             "title": "Clinical Patient Discharge Summary",
             "assertions": [
@@ -93,7 +93,7 @@ class DischargeSummarizerService:
                     "data": {
                         "is_synthetic": True,
                         "regulation": "EU AI Act Article 50(2)",
-                        "model_family": "Aegis-Clinical-Grounded-Llama3-UK",
+                        "model_family": "Graphite-Clinical-Grounded-Llama3-UK",
                         "generation_timestamp": datetime.now(timezone.utc).isoformat()
                     }
                 },

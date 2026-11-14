@@ -1,6 +1,6 @@
-# Model Card: Aegis Clinical Triage Predictor (v2.4)
+# Model Card: Graphite Clinical Triage Predictor (v2.4)
 
-**Model Identifier:** aegis-cds-triage-v2.4-uk  
+**Model Identifier:** graphite-cds-triage-v2.4-uk
 **Release Date:** January 15, 2025  
 **Licensing & Dependency Assurance:** Permissive open-source licenses only (`MIT`, `Apache-2.0`, `BSD-3-Clause`). Zero GPL, copyleft, or non-commercial research licenses incorporated.  
 

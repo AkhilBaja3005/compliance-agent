@@ -1,12 +1,12 @@
 # Annex IV Technical Documentation - EU AI Act Compliance Dossier
 
 **Space:** CLINICAL_GOV  
-**System Reference:** Aegis-CDS-Core-v2  
+**System Reference:** Graphite-CDS-Core-v2
 **Classification:** High-Risk AI System under EU AI Act Annex III §5(a) & Article 6(2)  
 **Author:** Regulatory Engineering & Clinical Assurance Office  
 
 ## 1. System Specifications & Intended Purpose
-Aegis-CDS-Core-v2 is an automated clinical risk-stratification system designed to assist emergency triage teams in prioritizing patient workflows according to clinical urgency.
+Graphite-CDS-Core-v2 is an automated clinical risk-stratification system designed to assist emergency triage teams in prioritizing patient workflows according to clinical urgency.
 
 ## 2. Technical Safeguards & Architecture
 - **Article 9 (Risk Management System):** Continuous risk management lifecycle identifying clinical misclassification hazards, hardware timeouts, and data contamination risks.

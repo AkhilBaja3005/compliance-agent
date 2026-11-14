@@ -85,22 +85,31 @@ summary:focus-visible {
   width: 238px;
   position: fixed;
   inset: 0 auto 0 0;
-  background: #CCE9FF;
-  color: #2F4B68;
+  background: #0D1322;
+  color: #B2DEFF;
   display: flex;
   flex-direction: column;
   padding: 35px 20px;
 }
 .brand {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 0 10px;
+  color: #F2FAFF;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+}
+.brand:hover {
+  text-decoration: none;
 }
 .brand img {
   display: block;
-  width: 100%;
-  max-width: 190px;
-  height: auto;
-  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .footer-logo {
   object-fit: contain;
@@ -114,7 +123,7 @@ summary:focus-visible {
 }
 .rail-label {
   margin: 56px 12px 17px;
-  color: #40668D;
+  color: #7F97B2;
   letter-spacing: 1.1px;
 }
 nav {
@@ -123,7 +132,7 @@ nav {
 }
 nav a {
   padding: 14px 12px;
-  color: #2F4B68;
+  color: #B2DEFF;
   border: 1px solid transparent;
   border-radius: 7px;
   font-size: 12px;
@@ -144,18 +153,18 @@ nav a.active:hover {
   background: #40668D;
 }
 nav a:hover {
-  background: #B2DEFF;
+  background: #161F34;
   text-decoration: none;
 }
 .rail-footer {
   margin: auto 10px 0;
   font-size: 11px;
-  color: #2F4B68;
+  color: #B2DEFF;
   line-height: 1.8;
 }
 .rail-footer p {
   margin: 8px 0;
-  color: #40668D;
+  color: #7F97B2;
 }
 .signal {
   display: inline-block;
