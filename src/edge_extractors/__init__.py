@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -41,6 +42,12 @@ class TriModalIndex:
     code_origin: str = "local"
     docs_origin: str = "local"
     doc_pages: int = 0
+    lang_files: dict[str, int] = field(default_factory=dict)
+    unscanned: dict[str, int] = field(default_factory=dict)
+    infra_facts: list[dict] = field(default_factory=list)
+    source_statuses: list[dict] = field(default_factory=list)
+    fairness_outcomes: dict | None = None
+    data_assets: list[dict] = field(default_factory=list)
 
     # ---- artifact registry used by Gate 1 (artifact_id -> (locator, sha256, tenant))
     def artifact_registry(self) -> dict[str, tuple[str, str, str]]:
@@ -53,6 +60,8 @@ class TriModalIndex:
             reg[d.chunk_id] = (d.locator, d.sha256_hash, d.tenant_id)
         for dep in self.dependencies:
             reg[dep.dep_id] = (dep.locator, dep.sha256_hash, dep.tenant_id)
+        for a in self.data_assets:
+            reg[a["asset_id"]] = (f"{a['path']}:1-1", a["sha256_hash"], a["tenant_id"])
         return reg
 
     def artifact_text(self) -> dict[str, str]:
@@ -177,7 +186,7 @@ def build_systems(ix: TriModalIndex, declared) -> None:
 
 def build_index(company_dir: Path | str | None = None, tenant_id: str | None = None, *, github_source: str | Path | None = None,
                 confluence_source: str | Path | None = None, space_key: str | None = None,
-                github_token: str | None = None) -> TriModalIndex:
+                github_token: str | None = None, doc_sources: list | None = None, data_sources: list | None = None) -> TriModalIndex:
     """Build the tri-modal index.
 
     Sources: `github_source` (local dir or https://github.com/org/repo), `confluence_source` (local folder, or
@@ -211,6 +220,17 @@ def build_index(company_dir: Path | str | None = None, tenant_id: str | None = N
         declared, pages, docs_origin = cf.systems, cf.pages, cf.origin
     if root is not None and (cf_src is None or skip_top):
         chunks += [c for c in parse_documents(root, tenant_id, skip_top) if c.chunk_id not in {x.chunk_id for x in chunks}]
+    statuses: list[dict] = []
+    if doc_sources is None and os.getenv("AEGIS_REMOTE_DOC_SOURCES", "").lower() == "true":
+        from src.connectors.doc_sources import sources_from_env
+
+        doc_sources = sources_from_env()
+    if doc_sources:
+        from src.connectors.doc_sources import collect
+
+        remote, sts = collect(doc_sources, tenant_id)
+        chunks += remote
+        statuses = [vars(x) for x in sts]
     assertions = extract_assertions(chunks)
     if not declared:
         from src.connectors.confluence_connector import extract_system_declarations
@@ -233,7 +253,21 @@ def build_index(company_dir: Path | str | None = None, tenant_id: str | None = N
         dependencies=res.dependencies if res else [], py_files=res.py_files if res else [],
         uses_local_model=res.uses_local_model if res else False, commit_sha=gh.commit_sha if gh else None,
         code_origin=gh.origin if gh else "none", docs_origin=docs_origin, doc_pages=pages,
+        lang_files=dict(res.lang_files) if res else {}, unscanned=dict(res.unscanned) if res else {},
+        infra_facts=list(res.infra_facts) if res else [], source_statuses=statuses,
     )
+    from dataclasses import asdict
+
+    from .data_scanner import compute_fairness, scan_data
+
+    assets = scan_data(root, tenant_id) if root is not None else []
+    for ds in (data_sources or []):  # live read-only metadata sources (SQL information_schema, Unity Catalog, MongoDB)
+        try:
+            assets += ds.describe()
+        except Exception as exc:
+            ix.source_statuses.append({"source": getattr(ds, "name", "data"), "configured": True, "documents": 0, "errors": [f"{type(exc).__name__}: {str(exc)[:160]}"]})
+    ix.data_assets = [asdict(a) for a in assets]
+    ix.fairness_outcomes = compute_fairness(root) if root is not None else None
     build_systems(ix, declared)
     return ix
 

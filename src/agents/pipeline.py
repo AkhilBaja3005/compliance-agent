@@ -38,10 +38,20 @@ class AgentRun:
 
 def run_agents(company_dir: Path | str | None = None, tenant_id: str | None = None, llm: LLMClient | None = None, *,
                github_source=None, confluence_source=None, space_key: str | None = None, linkup=None,
-               compliance_store=None) -> AgentRun:
+               compliance_store=None, doc_sources=None) -> AgentRun:
     store = compliance_store or get_compliance_store()
-    index = build_index(company_dir, tenant_id, github_source=github_source, confluence_source=confluence_source, space_key=space_key)
+    index = build_index(company_dir, tenant_id, github_source=github_source, confluence_source=confluence_source, space_key=space_key,
+                        doc_sources=doc_sources)
     law_store = get_store()
+    try:  # LLM claim extraction adds paraphrased promises on top of the regex floor; offline it is a no-op
+        from src.edge_extractors.doc_parser import extract_assertions_llm
+
+        _llm = llm or LLMClient()
+        known = {a.assertion_id for a in index.assertions}
+        index.assertions += [a for a in extract_assertions_llm(index.chunks, _llm) if a.assertion_id not in known]
+        llm = _llm
+    except Exception:
+        pass
     try:  # Mongo Atlas / in-memory vector indexes for rules and this tenant's artifacts
         store.index_rules(law_store.snapshot())
         store.index_tenant_artifacts(index)
@@ -81,7 +91,9 @@ def finalize_report(report: TriagedAuditReport, run: AgentRun, store, sink: Data
     report.assessed_at = run.assessed_at
     from src.regulatory_rag.tier_a_rules import active_frameworks
     _fw = active_frameworks()
-    fw_label = "EU/UK" if _fw is None else "EU AI Act" if _fw == {"EU_AI_ACT"} else "/".join(sorted(_fw))
+    names = {"EU_AI_ACT": "EU AI Act", "EU_GDPR": "EU GDPR", "UK_GDPR_ICO": "UK GDPR/ICO", "UK_DSIT": "UK DSIT", "UK_COPYRIGHT_TDM": "UK copyright/TDM"}
+    fw_label = "EU/UK" if _fw is None else " + ".join(names.get(x, x) for x in sorted(_fw, key=lambda k: (k != "EU_AI_ACT", k)))
+    report.frameworks = ["ALL"] if _fw is None else sorted(_fw)
     report.scope = (f"{len(ix.systems)} AI system(s); code: {ix.code_origin}"
                     f"{' @' + ix.commit_sha[:10] if ix.commit_sha else ''}; docs: {ix.docs_origin}; "
                     f"{len(run.checklist)} mandatory {fw_label} checks")

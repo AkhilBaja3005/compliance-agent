@@ -206,8 +206,23 @@ def sec5(report: dict, findings: list[dict]) -> str:
     hist = ev.get("history", {}) or {}
     guards = "".join(f"<li>{_E(g)}</li>" for g in ev.get("guardrails", []))
     fstatus = fair.get("status", "UNKNOWN")
-    fcls = {"DOCUMENTED": "badge-pass", "SUSPECTED_GAP": "badge-gap", "NOT_APPLICABLE": "badge-na"}.get(fstatus, "badge-partial")
+    fcls = {"DOCUMENTED": "badge-pass", "COMPUTED": "badge-pass", "FLAGGED": "badge-gap", "SUSPECTED_GAP": "badge-gap", "NOT_APPLICABLE": "badge-na"}.get(fstatus, "badge-partial")
     prot = ", ".join(fair.get("protected_attributes_in_code", [])) or "none found in code"
+    metrics = fair.get("metrics") or []
+    fair_bars = ""
+    if metrics:
+        for m in metrics:
+            if m.get("ratio_vs_top") is None:
+                fair_bars += f'<tr><td>{_E(m["attribute"])}: {_E(str(m["group"]))}</td><td>n={m["n"]}</td><td colspan="2">not testable: {_E(str(m.get("note", "")))}</td></tr>'
+                continue
+            r = m["ratio_vs_top"]
+            col = "#EF4444" if m.get("flag") else "#10B981"
+            fair_bars += (f'<tr><td>{_E(m["attribute"])}: {_E(str(m["group"]))}</td><td>n={m["n"]}</td>'
+                          f'<td style="width:40%;"><div style="background:#E2E8F0;height:8px;position:relative;"><div style="background:{col};height:8px;width:{min(100, int(r * 100))}%;"></div>'
+                          f'<div style="position:absolute;left:80%;top:-2px;height:12px;border-left:1px solid #0F172A;"></div></div></td>'
+                          f'<td>{r:.2f}× {"BELOW 0.80" if m.get("flag") else "ok"}</td></tr>')
+        fair_bars = (f'<h4 style="font-size:8pt; margin-top:10px; margin-bottom:4px; text-transform:uppercase;">Selection-rate ratios (source: {_E(str(fair.get("metrics_source", "")))})</h4>'
+                     f'<table class="data-table"><thead><tr><th>Group</th><th>Sample</th><th>Ratio vs highest-rate group (tick = 0.80)</th><th>Result</th></tr></thead><tbody>{fair_bars}</tbody></table>')
     return f"""
 <h2>Section 5: Automated Control Verification &amp; Fairness Screen</h2>
 <p style="color:#475569; font-size:7.5pt; margin-bottom:8px;">
@@ -225,6 +240,7 @@ mandatory checks resolved ({ev.get('resolution_pct', 100)}%); mean confidence {e
 <tr><td><strong>Automated decisions present</strong></td><td>{'yes' if fair.get('automated_decisions') else 'no'}</td></tr>
 <tr><td><strong>Note</strong></td><td>{_E(str(fair.get('note', '')))}</td></tr>
 </tbody></table>
+{fair_bars}
 <h4 style="font-size:8pt; margin-top:10px; margin-bottom:4px; text-transform:uppercase;">Guardrail gates &amp; history</h4>
 <ul style="margin:0 0 0 14px; padding:0; font-size:6.8pt; color:#334155; line-height:1.4;">{guards}
 <li>Longitudinal history: {hist.get('NEW', 0)} new, {hist.get('RECURRING', 0)} recurring, {hist.get('RESOLVED', 0)} resolved since last run.</li></ul>
@@ -258,11 +274,18 @@ def sec6(report: dict) -> str:
         return _badge(yes if ok else no, "badge-pass" if ok else "badge-gap")
     rows = [
         ("Code (GitHub)", code.get("origin", "n/a"), st(kinds.get("code")),
-         f"{code.get('python_files', 0)} Python file(s), {code.get('ast_slices', 0)} AST slice(s), {code.get('capability_cards', 0)} capability card(s); commit {str(code.get('commit_sha') or 'n/a')[:18]}"),
+         f"{code.get('python_files', 0)} code file(s), {code.get('ast_slices', 0)} AST slice(s), {code.get('capability_cards', 0)} capability card(s); commit {str(code.get('commit_sha') or 'n/a')[:18]}"),
+        ("Languages parsed", ", ".join(f"{k} ({v})" for k, v in sorted((cov.get("languages", {}).get("parsed") or {}).items())) or "python", _badge("PARSED", "badge-pass"), "tree-sitter parsing; code is never executed."),
         ("Policies &amp; DPAs (Confluence)", docs.get("origin", "n/a"), st(kinds.get("policy_documents")),
          f"{docs.get('documents', 0)} document(s), {docs.get('sections', 0)} section(s), {docs.get('assertions', 0)} compliance assertion(s)"),
         ("Dependency manifests", "requirements / model manifests", st(kinds.get("dependency_manifest")),
          f"{deps.get('packages', 0)} package(s), {deps.get('model_licences', 0)} model licence record(s)"),
+        *([("Languages NOT scanned", ", ".join(f"{k} ({v})" for k, v in sorted(cov["languages"]["unscanned"].items())), _badge("GAP", "badge-gap"),
+            "Behaviour in these files is unverified (closed-world).")] if (cov.get("languages", {}).get("unscanned")) else []),
+        *[(f"Remote docs: {d.get('source')}", "remote API", _badge("ERROR" if d.get("errors") else "CONNECTED", "badge-gap" if d.get("errors") else "badge-pass"),
+           (d.get("errors") or [f"{d.get('documents', 0)} document(s)"])[0]) for d in (cov.get("doc_sources") or [])],
+        ("Data assets", f"{(cov.get('data') or {}).get('assets', 0)} schema(s)/card(s)", st(bool((cov.get('data') or {}).get('assets')), "SCANNED", "NOT CONNECTED"),
+         (f"{(cov.get('data') or {}).get('personal_columns', 0)} classified column(s); values never stored" if (cov.get('data') or {}).get('assets') else "No datasets, schemas or manifests supplied: data governance checks were not run.")),
         ("DPA / DPIA documents", "documents", st(kinds.get("dpa_dpia_documents")), "Zero-data-retention, DPIA and Annex IV evidence is searched here."),
         ("AI system inventory", "code + register", _badge(f"{sysc.get('detected_in_code', 0)}/{sysc.get('inventory', 0)} in code", "badge-partial"),
          f"{sysc.get('declared_in_docs', 0)} of {sysc.get('inventory', 0)} systems declared in documents."),

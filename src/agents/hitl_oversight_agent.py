@@ -10,6 +10,10 @@ class HITLOversightAgent(MicroAgent):
     @traced("hitl_oversight_agent.evaluate")
     def evaluate(self, check, ctx) -> Verdict:
         ix = ctx.index
+        if check.check_id.startswith("GDPR-"):
+            from .gdpr_checks import evaluate_gdpr
+
+            return evaluate_gdpr(check.check_id, ix)
         if not ix.has_code:
             return no_code_verdict(f"{check.check_id}: no code to inspect")
         cands, explicit = decision_candidates(ix)

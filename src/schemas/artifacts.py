@@ -24,6 +24,8 @@ class ASTSlice(BaseModel):
     has_hitl_gate: bool = False
     has_moderation_hook: bool = False
     has_watermark_hook: bool = False
+    has_ai_disclosure: bool = False  # Art. 50(1): tells users they interact with an AI system
+    disclosure_denied: bool = False  # explicit `ai_disclosed: false`
     sha256_hash: str
     # Additive (non-contract) helper fields
     function_name: str = ""

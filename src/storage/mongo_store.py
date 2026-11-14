@@ -261,9 +261,10 @@ class MongoComplianceStore:
             return None
         try:
             pipe = [{"$vectorSearch": {"index": RULES_INDEX, "path": "embedding", "queryVector": self.embed([query])[0],
-                                       "numCandidates": max(50, k * 10), "limit": k}},
+                                       "numCandidates": max(100, k * 20), "limit": max(k * 5, 15)}},
                     {"$project": {"_id": 0, "rule_id": 1, "score": {"$meta": "vectorSearchScore"}}}]
-            return [(d["rule_id"], float(d["score"])) for d in self.db[RULES].aggregate(pipe)]
+            # the collection also holds ingested PDF chunks (no rule_id): keep only statutory rules here, PDF passages come via search_regulatory_knowledge
+            return [(d["rule_id"], float(d["score"])) for d in self.db[RULES].aggregate(pipe) if d.get("rule_id")][:k]
         except Exception as exc:
             log.warning("$vectorSearch(regulatory_rules) failed: %s", exc)
             return None

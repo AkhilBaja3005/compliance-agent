@@ -49,6 +49,14 @@ WATERMARK_RE = re.compile(
     r"c2pa|watermark|ai_generated|x-ai-generated|ai-generated|synthid|content_credentials|machine_readable_label",
     re.I,
 )
+DISCLOSURE_RE = re.compile(
+    r"ai[_\- ]?disclos\w*|x-ai-(system-)?(interaction|disclosure|generated)|you are (speaking|talking|chatting|interacting) with (an? )?(ai|artificial|virtual|bot|automated)|"
+    r"this (response|content|message) (is|was) (ai|machine)[- ]generated|powered by (ai|artificial)|i am an ai", re.I)
+DISCLOSURE_DENIED_RE = re.compile(r"ai[_\- ]?disclosed[\"']?\s*[:=]\s*(False|false|0|null|None)\b", re.I)
+BYPASS_RE = re.compile(
+    r"(face|facial|likeness|safety|moderation|content|nsfw|intimate)[_\- ]?(upload[_\- ]?)?(filter\w*|filtering|guard\w*|check\w*|classifier\w*)(_active|_enabled)?[\"']?\s*[:=]\s*[\"']?(false|off|disabled|0|no)\b|"
+    r"\b(skip|disable|bypass)[_\- ](face|likeness|safety|moderation|content[_\- ]filter)\w*|bypass\w*\s+(the\s+|all\s+)?(face|likeness|safety|moderation|filter)", re.I)
+DEEPFAKE_CTX_RE = re.compile(r"\b(face|facial|likeness|deepfake|intimate|ncii|voice clon\w*|clone[_ -]?voice)\b", re.I)
 DECISION_RE = re.compile(
     r"\b(score|scoring|decision|decide|approve|approval|reject|deny|eligib\w*|underwrit\w*|credit|loan|triage|"
     r"diagnos\w*|shortlist|screen_candidate)\b",
@@ -218,7 +226,7 @@ BIOMETRIC_RE = re.compile(r"facial|face[_\- ]?(recogni\w*|search|identity|index|
 UNTARGETED_RE = re.compile(
     r"scope[\"']?\s*[:=]\s*[\"']untargeted|\buntargeted\b|bulk_public_discovery|bulk_cctv_frames|public_web_bulk|cctv_bulk|"
     r"publicAccessSufficientForBulk\s*[:=]\s*true|recurringExpansionEnabled\s*[:=]\s*true|scrap(e|ing)\w*\s*\(|\bcrawl\w*\s*\(", re.I)
-_SIGNAL_SUFFIXES = {".ts", ".tsx", ".js", ".mjs", ".json"}
+_SIGNAL_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".java", ".kt", ".go", ".cs", ".rs", ".rb", ".php", ".swift", ".sh", ".bash"}
 
 
 def _scan_signal_file(src: str, rel: str, tenant_id: str, result: ScanResult) -> None:
@@ -242,6 +250,45 @@ def _scan_signal_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
         system_prompt=window[:300], capability_tags=tags, sha256_hash=sha256_text(window)))
 
 
+def _scan_notebook(raw: str, rel: str, tenant_id: str, result: "ScanResult") -> None:
+    """Jupyter notebook: each code cell is scanned as Python; locators carry the cell index (path#cellN)."""
+    import json as _json
+    try:
+        nb = _json.loads(raw)
+    except ValueError:
+        result.unscanned[".ipynb"] = result.unscanned.get(".ipynb", 0) + 1
+        return
+    result.py_files.append(rel)
+    result.lang_files["notebook"] = result.lang_files.get("notebook", 0) + 1
+    for i, cell in enumerate(nb.get("cells", [])):
+        if cell.get("cell_type") != "code":
+            continue
+        code = "".join(cell.get("source", [])) if isinstance(cell.get("source"), list) else str(cell.get("source", ""))
+        code = "\n".join(l for l in code.splitlines() if not l.lstrip().startswith(("%", "!")))
+        if code.strip():
+            _scan_python_file(code, f"{rel}#cell{i}", tenant_id, result)
+
+
+_BYPASS_SUFFIXES = {".py", ".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".env", ".ts", ".tsx", ".js", ".jsx", ".java", ".kt", ".go", ".cs", ".rs", ".rb", ".php", ".swift"}
+
+
+def _scan_bypass_file(src: str, rel: str, tenant_id: str, result: "ScanResult") -> None:
+    """Safety-control bypass facts (face/likeness filter off, moderation disabled): one capability card per hit with the line locator."""
+    lines = src.splitlines()
+    for i, line in enumerate(lines, 1):
+        if line.lstrip().startswith(("#!", "<!--")) or not BYPASS_RE.search(line):
+            continue
+        window = "\n".join(lines[max(0, i - 4): i + 3])
+        tags = ["safety_control_bypass"]
+        if DEEPFAKE_CTX_RE.search(window):
+            tags.append("deepfake_risk")
+        if re.search(r"intimate|ncii|csam|non[- ]?consensual", window, re.I):
+            tags.append("intimate_imagery_risk")
+        result.cards.append(BehavioralCapabilityCard(
+            module_id=f"{rel}::bypass:{i}", tenant_id=tenant_id, exact_locator=f"{rel}:{i}-{i}", system_prompt=line.strip()[:200],
+            capability_tags=tags, sha256_hash=sha256_text(f"{rel}:{i}:{line.strip()}")))
+
+
 # ----------------------------------------------------------------------------- scanning
 class ScanResult:
     def __init__(self):
@@ -250,6 +297,9 @@ class ScanResult:
         self.dependencies: list[DependencyFact] = []
         self.py_files: list[str] = []
         self.uses_local_model: bool = False
+        self.lang_files: dict[str, int] = {}  # language -> files parsed
+        self.unscanned: dict[str, int] = {}  # extension -> files recognised as code but not parsed
+        self.infra_facts: list[dict] = []  # hosting/egress facts from IaC and config (see infra_scanner)
 
 
 def scan_code(company_dir: Path | str, tenant_id: str) -> ScanResult:
@@ -263,13 +313,39 @@ def scan_code(company_dir: Path | str, tenant_id: str) -> ScanResult:
             _scan_python_file(src, rel, tenant_id, result)
             if LOCAL_MODEL_RE.search(src):
                 result.uses_local_model = True
+        elif (mf := __import__("src.edge_extractors.manifest_scanner", fromlist=["x"]).parse_manifest(path, rel, _read(path), tenant_id)) is not None:
+            result.dependencies.extend(mf)
+        elif path.suffix == ".ipynb":
+            _scan_notebook(_read(path), rel, tenant_id, result)
         elif path.suffix in _SIGNAL_SUFFIXES and not (set(Path(rel).parts[:-1]) & {"tests", "test", "__tests__", "compliance", "scenarios"}) \
                 and ".test." not in path.name and not path.name.endswith((".d.ts", "package-lock.json")) and path.stat().st_size < 400_000:
-            if path.suffix != ".json":
-                result.py_files.append(rel)  # counts as code present (TS/JS)
-            _scan_signal_file(_read(path), rel, tenant_id, result)
+            from .lang_scanner import LANGS, scan_language_file
+            text = _read(path)
+            if path.suffix in LANGS:
+                result.py_files.append(rel)  # counts as code present
+                ok = False
+                try:
+                    ok = scan_language_file(text, rel, path.suffix, tenant_id, result)
+                except Exception:  # parser failure must not abort the audit; the signal scan still runs
+                    ok = False
+                lang = LANGS[path.suffix][0]
+                result.lang_files[lang] = result.lang_files.get(lang, 0) + 1
+                if LOCAL_MODEL_RE.search(text):
+                    result.uses_local_model = True
+            _scan_signal_file(text, rel, tenant_id, result)
+        elif path.suffix.lower() in __import__("src.edge_extractors.lang_scanner", fromlist=["x"]).UNSCANNED_EXT \
+                and not (set(Path(rel).parts[:-1]) & {"tests", "test", "__tests__"}):
+            result.unscanned[path.suffix.lower()] = result.unscanned.get(path.suffix.lower(), 0) + 1
+            result.py_files.append(rel)  # code is present even though it cannot be inspected
         elif path.name.lower().startswith("requirements") and path.suffix in {".txt", ".in"}:
             result.dependencies.extend(parse_requirements(_read(path), rel, tenant_id))
+        if path.suffix.lower() in _BYPASS_SUFFIXES and path.stat().st_size < 400_000 and not (set(Path(rel).parts[:-1]) & {"tests", "test", "__tests__", "reviewer", "compliance", "scenarios"}):
+            _scan_bypass_file(_read(path), rel, tenant_id, result)
+        if path.stat().st_size < 400_000 and not (set(Path(rel).parts[:-1]) & {"tests", "test", "__tests__", "reviewer"}):
+            _msc = __import__("src.edge_extractors.manifest_scanner", fromlist=["x"])
+            _t = _read(path)
+            if _msc.is_infra_file(rel, path.name, _t):
+                _msc.scan_infra_file(_t, rel, tenant_id, result)
         if path.suffix in {".md", ".txt", ".json", ".yaml", ".yml", ".toml", ".cfg", ".py"} or path.name.upper().startswith(("LICENSE", "MODEL_CARD")):
             result.dependencies.extend(_model_license_facts(_read(path), rel, tenant_id))
     return result
@@ -319,6 +395,8 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
             "hitl": bool(HITL_RE.search(body)),
             "mod": bool(MODERATION_RE.search(body)),
             "wm": bool(WATERMARK_RE.search(body)),
+            "disc": bool(DISCLOSURE_RE.search(body)) and not bool(DISCLOSURE_DENIED_RE.search(body)),
+            "disc_denied": bool(DISCLOSURE_DENIED_RE.search(body)),
         }
 
     def reach(name: str) -> set[str]:
@@ -348,7 +426,8 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
                 if u not in eff_urls:
                     eff_urls.append(u)
         eff_gen = any(infos[g]["own_gen"] and (infos[g]["own_ai"] or infos[g]["own_http"] or GEN_CALL_RE.search(infos[g]["text"])) for g in group) and (eff_ai or eff_http)
-        eff = {k: any(infos[g]["flags"][k] for g in group) for k in ("pii", "hitl", "mod", "wm")}
+        eff = {k: any(infos[g]["flags"][k] for g in group) for k in ("pii", "hitl", "mod", "wm", "disc")}
+        eff["disc_denied"] = bool(infos[name]["flags"]["disc_denied"])
         touches = eff_ai or eff_http
         rtxt = _route_text(name, info["decorators"])
         decision_hit = bool(DECISION_RE.search(name)) or any(DECISION_RE.search(d) for d in info["decorators"]) \
@@ -372,11 +451,11 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
         is_entry = info["is_route"] or name not in called_by_local
         sha = sha256_text(info["text"])
         sl = ASTSlice(
-            slice_id=f"slice-{sha256_text(f'{tenant_id}:{rel}:{info['start']}')[:12]}",
+            slice_id="slice-" + sha256_text(":".join([tenant_id, rel, str(info["start"])]))[:12],
             tenant_id=tenant_id, file_path=rel, start_line=info["start"], end_line=info["end"],
             code_snippet=info["text"], imports=imports, external_endpoints=eff_urls,
             has_pii_redaction=eff["pii"], has_hitl_gate=eff["hitl"], has_moderation_hook=eff["mod"],
-            has_watermark_hook=eff["wm"], sha256_hash=sha, function_name=name, endpoint_regions=regions,
+            has_watermark_hook=eff["wm"], has_ai_disclosure=eff["disc"], disclosure_denied=eff["disc_denied"], sha256_hash=sha, function_name=name, endpoint_regions=regions,
             is_route=info["is_route"], is_entrypoint=is_entry, calls_ai_sdk=eff_ai, calls_http=eff_http,
             is_generation=eff_gen, is_decision=decision_hit,
         )
@@ -535,7 +614,8 @@ def parse_requirements(text: str, rel: str, tenant_id: str) -> list[DependencyFa
         m = re.search(r"licen[cs]e\s*[:=]\s*([A-Za-z0-9.\-+ ]+)", comment, re.I)
         if m:
             lic = m.group(1).strip()
-        lic = lic or KNOWN_LICENSES.get(name, "UNKNOWN")
+        from .manifest_scanner import KNOWN_LICENSES_EXT
+        lic = lic or KNOWN_LICENSES.get(name) or KNOWN_LICENSES_EXT.get(name) or "UNKNOWN"
         sha = sha256_text(raw)
         facts.append(DependencyFact(
             dep_id=f"dep-{sha256_text(f'{tenant_id}:{rel}:{i}')[:12]}", tenant_id=tenant_id, kind="package", name=name,

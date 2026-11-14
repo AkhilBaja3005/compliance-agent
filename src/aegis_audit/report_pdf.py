@@ -442,13 +442,14 @@ def _get_css() -> str:
     """
 
 
+
 def render_html_report(report_data: Dict[str, Any]) -> str:
     """Generates the full HTML markup for the 6-section A4 audit report."""
     company = html.escape(str(report_data.get("company_name", "Enterprise Target")))
     report_id = html.escape(str(report_data.get("report_id", "AEGIS-AUDIT-2026-001")))
     assessed_at = html.escape(str(report_data.get("assessed_at", datetime.now(timezone.utc).strftime("%d %B %Y"))))
     scope = html.escape(str(report_data.get("scope", "GitHub Org & Confluence Workspace (S1–S7)")))
-    rule_lib = html.escape(str(report_data.get("rule_library_version", "EU-AI-ACT-2026.11")))
+    rule_lib = html.escape(str(report_data.get("rule_library_version", "EU-2026.11")))
     coverage_pct = report_data.get("input_coverage_pct", 94)
     overall_readiness = report_data.get("overall_readiness", "NOT READY — HIGH REGULATORY EXPOSURE")
     readiness_summary = report_data.get(
@@ -475,6 +476,8 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     except ImportError:  # pragma: no cover
         from . import report_sections as _sections
     is_real = bool(report_data.get("eval_results"))
+    _names = {"EU_AI_ACT": "EU AI ACT", "EU_GDPR": "EU GDPR", "UK_GDPR_ICO": "UK GDPR", "UK_DSIT": "UK DSIT", "UK_COPYRIGHT_TDM": "UK COPYRIGHT", "ALL": "EU + UK"}
+    fw_label = html.escape(" + ".join(_names.get(x, x) for x in report_data.get("frameworks", [])) or "EU + UK")
     systems = [_sections.normalize_system(s) for s in systems]
     all_f = confirmed_findings + suspected_gaps + quarantined + passed
     _sv = lambda f: str(f.get("severity") or "").upper()
@@ -533,7 +536,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
 <!-- SECTION 1: EXECUTIVE SUMMARY -->
 <!-- ======================================================================= -->
 <div class="top-header">
-    <div class="assessment-sub">Aegis Regulatory Engine • Company-Wide Assessment · EU AI Act</div>
+    <div class="assessment-sub">Aegis Regulatory Engine • Company-Wide Assessment · {fw_label}</div>
     <div class="company-title-row">
         <h1 class="company-name">{company}</h1>
         <div class="report-date">Assessed: <strong>{assessed_at}</strong></div>
@@ -861,7 +864,7 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
     <div class="finding-substrip">
         <strong>System:</strong> {f.get('system_id', 'S-General')} ({f.get('system_name', 'System')}) | 
         <strong>Primary Rule:</strong> {f.get('primary_rule')} | 
-        <strong>Also Engages:</strong> {f.get('also_engages', 'None')} | 
+        <strong>Also Engages:</strong> {', '.join(f.get('also_engages') or []) or 'None'} | 
         <strong>Confidence:</strong> {int(f.get('confidence', f.get('confidence_score', 0.95)) * 100)}%
     </div>
     <div class="finding-body">

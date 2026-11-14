@@ -30,7 +30,18 @@ def scan(
         "./sample_connectors",
         "--target-dir",
         "-t",
-        help="Root path containing GitHub repos and Confluence spaces",
+        help="Root path containing GitHub repos and Confluence spaces, or local repo path",
+    ),
+    github_url: Optional[str] = typer.Option(
+        None,
+        "--github-url",
+        "-g",
+        help="Direct live GitHub repository URL (e.g. https://github.com/org/repo)",
+    ),
+    confluence_path: Optional[str] = typer.Option(
+        None,
+        "--confluence-path",
+        help="Path to Confluence docs or export folder",
     ),
     company: str = typer.Option(
         "Northwind Labs Ltd",
@@ -52,10 +63,11 @@ def scan(
     ),
 ):
     """Executes a full multi-agent compliance scan across enterprise connectors."""
+    effective_source = github_url or target_dir
     console.print(
         Panel(
             f"[bold cyan]Target Entity:[/bold cyan] {company}\n"
-            f"[bold cyan]Input Connectors:[/bold cyan] {target_dir}\n"
+            f"[bold cyan]Input Connectors / Source:[/bold cyan] {effective_source}\n"
             f"[bold cyan]Executive Report Output:[/bold cyan] {output_pdf}",
             title="[bold blue]🛡️ Aegis AI Regulatory Compliance Audit Execution[/bold blue]",
             border_style="blue",
@@ -79,7 +91,12 @@ def scan(
         time.sleep(0.2)
 
     auditor = ComplianceAuditor()
-    session = auditor.audit(company_name=company, target_dir=target_dir)
+    session = auditor.audit(
+        company_name=company,
+        target_dir=target_dir if not github_url else None,
+        github_url=github_url,
+        confluence_path=confluence_path,
+    )
 
     # Save PDF Report
     pdf_path = session.save_pdf(output_path=output_pdf)
@@ -359,3 +376,89 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+@app.command("eval")
+def eval_cmd(
+    gold: str = typer.Option("tests/eval/gold.json", "--gold", help="Gold-label file"),
+    frameworks: str = typer.Option("EU_AI_ACT,EU_GDPR", "--frameworks", help="EU_AI_ACT, EU_GDPR, ALL, or comma list"),
+    json_out: bool = typer.Option(False, "--json", help="Print raw JSON"),
+):
+    """Scores audit findings against gold labels: precision and recall per check and overall."""
+    import json as _json
+
+    from src.agents.llm_client import _load_dotenv
+    _load_dotenv()
+    os.environ.setdefault("BYOM_OFFLINE", "true")  # deterministic scoring: no live model calls
+    from src.evaluation import evaluate
+
+    res = evaluate(gold, frameworks)
+    if json_out:
+        console.print_json(_json.dumps(res))
+        return
+    t = Table(title=f"Evaluation vs gold ({frameworks})", header_style="bold green")
+    for h in ("Case", "TP", "FP", "FN", "Known missed"):
+        t.add_column(h)
+    for c in res["cases"]:
+        t.add_row(c["name"], ", ".join(c["tp"]) or "-", ", ".join(c["fp"]) or "-", ", ".join(c["fn"]) or "-", "; ".join(m.split(" ")[0] for m in c["known_missed"]) or "-")
+    console.print(t)
+    pc = Table(title="Per check", header_style="bold cyan")
+    for h in ("Check", "TP", "FP", "FN", "Precision", "Recall"):
+        pc.add_column(h)
+    for k, v in res["per_check"].items():
+        pc.add_row(k, str(v["tp"]), str(v["fp"]), str(v["fn"]), str(v["precision"]), str(v["recall"]))
+    console.print(pc)
+    o = res["overall"]
+    console.print(f"[bold]Overall[/bold] precision={o['precision']} recall={o['recall']} (recall excluding known-missed checks: {o['recall_excluding_known_missed']})")
+    console.print(f"[dim]{res['caveat']}[/dim]")
+
+
+@app.command("doctor")
+def doctor_cmd(live: bool = typer.Option(False, "--live", help="Also make one small read-only call per configured service")):
+    """Checks every integration (Linkup, Atlas, Databricks, MLflow, GitHub, Confluence, parsers, auth) and prints OK / FAIL / SKIP."""
+    from src.agents.llm_client import _load_dotenv
+    _load_dotenv()
+    from src.doctor import exit_code, run_checks
+
+    checks = run_checks(live=live)
+    t = Table(title=f"Aegis doctor ({'live' if live else 'config only'})", header_style="bold cyan")
+    for h in ("Check", "Status", "Detail"):
+        t.add_column(h)
+    style = {"OK": "green", "FAIL": "bold red", "WARN": "yellow", "SKIP": "dim"}
+    for c in checks:
+        t.add_row(c.name, f"[{style[c.status]}]{c.status}[/{style[c.status]}]", c.detail)
+    console.print(t)
+    raise typer.Exit(exit_code(checks))
+
+
+@app.command("demo")
+def demo_cmd(out_dir: str = typer.Option("demo_output", "--out-dir", help="Where PDFs and the JSON summary are written")):
+    """One command: index the rule library, audit the bundled sample companies, write PDFs and a JSON summary."""
+    import json as _json
+
+    from src.agents.llm_client import _load_dotenv
+    _load_dotenv()
+    from aegis_audit.client import ComplianceAuditor
+    from src.law_sync import get_store
+    from src.storage import get_compliance_store
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    n = len(get_store().snapshot())
+    get_compliance_store().index_rules(get_store().snapshot())
+    console.print(f"[bold]Rule library:[/bold] {n} rules indexed ({get_store().version})")
+    targets = [("sample_connectors/enterprise/aegis_health_uk", "Aegis Health UK"), ("sample_connectors/enterprise/meridian_omni_ai", "Meridian OmniTech"),
+               ("synthetic_companies/veylan_analytics_face_identity", "Veylan Analytics")]
+    summary = []
+    for path, name in targets:
+        if not Path(path).is_dir():
+            console.print(f"[yellow]skipping {name}: {path} not found[/yellow]")
+            continue
+        sess = ComplianceAuditor().audit(company_name=name, target_dir=path)
+        pdf = sess.save_pdf(str(out / f"{Path(path).name}.pdf"))
+        d = sess.to_dict()
+        summary.append({"company": name, "readiness": d["overall_readiness"], "confirmed": len(d["confirmed_findings"]), "suspected_gaps": len(d["suspected_gaps"]),
+                        "quarantined": len(d["quarantined_for_human_review"]), "pdf": pdf, "report_id": d["report_id"], "frameworks": d["frameworks"]})
+        console.print(f"[green]\u2713[/green] {name}: {d['overall_readiness']} -> {pdf}")
+    (out / "summary.json").write_text(_json.dumps(summary, indent=2))
+    console.print(f"[bold green]Demo complete.[/bold green] Summary: {out / 'summary.json'}")

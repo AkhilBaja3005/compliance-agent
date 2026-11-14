@@ -14,6 +14,9 @@ def _offline_env(monkeypatch):
     monkeypatch.setenv("COMPANIES_DIR", str(FIXTURES))
     monkeypatch.setenv("USE_DATABRICKS", "false")
     monkeypatch.setenv("AEGIS_FRAMEWORKS", "ALL")
+    monkeypatch.setenv("AEGIS_AUTH_DISABLED", "true")  # security tests enable keys explicitly
+    monkeypatch.delenv("AEGIS_API_KEYS", raising=False)
+    monkeypatch.delenv("AEGIS_DATA_DIR", raising=False)
     monkeypatch.delenv("LAW_FEED_URL", raising=False)
     monkeypatch.delenv("LAW_FEED_FILE", raising=False)
     # engines must run in clean offline-fallback mode regardless of the developer's shell / .env

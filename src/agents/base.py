@@ -67,6 +67,12 @@ def ev_dep(d: DependencyFact) -> EvidencePointer:
                            sha256_hash=d.sha256_hash, snippet=snippet(d.snippet))
 
 
+def ev_data(a: dict, note: str = "") -> EvidencePointer:
+    cols = ", ".join(f"{c['name']}[{'/'.join(c['classes'])}]" for c in a.get("columns", []) if c.get("classes"))[:200]
+    return EvidencePointer(source_type="data_asset", artifact_id=a["asset_id"], exact_locator=f"{a['path']}:1-1", sha256_hash=a["sha256_hash"],
+                           snippet=snippet(f"{a['kind']} · {len(a.get('columns', []))} column(s) · classified: {cols or 'none'}. {note}".strip()))
+
+
 def ev_pdf_chunk(chunk_dict: dict) -> EvidencePointer:
     loc = chunk_dict.get("exact_locator") or f"{chunk_dict.get('filename')}#page={chunk_dict.get('page_number', 1)}"
     sha = chunk_dict.get("sha256_hash", "")

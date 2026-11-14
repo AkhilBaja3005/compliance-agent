@@ -41,6 +41,7 @@ class AuditSession:
     fairness_metrics: Dict[str, Any] = field(default_factory=dict)
     roadmap: List[Dict[str, Any]] = field(default_factory=list)
     input_coverage: Dict[str, Any] = field(default_factory=dict)
+    frameworks: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -65,6 +66,7 @@ class AuditSession:
             "fairness_metrics": self.fairness_metrics,
             "roadmap": self.roadmap,
             "input_coverage": self.input_coverage,
+            "frameworks": self.frameworks,
         }
 
     def to_json(self, indent: int = 2) -> str:
@@ -170,105 +172,43 @@ class ComplianceAuditor:
         github_repos: Optional[List[str]] = None,
         confluence_space: Optional[str] = None,
         target_dir: Optional[str] = None,
+        github_url: Optional[str] = None,
+        confluence_path: Optional[str] = None,
     ) -> AuditSession:
         """Runs a complete multi-agent compliance audit across GitHub and Confluence assets."""
-        target_path = Path(target_dir or "./sample_connectors").resolve()
+        from src.connectors.github_connector import is_github_url
+
+        target_str = str(github_url or target_dir or "./sample_connectors")
         now_str = datetime.now(timezone.utc).strftime("%d %B %Y")
 
+        if is_github_url(target_str) or (target_dir and is_github_url(target_dir)):
+            from src.agents import run_audit
+            url = target_str if is_github_url(target_str) else str(target_dir)
+            repo_name = url.rstrip("/").split("/")[-1].replace(".git", "")
+            tenant_id = f"gh_{repo_name}"
+            real_report = run_audit(
+                None,
+                tenant_id,
+                github_source=url,
+                confluence_source=confluence_path,
+            )
+            return self._build_session(real_report, company_name or repo_name, now_str, f"Live GitHub Repo ({url})")
+
+        target_path = Path(target_dir or "./sample_connectors").resolve()
+
         # If pointing to an actual company directory, invoke the multi-agent pipeline
+        # Any folder with files is a real company to audit; only the bundled sample root (which holds `enterprise/`) uses the demo data.
         is_company_dir = (
             target_path.is_dir()
-            and (
-                any(p.name.startswith("company_") for p in [target_path])
-                or (target_path / "code").is_dir()
-                or (target_path / "docs").is_dir()
-                or ((target_path / "github").is_dir() and (target_path / "confluence").is_dir())
-                or any(target_path.glob("*.py"))
-            )
             and not (target_path / "enterprise").is_dir()
+            and any(p.is_file() for p in target_path.rglob("*"))
         )
 
         if is_company_dir:
             from src.agents import run_audit
             tenant_id = target_path.name
             real_report = run_audit(target_path, tenant_id)
-
-            from src.regulatory_rag.tier_a_rules import active_frameworks
-            _fw = active_frameworks()
-
-            def _in_scope(rule: str) -> bool:
-                return _fw is None or any(str(rule).upper().startswith(j) for j in _fw)
-
-            def _exposure(txt: str) -> str:
-                if _fw is None or "UK" in " ".join(_fw):
-                    return txt
-                import re as _re
-                return _re.sub(r"\s*(and/or|and)\s+up to GBP.*?UK GDPR", "", txt or "")
-
-            def _summary(txt: str) -> str:
-                if _fw is None or "UK" in " ".join(_fw):
-                    return txt
-                import re as _re
-
-                def _rel(m):
-                    keep = [r.strip() for r in m.group(1).split(",") if r.strip() and "UK_" not in r and not r.strip().startswith("UK ")]
-                    return f" Related: {', '.join(keep)}." if keep else ""
-                return _re.sub(r" Related: ([^()]*?)\.(?=\s*\()", _rel, txt or "")
-
-            def _f_to_dict(f):
-                return {
-                    "finding_id": f.finding_id,
-                    "severity": f.severity,
-                    "status": f.status,
-                    "due_date": f.due_date,
-                    "days_remaining": f.days_remaining,
-                    "confidence": f.confidence,
-                    "title": f.title,
-                    "system_id": f.system_id,
-                    "system_name": f.system_name,
-                    "primary_rule": f.primary_rule,
-                    "also_engages": [r for r in f.also_engages if _in_scope(r)],
-                    "summary": _summary(f.summary),
-                    "code_vs_doc_drift": f.code_vs_doc_drift,
-                    "evidence": [e.model_dump() if hasattr(e, "model_dump") else e for e in f.evidence],
-                    "exposure_text": _exposure(f.exposure_text),
-                    "owner": f.owner,
-                    "effort_days": f.effort_days,
-                    "human_review_required": f.human_review_required,
-                    "remediation_steps": f.remediation_steps,
-                    "history_status": f.history_status,
-                    "linkup_citation_urls": f.linkup_citation_urls,
-                }
-
-            confirmed_dicts = [_f_to_dict(f) for f in real_report.confirmed_findings]
-            gaps_dicts = [_f_to_dict(f) for f in real_report.suspected_gaps]
-            quarantined_dicts = [_f_to_dict(f) for f in real_report.quarantined_for_human_review]
-            passed_dicts = [p.model_dump() if hasattr(p, "model_dump") else p for p in real_report.passed_checks]
-            systems_dicts = [s.model_dump() if hasattr(s, "model_dump") else s for s in real_report.system_inventory]
-
-            return AuditSession(
-                report_id=real_report.report_id,
-                company_name=company_name or real_report.company_name,
-                assessed_at=now_str,
-                scope=f"Scanned Repository ({target_path.name})",
-                rule_library_version=real_report.rule_library_version,
-                input_coverage_pct=int(real_report.input_coverage_pct),
-                overall_readiness=real_report.overall_readiness,
-                readiness_summary=real_report.readiness_summary,
-                bundle_sha256=real_report.bundle_sha256,
-                stack_telemetry=real_report.stack_telemetry,
-                system_inventory=systems_dicts,
-                compliance_matrix=[m.model_dump() if hasattr(m, "model_dump") else m for m in real_report.compliance_matrix],
-                confirmed_findings=confirmed_dicts,
-                suspected_gaps=gaps_dicts,
-                quarantined_for_human_review=quarantined_dicts,
-                passed_checks=passed_dicts,
-                agent_execution_trace=[{"step": t} for t in real_report.agent_execution_trace],
-                eval_results=real_report.eval_results,
-                fairness_metrics=real_report.fairness_metrics,
-                roadmap=real_report.roadmap,
-                input_coverage=real_report.input_coverage,
-            )
+            return self._build_session(real_report, company_name, now_str, f"Scanned Repository ({target_path.name})")
 
         # 7 Systems modeled on Northwind Labs Ltd (sample_connectors default)
         systems = [
@@ -643,3 +583,82 @@ class ComplianceAuditor:
             passed_checks=passed,
         )
         return session
+
+    def _build_session(self, real_report, company_name: str, assessed_at: str, scope: str) -> AuditSession:
+        from src.regulatory_rag.tier_a_rules import active_frameworks
+        _fw = active_frameworks()
+
+        def _in_scope(rule: str) -> bool:
+            return _fw is None or any(str(rule).upper().startswith(j) for j in _fw)
+
+        def _exposure(txt: str) -> str:
+            if _fw is None or "UK" in " ".join(_fw):
+                return txt
+            import re as _re
+            return _re.sub(r"\s*(and/or|and)\s+up to GBP.*?UK GDPR", "", txt or "")
+
+        def _summary(txt: str) -> str:
+            if _fw is None or "UK" in " ".join(_fw):
+                return txt
+            import re as _re
+
+            def _rel(m):
+                keep = [r.strip() for r in m.group(1).split(",") if r.strip() and "UK_" not in r and not r.strip().startswith("UK ")]
+                return f" Related: {', '.join(keep)}." if keep else ""
+            return _re.sub(r" Related: ([^()]*?)\.(?=\s*\()", _rel, txt or "")
+
+        def _f_to_dict(f):
+            return {
+                "finding_id": f.finding_id,
+                "severity": f.severity,
+                "status": f.status,
+                "due_date": f.due_date,
+                "days_remaining": f.days_remaining,
+                "confidence": f.confidence,
+                "title": f.title,
+                "system_id": f.system_id,
+                "system_name": f.system_name,
+                "primary_rule": f.primary_rule,
+                "also_engages": [r for r in f.also_engages if _in_scope(r)],
+                "summary": _summary(f.summary),
+                "code_vs_doc_drift": f.code_vs_doc_drift,
+                "evidence": [e.model_dump() if hasattr(e, "model_dump") else e for e in f.evidence],
+                "exposure_text": _exposure(f.exposure_text),
+                "owner": f.owner,
+                "effort_days": f.effort_days,
+                "human_review_required": f.human_review_required,
+                "remediation_steps": f.remediation_steps,
+                "history_status": f.history_status,
+                "linkup_citation_urls": f.linkup_citation_urls,
+            }
+
+        confirmed_dicts = [_f_to_dict(f) for f in real_report.confirmed_findings]
+        gaps_dicts = [_f_to_dict(f) for f in real_report.suspected_gaps]
+        quarantined_dicts = [_f_to_dict(f) for f in real_report.quarantined_for_human_review]
+        passed_dicts = [p.model_dump() if hasattr(p, "model_dump") else p for p in real_report.passed_checks]
+        systems_dicts = [s.model_dump() if hasattr(s, "model_dump") else s for s in real_report.system_inventory]
+
+        return AuditSession(
+            report_id=real_report.report_id,
+            company_name=company_name or real_report.company_name,
+            assessed_at=assessed_at,
+            scope=scope,
+            rule_library_version=real_report.rule_library_version,
+            input_coverage_pct=int(real_report.input_coverage_pct),
+            overall_readiness=real_report.overall_readiness,
+            readiness_summary=real_report.readiness_summary,
+            bundle_sha256=real_report.bundle_sha256,
+            stack_telemetry=real_report.stack_telemetry,
+            system_inventory=systems_dicts,
+            compliance_matrix=[m.model_dump() if hasattr(m, "model_dump") else m for m in real_report.compliance_matrix],
+            confirmed_findings=confirmed_dicts,
+            suspected_gaps=gaps_dicts,
+            quarantined_for_human_review=quarantined_dicts,
+            passed_checks=passed_dicts,
+            agent_execution_trace=[{"step": t} for t in real_report.agent_execution_trace],
+            eval_results=real_report.eval_results,
+            fairness_metrics=real_report.fairness_metrics,
+            roadmap=real_report.roadmap,
+            input_coverage=real_report.input_coverage,
+            frameworks=real_report.frameworks,
+        )

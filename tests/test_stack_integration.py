@@ -448,3 +448,18 @@ def test_api_stack_status_and_connector_options(fixtures_dir, monkeypatch):
     assert (st["linkup"].startswith("disabled") or st["linkup"].startswith("live")) and st["mongodb"]["mode"] in ("memory", "live-atlas") and st["databricks_model_serving"] in ("offline-fallback", "anthropic-claude-direct", "live")
     rep = c.post("/audit/run", json={"company_id": "company_c_medassist", "github_url": str(fixtures_dir / "company_c_medassist")}).json()
     assert rep["report_id"].startswith("AEGIS-")
+
+
+def test_search_rules_ignores_pdf_chunks_without_rule_id():
+    """PDF chunks live in the same collection as statutory rules; a vector hit without rule_id must not break rule retrieval."""
+    from src.storage.mongo_store import MongoComplianceStore
+
+    class Coll:
+        def aggregate(self, pipe):
+            return [{"score": 0.9}, {"rule_id": "EU_AI_ACT:Art.5", "score": 0.8}, {"rule_id": "EU_AI_ACT:Art.14", "score": 0.7}]
+
+    store = MongoComplianceStore.__new__(MongoComplianceStore)
+    store.is_atlas = True
+    store.embed = lambda texts: [[0.0] * 4 for _ in texts]
+    store.db = {"regulatory_rules": Coll()}
+    assert store.search_rules("q", 2) == [("EU_AI_ACT:Art.5", 0.8), ("EU_AI_ACT:Art.14", 0.7)]

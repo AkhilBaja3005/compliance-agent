@@ -15,6 +15,10 @@ class SafetyWatermarkAgent(MicroAgent):
         ix = ctx.index
         if check.check_id == "BIO-01":
             return self._bio01(ix)
+        if check.check_id == "SAFE-04":
+            return self._safe04(ix)
+        if check.check_id == "SAFE-03":
+            return self._safe03(ix)
         if not ix.has_code:
             return no_code_verdict(f"{check.check_id}: no code to inspect")
         gens = generation_entries(ix)
@@ -82,3 +86,35 @@ class SafetyWatermarkAgent(MicroAgent):
         return Verdict("PASS", 0.8, "No facial-recognition database acquisition detected",
                        "No facial/biometric identification functionality or untargeted bulk image acquisition was found in code or documents.",
                        scan_basis=True)
+
+    @staticmethod
+    def _safe04(ix) -> Verdict:
+        cards = [c for c in ix.cards if "safety_control_bypass" in c.capability_tags]
+        if not cards:
+            return Verdict("PASS", 0.8, "No safety-control bypass found",
+                           "No disabled face/likeness/moderation filter or explicit bypass was found in code or configuration.", scan_basis=True)
+        deep = [c for c in cards if "deepfake_risk" in c.capability_tags]
+        intimate = any("intimate_imagery_risk" in c.capability_tags for c in cards)
+        pick = (deep or cards)[:4]
+        return Verdict(
+            "CONFIRMED_VIOLATION", 0.9 if deep else 0.8, "Safety filter disabled or bypassed on some tier",
+            f"{len(cards)} location(s) disable or bypass a face/likeness/content/safety filter"
+            + (" on a path that handles faces, likeness or voice cloning, which can enable non-consensual deepfakes (Art. 5 / Art. 50(4))" if deep else "")
+            + ". A control that is off on any tier is not enforced.",
+            [ev_card(c) for c in pick], risk_tier="PROHIBITED" if intimate else "HIGH_RISK")
+
+    @staticmethod
+    def _safe03(ix) -> Verdict:
+        import re
+        chat_re = re.compile(r"\b(chat|conversation\w*|assistant|concierge|copilot|support|ideation|bot|message)\b", re.I)
+        chats = [s for s in generation_entries(ix) if s.is_route and chat_re.search(re.sub(r"[_/\-]+", " ", s.function_name + " " + (s.code_snippet.splitlines() or [""])[0]))]
+        if not ix.has_code:
+            return no_code_verdict("SAFE-03: no code to inspect")
+        if not chats:
+            return Verdict("PASS", 0.75, "No conversational AI endpoints found", "No generation route looks like a chat / assistant interaction.", scan_basis=True)
+        bad = [s for s in chats if s.disclosure_denied or not s.has_ai_disclosure]
+        if bad:
+            return Verdict("CONFIRMED_VIOLATION", 0.88, "Conversational endpoint does not disclose that users are talking to an AI",
+                           f"{len(bad)} of {len(chats)} conversational endpoint(s) give no AI-interaction notice (no disclosure header/text, or `ai_disclosed` is false). "
+                           "Art. 50(1) requires people to be informed they interact with an AI system.", [ev_slice(s) for s in bad[:4]])
+        return Verdict("PASS", 0.85, "All conversational endpoints disclose AI interaction", f"{len(chats)} conversational endpoint(s) disclose they are AI.", [ev_slice(s) for s in chats[:3]])

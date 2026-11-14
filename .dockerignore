@@ -1,0 +1,10 @@
+.git
+.venv
+.env
+__pycache__
+*.pyc
+*.pdf
+!regulatory_pdfs/*.pdf
+demo_output
+data
+.pytest_cache

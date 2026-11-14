@@ -10,6 +10,10 @@ class PIIFlowAgent(MicroAgent):
     @traced("pii_flow_agent.evaluate")
     def evaluate(self, check, ctx) -> Verdict:
         ix = ctx.index
+        if check.check_id.startswith("GDPR-"):
+            from .gdpr_checks import evaluate_gdpr
+
+            return evaluate_gdpr(check.check_id, ix)
         if not ix.has_code:
             return no_code_verdict(f"{check.check_id}: no code to inspect")
         ext = external_entries(ix)

@@ -16,7 +16,7 @@ Severity = Literal["Critical", "High", "Medium", "Low", "Info"]
 
 
 class EvidencePointer(BaseModel):
-    source_type: Literal["code", "doc", "capability_card", "dependency", "regulatory_pdf", "pdf", "Regulatory PDF"]
+    source_type: Literal["code", "doc", "data_asset", "capability_card", "dependency", "regulatory_pdf", "pdf", "Regulatory PDF"]
     artifact_id: str
     exact_locator: str
     sha256_hash: str
@@ -119,6 +119,7 @@ class TriagedAuditReport(BaseModel):
     roadmap: list[dict[str, Any]] = Field(default_factory=list)
     input_coverage: dict[str, Any] = Field(default_factory=dict)
     agent_execution_trace: list[str] = Field(default_factory=list)
+    frameworks: list[str] = Field(default_factory=list)  # jurisdictions in scope for this report
 
     def all_findings(self) -> list[ComplianceFinding]:
         return (self.confirmed_findings + self.suspected_gaps + self.quarantined_for_human_review + self.passed_checks)

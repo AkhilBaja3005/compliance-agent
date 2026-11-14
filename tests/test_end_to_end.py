@@ -113,7 +113,8 @@ def test_doc_parser_plain_text_and_pdf(tmp_path):
     w.add_blank_page(72, 72)
     with open(tmp_path / "blank.pdf", "wb") as fh:
         w.write(fh)
-    assert parse_document(tmp_path / "blank.pdf", "blank.pdf", "tenant") == []  # parses without error
+    blank = parse_document(tmp_path / "blank.pdf", "blank.pdf", "tenant")  # image-only PDF: visible OCR marker, never silently dropped
+    assert [c.section_header for c in blank] == ["OCR_REQUIRED"]
 
 
 # ------------------------------------------------------------------ closed world
@@ -298,4 +299,4 @@ def test_eu_ai_act_only_scope(fixtures_dir, monkeypatch):
     assert "EU AI Act" in rep.scope
     assert rep.all_findings()
     for f in rep.all_findings():
-        assert f.primary_rule.startswith("EU_AI_ACT"), f.primary_rule
+        assert f.primary_rule.startswith("EU_AI_ACT") or (f.check_id or "").startswith("OSS-"), f.primary_rule  # licence checks are regime-independent

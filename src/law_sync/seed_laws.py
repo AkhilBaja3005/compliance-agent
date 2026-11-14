@@ -20,6 +20,38 @@ def _r(rule_id, jurisdiction, reference, *args):
 
 
 SEED_RULES: list[RegulatoryRule] = [
+    _r("EU_GDPR:Art.5", "EU_GDPR", "GDPR Art. 5", "Principles relating to processing of personal data",
+       "Personal data must be processed lawfully, fairly and transparently; collected for specified purposes; adequate, relevant and limited to what is "
+       "necessary (data minimisation); accurate; kept no longer than necessary (storage limitation); and processed securely. The controller is accountable "
+       "for demonstrating compliance.", ["minimisation", "purpose limitation", "storage limitation", "retention", "accountability"], "2018-05-25",
+       "https://eur-lex.europa.eu/eli/reg/2016/679/oj"),
+    _r("EU_GDPR:Art.9", "EU_GDPR", "GDPR Art. 9", "Special categories of personal data",
+       "Processing data revealing racial or ethnic origin, political opinions, religious beliefs, trade-union membership, genetic or biometric data used for "
+       "unique identification, health, sex life or sexual orientation is prohibited unless a condition in Art. 9(2) applies, such as explicit consent.",
+       ["special category", "health", "biometric", "ethnicity", "explicit consent", "sensitive"], "2018-05-25", "https://eur-lex.europa.eu/eli/reg/2016/679/oj"),
+    _r("EU_GDPR:Art.22", "EU_GDPR", "GDPR Art. 22", "Automated individual decision-making, including profiling",
+       "A data subject has the right not to be subject to a decision based solely on automated processing, including profiling, that produces legal or similarly "
+       "significant effects. Where an exception applies the controller must provide safeguards: at least the right to obtain human intervention, to express "
+       "their view and to contest the decision.", ["automated decision", "profiling", "human intervention", "contest", "solely automated"], "2018-05-25",
+       "https://eur-lex.europa.eu/eli/reg/2016/679/oj"),
+    _r("EU_GDPR:Art.28", "EU_GDPR", "GDPR Art. 28", "Processor",
+       "Processing by a processor must be governed by a contract that sets out the subject matter, duration, nature and purpose of the processing and binds the "
+       "processor to act only on documented instructions, ensure confidentiality, apply appropriate security, use sub-processors only with authorisation, assist "
+       "the controller, delete or return data at the end of the service, and allow audits.", ["processor", "dpa", "sub-processor", "instructions", "audit", "deletion"],
+       "2018-05-25", "https://eur-lex.europa.eu/eli/reg/2016/679/oj"),
+    _r("EU_GDPR:Art.32", "EU_GDPR", "GDPR Art. 32", "Security of processing",
+       "The controller and processor must implement technical and organisational measures appropriate to the risk, including pseudonymisation and encryption, "
+       "ongoing confidentiality, integrity, availability and resilience, and regular testing of the effectiveness of the measures.",
+       ["security", "encryption", "pseudonymisation", "credentials", "secrets", "access control"], "2018-05-25", "https://eur-lex.europa.eu/eli/reg/2016/679/oj"),
+    _r("EU_GDPR:Art.35", "EU_GDPR", "GDPR Art. 35", "Data protection impact assessment",
+       "Where processing, in particular using new technologies, is likely to result in a high risk to individuals (including systematic and extensive automated "
+       "evaluation with significant effects, or large-scale special-category processing), the controller must carry out an impact assessment before the processing.",
+       ["dpia", "impact assessment", "high risk", "large scale", "new technologies"], "2018-05-25", "https://eur-lex.europa.eu/eli/reg/2016/679/oj"),
+    _r("EU_GDPR:Art.44", "EU_GDPR", "GDPR Art. 44", "General principle for transfers (Arts. 44-49)",
+       "Personal data may be transferred to a third country only if the Chapter V conditions are met: an adequacy decision (e.g. a valid EU-US Data Privacy "
+       "Framework certification of the recipient), appropriate safeguards such as standard contractual clauses or binding corporate rules, or a listed derogation.",
+       ["transfer", "third country", "adequacy", "standard contractual clauses", "scc", "data privacy framework", "us hosting"], "2018-05-25",
+       "https://eur-lex.europa.eu/eli/reg/2016/679/oj"),
     _r("EU_AI_ACT:Art.5", "EU_AI_ACT", "EU AI Act Art. 5", "Prohibited AI practices",
        "AI systems that deploy subliminal, manipulative or deceptive techniques, or exploit vulnerabilities, "
        "in a way that materially distorts behaviour and causes or is likely to cause significant harm, are prohibited. "
