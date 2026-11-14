@@ -24,6 +24,17 @@
     "Unspecified",
   ];
   const colors = ["#161F34", "#40668D", "#7E65AE", "#006DDD"];
+
+  // Populate inline base64 logo if assets directory is empty or blocked
+  if (window.GRAPHITE_LOGO_B64) {
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll('img[src*="graphite_report_logo.png"]').forEach((img) => {
+        img.src = window.GRAPHITE_LOGO_B64;
+      });
+      const favicon = document.querySelector('link[rel="icon"]');
+      if (favicon) favicon.href = window.GRAPHITE_LOGO_B64;
+    });
+  }
   const state = {
     company: "",
     generation: 0,
