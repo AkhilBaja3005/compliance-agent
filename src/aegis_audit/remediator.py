@@ -87,18 +87,18 @@ def _compute_remediation_diff(
                 )
                 fix_desc = "Added statutory AI interaction disclosure notice to customer reply endpoint"
 
-    # 4. Solely automated decision / Missing HITL gate (UK DUAA 2025 / EU AI Act Art. 14)
+    # 4. Solely automated decision / Missing HITL gate (EU GDPR Art. 22 / EU AI Act Art. 14)
     elif ("appeal_route_available" in modified or "hitl" in f_summary or "automated" in f_title):
         if "appeal_route_available" in modified:
             modified = re.sub(
                 r"(\bappeal_route_available\s*:\s*)False\b",
-                r"\1True # [Aegis Remediation: Mandatory human contestation channel under UK DUAA 2025 / Art. 14]",
+                r"\1True # [Graphite Remediation: Mandatory human contestation channel under EU GDPR Art. 22 / Art. 14]",
                 modified,
             )
             fix_desc = "Enabled human contestability channel (appeal_route_available: True)"
         elif "hitl_approval_required" not in modified and file_path.suffix == ".py":
             # Add comment and parameter hook
-            modified = modified + "\n# [Aegis Remediation: HITL Human-in-the-Loop review queue registered]\nHITL_HUMAN_OVERSIGHT_ENABLED = True\n"
+            modified = modified + "\n# [Graphite Remediation: HITL Human-in-the-Loop review queue registered]\nHITL_HUMAN_OVERSIGHT_ENABLED = True\n"
             fix_desc = "Registered human-in-the-loop oversight flag"
 
     # If no automated change occurred, return None

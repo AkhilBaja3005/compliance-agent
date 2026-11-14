@@ -34,18 +34,19 @@ def _get_css() -> str:
     @page {
         size: A4 portrait;
         margin: 14mm 12mm 16mm 12mm;
+        background: #F2FAFF;
         @bottom-left {
             content: "CONFIDENTIAL & PROPRIETARY — GRAPHITE AI COMPLIANCE AUDITOR • MADE BY GRAPHITE";
             font-size: 7pt;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: #94A3B8;
+            color: #7F97B2;
         }
         @bottom-right {
             content: "Page " counter(page) " of " counter(pages);
             font-size: 7pt;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             font-weight: 600;
-            color: #64748B;
+            color: #40668D;
         }
     }
 
@@ -53,13 +54,13 @@ def _get_css() -> str:
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-size: 8.5pt;
         line-height: 1.35;
-        color: #1E293B;
+        color: #161F34;
         margin: 0;
         padding: 0;
     }
 
     h1, h2, h3, h4 {
-        color: #0F172A;
+        color: #0D1322;
         margin-top: 0;
         font-weight: 700;
     }
@@ -70,7 +71,7 @@ def _get_css() -> str:
 
     /* SECTION 1: HEADER & STRIP */
     .top-header {
-        border-bottom: 2px solid #0F172A;
+        border-bottom: 2px solid #0D1322;
         padding-bottom: 8px;
         margin-bottom: 12px;
     }
@@ -89,18 +90,13 @@ def _get_css() -> str:
         width: 140px;
     }
     .brand-badge {
-        display: inline-flex;
-        align-items: center;
-        background-color: #F1F5F9;
-        border: 1px solid #CBD5E1;
-        border-radius: 4px;
-        padding: 4px 8px;
+        display: inline-block;
+        text-align: right;
     }
     .brand-logo-img {
-        width: 28px;
-        height: 28px;
+        height: 38px;
+        width: auto;
         vertical-align: middle;
-        margin-right: 6px;
     }
     .brand-text-block {
         display: inline-block;
@@ -110,13 +106,13 @@ def _get_css() -> str:
     .brand-title {
         font-size: 8pt;
         font-weight: 800;
-        color: #0F172A;
+        color: #0D1322;
         letter-spacing: 0.5px;
         line-height: 1;
     }
     .brand-sub {
         font-size: 6pt;
-        color: #64748B;
+        color: #40668D;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -125,7 +121,7 @@ def _get_css() -> str:
         font-size: 8pt;
         letter-spacing: 1.5px;
         text-transform: uppercase;
-        color: #64748B;
+        color: #40668D;
         font-weight: 700;
         margin-bottom: 4px;
     }
@@ -137,12 +133,12 @@ def _get_css() -> str:
     .company-name {
         font-size: 20pt;
         font-weight: 800;
-        color: #0F172A;
+        color: #0D1322;
         margin: 0;
     }
     .report-date {
         font-size: 8.5pt;
-        color: #475569;
+        color: #2F4B68;
         font-weight: 500;
     }
 
@@ -150,15 +146,15 @@ def _get_css() -> str:
     .metadata-strip {
         display: table;
         width: 100%;
-        background-color: #F8FAFC;
-        border: 1px solid #E2E8F0;
+        background-color: #F2FAFF;
+        border: 1px solid #CCE9FF;
         border-radius: 4px;
         margin-bottom: 12px;
     }
     .metadata-cell {
         display: table-cell;
         padding: 6px 8px;
-        border-right: 1px solid #E2E8F0;
+        border-right: 1px solid #CCE9FF;
         vertical-align: top;
         font-size: 7.5pt;
     }
@@ -169,17 +165,17 @@ def _get_css() -> str:
         font-size: 6.5pt;
         text-transform: uppercase;
         font-weight: 700;
-        color: #64748B;
+        color: #40668D;
         margin-bottom: 2px;
     }
     .meta-val {
         font-weight: 700;
-        color: #0F172A;
+        color: #0D1322;
     }
     .tag-linkup {
-        background-color: #EFF6FF;
-        color: #1D4ED8;
-        border: 1px solid #BFDBFE;
+        background-color: #E5F4FF;
+        color: #006DDD;
+        border: 1px solid #B2DEFF;
         border-radius: 3px;
         padding: 1px 4px;
         font-size: 6.5pt;
@@ -218,7 +214,7 @@ def _get_css() -> str:
     }
     .banner-desc {
         font-size: 7.5pt;
-        color: #475569;
+        color: #2F4B68;
         line-height: 1.3;
     }
     .kpi-wrapper {
@@ -230,8 +226,8 @@ def _get_css() -> str:
     .kpi-card {
         display: inline-block;
         width: 47%;
-        background: #F8FAFC;
-        border: 1px solid #CBD5E1;
+        background: #F2FAFF;
+        border: 1px solid #B2DEFF;
         border-radius: 4px;
         padding: 6px 8px;
         box-sizing: border-box;
@@ -242,12 +238,12 @@ def _get_css() -> str:
     .kpi-num {
         font-size: 14pt;
         font-weight: 800;
-        color: #0F172A;
+        color: #0D1322;
         line-height: 1.1;
     }
     .kpi-lbl {
         font-size: 7pt;
-        color: #64748B;
+        color: #40668D;
         font-weight: 600;
         margin-top: 2px;
     }
@@ -260,7 +256,7 @@ def _get_css() -> str:
         font-size: 7.5pt;
     }
     table.data-table th {
-        background-color: #0F172A;
+        background-color: #0D1322;
         color: #FFFFFF;
         text-align: left;
         padding: 5px 6px;
@@ -271,11 +267,11 @@ def _get_css() -> str:
     }
     table.data-table td {
         padding: 5px 6px;
-        border-bottom: 1px solid #E2E8F0;
+        border-bottom: 1px solid #CCE9FF;
         vertical-align: top;
     }
     table.data-table tr:nth-child(even) td {
-        background-color: #F8FAFC;
+        background-color: #F2FAFF;
     }
 
     /* Badges */
@@ -291,14 +287,14 @@ def _get_css() -> str:
     .badge-critical { background: #FEE2E2; color: #991B1B; border: 1px solid #F87171; }
     .badge-high { background: #FFEDD5; color: #9A3412; border: 1px solid #FB923C; }
     .badge-medium { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
-    .badge-low { background: #E0E7FF; color: #3730A3; border: 1px solid #A5B4FC; }
-    .badge-undeclared { background: #EDE9FE; color: #5B21B6; border: 1px solid #C4B5FD; }
+    .badge-low { background: #ECE8F5; color: #7E65AE; border: 1px solid #7E65AE; }
+    .badge-undeclared { background: #ECE8F5; color: #7E65AE; border: 1px solid #7E65AE; }
     .badge-new { background: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
     .badge-recurring { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
     .badge-pass { background: #DCFCE7; color: #15803D; font-weight: bold; }
     .badge-gap { background: #FEE2E2; color: #B91C1C; font-weight: bold; }
     .badge-partial { background: #FEF3C7; color: #B45309; font-weight: bold; }
-    .badge-na { background: #F1F5F9; color: #64748B; font-weight: normal; }
+    .badge-na { background: #E5F4FF; color: #40668D; font-weight: normal; }
 
     /* Deadlines Strip */
     .deadline-card {
@@ -313,19 +309,19 @@ def _get_css() -> str:
 
     /* Disclaimer box */
     .disclaimer-box {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
+        background: #F2FAFF;
+        border: 1px solid #CCE9FF;
         border-radius: 4px;
         padding: 6px 8px;
         font-size: 6.5pt;
-        color: #64748B;
+        color: #40668D;
         line-height: 1.3;
     }
 
     /* SECTION 2: CLASSIFICATION RECORD */
     .callout-card {
-        background: #F8FAFC;
-        border: 1px solid #CBD5E1;
+        background: #F2FAFF;
+        border: 1px solid #B2DEFF;
         border-radius: 4px;
         padding: 8px 10px;
         margin-bottom: 12px;
@@ -343,21 +339,21 @@ def _get_css() -> str:
     .callout-col:last-child {
         padding-right: 0;
         padding-left: 8px;
-        border-left: 1px solid #E2E8F0;
+        border-left: 1px solid #CCE9FF;
     }
 
     /* SECTION 4: FINDING CARD */
     .finding-card {
-        border: 1px solid #CBD5E1;
+        border: 1px solid #B2DEFF;
         border-radius: 5px;
         margin-bottom: 12px;
         background: #FFFFFF;
         page-break-inside: avoid;
     }
     .finding-header {
-        background: #F1F5F9;
+        background: #E5F4FF;
         padding: 6px 10px;
-        border-bottom: 1px solid #E2E8F0;
+        border-bottom: 1px solid #CCE9FF;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -365,14 +361,14 @@ def _get_css() -> str:
     .finding-id {
         font-size: 9pt;
         font-weight: 800;
-        color: #0F172A;
+        color: #0D1322;
     }
     .finding-substrip {
-        background: #F8FAFC;
+        background: #F2FAFF;
         padding: 4px 10px;
-        border-bottom: 1px solid #E2E8F0;
+        border-bottom: 1px solid #CCE9FF;
         font-size: 7pt;
-        color: #475569;
+        color: #2F4B68;
     }
     .finding-body {
         padding: 8px 10px;
@@ -381,7 +377,7 @@ def _get_css() -> str:
     .finding-summary {
         font-size: 8pt;
         font-weight: 600;
-        color: #1E293B;
+        color: #161F34;
         margin-bottom: 6px;
         line-height: 1.3;
     }
@@ -411,16 +407,16 @@ def _get_css() -> str:
         margin-right: 4px;
     }
     .box-ownership {
-        background: #F1F5F9;
-        border: 1px solid #CBD5E1;
-        color: #334155;
+        background: #E5F4FF;
+        border: 1px solid #B2DEFF;
+        color: #2F4B68;
         margin-left: 4px;
     }
 
     /* SECTION 5: SVG CHART */
     .chart-container {
         background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        border: 1px solid #CCE9FF;
         border-radius: 4px;
         padding: 10px;
         margin-bottom: 12px;
@@ -438,8 +434,8 @@ def _get_css() -> str:
         width: 25%;
         padding: 6px;
         vertical-align: top;
-        border-right: 1px solid #E2E8F0;
-        background: #F8FAFC;
+        border-right: 1px solid #CCE9FF;
+        background: #F2FAFF;
     }
     .roadmap-col:last-child {
         border-right: none;
@@ -448,8 +444,8 @@ def _get_css() -> str:
         font-size: 7pt;
         font-weight: 800;
         text-transform: uppercase;
-        color: #0F172A;
-        border-bottom: 2px solid #0F172A;
+        color: #0D1322;
+        border-bottom: 2px solid #0D1322;
         padding-bottom: 3px;
         margin-bottom: 6px;
     }
@@ -461,21 +457,21 @@ def _get_css() -> str:
         font-size: 7pt;
     }
     .signoff-table th {
-        background: #F1F5F9;
+        background: #E5F4FF;
         text-align: left;
         padding: 4px 6px;
-        border: 1px solid #CBD5E1;
+        border: 1px solid #B2DEFF;
     }
     .signoff-table td {
         padding: 8px 6px;
-        border: 1px solid #CBD5E1;
+        border: 1px solid #B2DEFF;
         height: 24px;
         vertical-align: middle;
     }
 
     .telemetry-footer {
-        background: #0F172A;
-        color: #94A3B8;
+        background: #0D1322;
+        color: #7F97B2;
         border-radius: 4px;
         padding: 8px 10px;
         font-size: 6.5pt;
@@ -483,7 +479,7 @@ def _get_css() -> str:
         margin-top: 14px;
     }
     .telemetry-footer a {
-        color: #60A5FA;
+        color: #7FC8FF;
         text-decoration: none;
     }
     """
@@ -538,8 +534,8 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     except ImportError:  # pragma: no cover
         from . import report_sections as _sections
     is_real = bool(report_data.get("eval_results"))
-    _names = {"EU_AI_ACT": "EU AI ACT", "EU_GDPR": "EU GDPR", "UK_GDPR_ICO": "UK GDPR", "UK_DSIT": "UK DSIT", "UK_COPYRIGHT_TDM": "UK COPYRIGHT", "ALL": "EU + UK"}
-    fw_label = html.escape(" + ".join(_names.get(x, x) for x in report_data.get("frameworks", [])) or "EU + UK")
+    _names = {"EU_AI_ACT": "EU AI ACT", "EU_GDPR": "EU GDPR", "ALL": "EU"}
+    fw_label = html.escape(" + ".join(_names.get(x, x) for x in report_data.get("frameworks", [])) or "EU")
     systems = [_sections.normalize_system(s) for s in systems]
     all_f = confirmed_findings + suspected_gaps + quarantined + passed
     _sv = lambda f: str(f.get("severity") or "").upper()
@@ -556,32 +552,32 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     chart_svg = """
     <svg width="500" height="130" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,sans-serif;">
         <!-- Background Grid -->
-        <line x1="120" y1="10" x2="120" y2="100" stroke="#E2E8F0" stroke-width="1"/>
-        <line x1="280" y1="10" x2="280" y2="100" stroke="#CBD5E1" stroke-width="1"/>
-        <line x1="440" y1="10" x2="440" y2="100" stroke="#E2E8F0" stroke-width="1"/>
+        <line x1="120" y1="10" x2="120" y2="100" stroke="#CCE9FF" stroke-width="1"/>
+        <line x1="280" y1="10" x2="280" y2="100" stroke="#B2DEFF" stroke-width="1"/>
+        <line x1="440" y1="10" x2="440" y2="100" stroke="#CCE9FF" stroke-width="1"/>
         
         <!-- Benchmark Reference Line (0.80) at x=376 -->
         <line x1="376" y1="5" x2="376" y2="105" stroke="#DC2626" stroke-width="2" stroke-dasharray="4,3"/>
         <text x="380" y="15" font-size="7" fill="#DC2626" font-weight="bold">0.80 Four-Fifths Adverse Impact Rule</text>
 
         <!-- Labels -->
-        <text x="10" y="32" font-size="8" fill="#334155" font-weight="600">Female / Male</text>
+        <text x="10" y="32" font-size="8" fill="#2F4B68" font-weight="600">Female / Male</text>
         <rect x="120" y="22" width="275" height="15" rx="3" fill="#10B981"/>
-        <text x="400" y="33" font-size="8" fill="#0F172A" font-weight="bold">0.86 (Pass)</text>
+        <text x="400" y="33" font-size="8" fill="#0D1322" font-weight="bold">0.86 (Pass)</text>
 
-        <text x="10" y="57" font-size="8" fill="#334155" font-weight="600">Ethnic Minority</text>
+        <text x="10" y="57" font-size="8" fill="#2F4B68" font-weight="600">Ethnic Minority</text>
         <rect x="120" y="47" width="269" height="15" rx="3" fill="#10B981"/>
-        <text x="394" y="58" font-size="8" fill="#0F172A" font-weight="bold">0.84 (Pass)</text>
+        <text x="394" y="58" font-size="8" fill="#0D1322" font-weight="bold">0.84 (Pass)</text>
 
         <text x="10" y="82" font-size="8" fill="#B91C1C" font-weight="bold">Age 50+ Cohort</text>
         <rect x="120" y="72" width="230" height="15" rx="3" fill="#EF4444"/>
         <text x="355" y="83" font-size="8" fill="#B91C1C" font-weight="bold">0.72 (BREACH &lt; 0.80)</text>
 
         <!-- Scale Axis -->
-        <text x="115" y="115" font-size="7" fill="#94A3B8">0.0</text>
-        <text x="275" y="115" font-size="7" fill="#94A3B8">0.5</text>
+        <text x="115" y="115" font-size="7" fill="#7F97B2">0.0</text>
+        <text x="275" y="115" font-size="7" fill="#7F97B2">0.5</text>
         <text x="372" y="115" font-size="7" fill="#DC2626" font-weight="bold">0.80</text>
-        <text x="435" y="115" font-size="7" fill="#94A3B8">1.0</text>
+        <text x="435" y="115" font-size="7" fill="#7F97B2">1.0</text>
     </svg>
     """
 
@@ -607,13 +603,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
             </div>
         </div>
         <div class="header-right">
-            <div class="brand-badge">
-                {'<img class="brand-logo-img" src="' + logo_uri + '" alt="Graphite Logo">' if logo_uri else ''}
-                <div class="brand-text-block">
-                    <div class="brand-title">GRAPHITE</div>
-                    <div class="brand-sub">MADE BY GRAPHITE</div>
-                </div>
-            </div>
+            {'<div class="brand-badge"><img class="brand-logo-img" src="' + logo_uri + '" alt="Graphite Logo"></div>' if logo_uri else ''}
         </div>
     </div>
 </div>
@@ -679,7 +669,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
         <tr>
             <td><strong>{f.get('finding_id')}</strong></td>
             <td><span class="badge {badge_cls}">{sev}</span></td>
-            <td><strong>{f.get('title')}</strong><br><span style="color:#64748B; font-size:6.8pt;">System: {f.get('system_id', 'Enterprise')}</span></td>
+            <td><strong>{f.get('title')}</strong><br><span style="color:#40668D; font-size:6.8pt;">System: {f.get('system_id', 'Enterprise')}</span></td>
             <td>{f.get('primary_rule')}</td>
             <td><strong>{f.get('due_date', 'Immediate')}</strong><br><span style="color:#DC2626; font-size:6.5pt;">({f.get('days_remaining', '0')}d remaining)</span></td>
         </tr>
@@ -690,7 +680,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
 </table>
 
 <div class="deadline-card">
-    <strong>📅 Active Counts & Upcoming Statutory Deadlines:</strong>
+    <strong>Active Counts & Upcoming Statutory Deadlines:</strong>
     Confirmed Violations: <strong>{len(confirmed_findings)}</strong> (Critical: {crit_count}, High: {high_count}, Med: {med_count}) • 
     Suspected Gaps (Closed-World): <strong>{len(suspected_gaps)}</strong> • 
     Quarantined Claims: <strong>{len(quarantined)}</strong>.<br>
@@ -711,7 +701,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
 <!-- SECTION 2: AI SYSTEM INVENTORY & CLASSIFICATION -->
 <!-- ======================================================================= -->
 <h2>Section 2: AI System Inventory & Regulatory Classification</h2>
-<p style="color:#475569; font-size:7.5pt; margin-bottom:8px;">
+<p style="color:#2F4B68; font-size:7.5pt; margin-bottom:8px;">
 Comprehensive register of identified generative, machine learning, and automated decision-making services across {company} codebases and procurement contracts.
 Purple badges denote undeclared systems uncovered via automated AST edge extraction.
 </p>
@@ -729,11 +719,11 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
     <tbody>
 """
     for s in systems:
-        declared_badge = '<span class="badge" style="background:#E2E8F0; color:#334155;">Declared</span>' if s.get("declared") else '<span class="badge badge-undeclared">UNDECLARED</span>'
+        declared_badge = '<span class="badge" style="background:#CCE9FF; color:#2F4B68;">Declared</span>' if s.get("declared") else '<span class="badge badge-undeclared">UNDECLARED</span>'
         html_out += f"""
         <tr>
             <td><strong>{s.get('system_id')}</strong></td>
-            <td><strong>{s.get('name')}</strong><br><span style="color:#64748B; font-size:6.8pt;">{s.get('purpose', '')}</span></td>
+            <td><strong>{s.get('name')}</strong><br><span style="color:#40668D; font-size:6.8pt;">{s.get('purpose', '')}</span></td>
             <td><code>{s.get('repo', 'N/A')}</code></td>
             <td><span class="badge badge-high">{s.get('eu_tier', 'Annex III High Risk')}</span></td>
             <td>{declared_badge}</td>
@@ -750,19 +740,19 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
     else:
         html_out += """
 <div class="callout-card">
-    <div style="font-size:8pt; font-weight:700; color:#0F172A; margin-bottom:6px; text-transform:uppercase;">Classification Record: Deep-Dive Analysis</div>
+    <div style="font-size:8pt; font-weight:700; color:#0D1322; margin-bottom:6px; text-transform:uppercase;">Classification Record: Deep-Dive Analysis</div>
     <div class="callout-grid">
         <div class="callout-col">
-            <strong style="color:#1E293B;">Decision Path & Trigger Rules:</strong>
-            <ul style="margin:4px 0 0 14px; padding:0; color:#475569; font-size:7.2pt; line-height:1.4;">
+            <strong style="color:#161F34;">Decision Path & Trigger Rules:</strong>
+            <ul style="margin:4px 0 0 14px; padding:0; color:#2F4B68; font-size:7.2pt; line-height:1.4;">
                 <li><strong>S2 (CV Screener):</strong> Triggered EU AI Act Annex III §4(a) (Employment & candidate evaluation) due to automated candidate ranking impacting livelihood.</li>
                 <li><strong>S3 (Credit Decision Engine):</strong> Classified as High-Risk creditworthiness evaluation under Annex III §5(b) and Article 14 human-oversight obligations.</li>
                 <li><strong>S4 (Imagery Studio):</strong> Triggered Article 50(2) Generative AI synthetic media transparency obligations and Copyright Directive / GPL copyleft triggers.</li>
             </ul>
         </div>
         <div class="callout-col">
-            <strong style="color:#1E293B;">Evidence & Confidence Metrics:</strong>
-            <ul style="margin:4px 0 0 14px; padding:0; color:#475569; font-size:7.2pt; line-height:1.4;">
+            <strong style="color:#161F34;">Evidence & Confidence Metrics:</strong>
+            <ul style="margin:4px 0 0 14px; padding:0; color:#2F4B68; font-size:7.2pt; line-height:1.4;">
                 <li>AST slice extraction confirmed direct invocation of OpenAI endpoints in <code>credit_scorer.py</code> with confidence <strong>0.99</strong>.</li>
                 <li>Confluence vendor contract parsing confirmed un-assessed AI recruitment model with confidence <strong>0.97</strong>.</li>
                 <li>Dynamic AST inspection of <code>moderation.yaml</code> revealed active filter bypass flag with confidence <strong>1.00</strong>.</li>
@@ -784,7 +774,7 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
 <!-- SECTION 3: COMPLIANCE MATRIX -->
 <!-- ======================================================================= -->
 <h2>Section 3: Statutory Compliance Matrix</h2>
-<p style="color:#475569; font-size:7.5pt; margin-bottom:8px;">
+<p style="color:#2F4B68; font-size:7.5pt; margin-bottom:8px;">
 Cross-cutting compliance status mapped across all 7 identified systems against EU AI Act statutory articles.
 </p>
 
@@ -792,13 +782,13 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
     <thead>
         <tr>
             <th style="width:12%; text-align:left;">System</th>
-            <th colspan="3" style="text-align:center; background:#1E3A8A;">EU AI Act Framework</th>
+            <th colspan="3" style="text-align:center; background:#2F4B68;">EU AI Act Framework</th>
         </tr>
         <tr>
-            <th style="text-align:left; background:#334155;">System ID</th>
-            <th style="background:#1E40AF;">Art. 9 (Risk)</th>
-            <th style="background:#1E40AF;">Art. 14 (HITL)</th>
-            <th style="background:#1E40AF;">Art. 50 (Transp)</th>
+            <th style="text-align:left; background:#2F4B68;">System ID</th>
+            <th style="background:#006DDD;">Art. 9 (Risk)</th>
+            <th style="background:#006DDD;">Art. 14 (HITL)</th>
+            <th style="background:#006DDD;">Art. 50 (Transp)</th>
         </tr>
     </thead>
     <tbody>
@@ -887,7 +877,7 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
 <!-- SECTION 4: DETAILED FINDINGS -->
 <!-- ======================================================================= -->
 <h2>Section 4: Detailed Audit Findings & Cryptographic Evidence</h2>
-<p style="color:#475569; font-size:7.5pt; margin-bottom:10px;">
+<p style="color:#2F4B68; font-size:7.5pt; margin-bottom:10px;">
 In-depth technical breakdown of confirmed violations. Each card anchors code-level reality against contractual/policy documentation with immutable SHA-256 evidence pointers and Linkup regulatory citations.
 </p>
 """
@@ -903,8 +893,8 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
         if isinstance(drift, dict) and drift:
             drift_html = f"""
             <div class="drift-box">
-                <strong>📄 Policy/Contract Clause:</strong> {drift.get('doc_claim', '')}<br>
-                <strong>💻 Code Reality:</strong> {drift.get('code_reality', '')}
+                <strong>Policy/Contract Clause:</strong> {drift.get('doc_claim', '')}<br>
+                <strong>Code Reality:</strong> {drift.get('code_reality', '')}
             </div>
             """
         elif isinstance(drift, str) and drift:
@@ -912,12 +902,12 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
 
         evidence_rows = ""
         for ev in f.get("evidence", []):
-            url_html = f'<br><a href="{ev.get("source_url")}" target="_blank" style="color:#2563EB; font-size:6.5pt;">Linkup Source Citation ↗</a>' if ev.get("source_url") else ""
+            url_html = f'<br><a href="{ev.get("source_url")}" target="_blank" style="color:#006DDD; font-size:6.5pt;">Linkup Source Citation ↗</a>' if ev.get("source_url") else ""
             evidence_rows += f"""
             <tr>
                 <td style="width:18%;"><code>{ev.get('source_type', ev.get('type', 'CODE'))}</code></td>
                 <td style="width:42%;"><strong>{ev.get('artifact_id', ev.get('item', 'file'))}</strong> ({ev.get('exact_locator', 'L1')}){url_html}</td>
-                <td style="width:40%;"><code>sha256:{str(ev.get('sha256_hash', ''))[:14]}</code><br><span style="color:#64748B; font-size:6.5pt;">{ev.get('snippet', '')[:70]}...</span></td>
+                <td style="width:40%;"><code>sha256:{str(ev.get('sha256_hash', ''))[:14]}</code><br><span style="color:#40668D; font-size:6.5pt;">{ev.get('snippet', '')[:70]}...</span></td>
             </tr>
             """
 
@@ -959,11 +949,11 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
         </table>
         <div class="box-grid">
             <div class="box-cell box-exposure">
-                <strong>⚠️ Regulatory & Financial Exposure:</strong><br>
+                <strong>Regulatory & Financial Exposure:</strong><br>
                 {f.get('exposure_text', 'Fines up to €35M or 7% global turnover under EU AI Act Art. 99.')}
             </div>
             <div class="box-cell box-ownership">
-                <strong>👤 Ownership & Remediation:</strong><br>
+                <strong>Ownership & Remediation:</strong><br>
                 Owner: <strong>{f.get('owner', 'Engineering Lead')}</strong> | Est. Effort: <strong>{f.get('effort_days', '3')} days</strong>
                 <ul style="margin:4px 0 0 14px; padding:0; font-size:6.8pt;">
                     {remediation_items}
@@ -987,7 +977,7 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
 <!-- SECTION 5: SAFETY & FAIRNESS TESTING -->
 <!-- ======================================================================= -->
 <h2>Section 5: Empirical Safety & Demographic Fairness Testing</h2>
-<p style="color:#475569; font-size:7.5pt; margin-bottom:8px;">
+<p style="color:#2F4B68; font-size:7.5pt; margin-bottom:8px;">
 Automated red-teaming eval suite results and demographic selection-rate parity analysis for automated candidate shortlisting systems.
 </p>
 
@@ -1038,7 +1028,7 @@ Automated red-teaming eval suite results and demographic selection-rate parity a
 </h4>
 <div class="chart-container">
     """ + chart_svg + """
-    <div style="font-size:7pt; color:#475569; margin-top:4px;">
+    <div style="font-size:7pt; color:#2F4B68; margin-top:4px;">
         <em>Figure 5.1:</em> Selection rate ratio across protected demographic cohorts.
         The <strong>0.72 ratio</strong> for applicants aged 50+ violates the <strong>0.80 four-fifths adverse impact rule</strong>,
         establishing statutory non-compliance under EU AI Act Annex III §4(a).
@@ -1058,14 +1048,14 @@ Automated red-teaming eval suite results and demographic selection-rate parity a
 <!-- SECTION 6: REMEDIATION ROADMAP, INPUT COVERAGE & SIGN-OFF -->
 <!-- ======================================================================= -->
 <h2>Section 6: Remediation Roadmap, Coverage & Executive Sign-Off</h2>
-<p style="color:#475569; font-size:7.5pt; margin-bottom:8px;">
+<p style="color:#2F4B68; font-size:7.5pt; margin-bottom:8px;">
 Structured, phased execution plan to achieve full statutory compliance before statutory enforcement deadlines.
 </p>
 
 <div class="roadmap-grid">
     <div class="roadmap-col">
         <div class="roadmap-header" style="color:#DC2626;">Phase 1: Immediate<br><span style="font-size:6pt; font-weight:normal;">Now → 2 Dec 2026</span></div>
-        <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#334155; line-height:1.4;">
+        <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#2F4B68; line-height:1.4;">
             <li><strong>Inject C2PA watermarking</strong> into <code>generate.py</code> before Dec 2, 2026 deadline.</li>
             <li><strong>Re-enable face upload filter</strong> in <code>moderation.yaml:48</code>.</li>
             <li><strong>Add AI disclosure</strong> headers to email & widget support routes.</li>
@@ -1073,7 +1063,7 @@ Structured, phased execution plan to achieve full statutory compliance before st
     </div>
     <div class="roadmap-col">
         <div class="roadmap-header">Phase 2: Q1 2027<br><span style="font-size:6pt; font-weight:normal;">Data Residency & HITL</span></div>
-        <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#334155; line-height:1.4;">
+        <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#2F4B68; line-height:1.4;">
             <li><strong>Presidio masking</strong> in <code>credit_scorer.py</code>.</li>
             <li><strong>Art. 14 Contest Route:</strong> Introduce human loan officer appeal flow.</li>
             <li><strong>Route credit LLM</strong> to sovereign <code>eu-central-1</code> endpoints.</li>
@@ -1081,7 +1071,7 @@ Structured, phased execution plan to achieve full statutory compliance before st
     </div>
     <div class="roadmap-col">
         <div class="roadmap-header">Phase 3: Q2–Q3 2027<br><span style="font-size:6pt; font-weight:normal;">Procurement & Licensing</span></div>
-        <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#334155; line-height:1.4;">
+        <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#2F4B68; line-height:1.4;">
             <li><strong>Replace CC-BY-NC-4.0</strong> weights with commercially cleared models.</li>
             <li><strong>Decouple GPL-3.0</strong> audiocraft dependencies from closed SaaS.</li>
             <li><strong>Execute FRIA</strong> for CV Screener vendor contract.</li>
@@ -1089,7 +1079,7 @@ Structured, phased execution plan to achieve full statutory compliance before st
     </div>
     <div class="roadmap-col">
         <div class="roadmap-header">Phase 4: Dec 2027<br><span style="font-size:6pt; font-weight:normal;">Full Certification</span></div>
-        <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#334155; line-height:1.4;">
+        <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#2F4B68; line-height:1.4;">
             <li><strong>Notified Body Audit</strong> for High-Risk Annex III systems.</li>
             <li><strong>Automated continuous CI/CD</strong> Aegis compliance gating in GitHub Actions.</li>
             <li><strong>Board sign-off</strong> and submission to national authorities.</li>
@@ -1150,7 +1140,7 @@ Structured, phased execution plan to achieve full statutory compliance before st
 </table>
 
 <div class="telemetry-footer">
-    <div style="float:right; font-weight:bold; color:#70C5FF;">MADE BY GRAPHITE</div>
+    <div style="float:right; font-weight:bold; color:#7FC8FF;">MADE BY GRAPHITE</div>
     <strong>STACK TELEMETRY & IMMUTABLE PROVENANCE:</strong><br>
     Databricks Serving Endpoint: <code>{databricks_ep}</code> | 
     Unity Catalog Table: <code>{uc_table}</code><br>

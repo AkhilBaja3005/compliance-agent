@@ -42,7 +42,7 @@ def evaluate(gold_path: Path | str = DEFAULT_GOLD, frameworks: str = "EU_AI_ACT,
     per_check: dict[str, dict[str, int]] = defaultdict(lambda: {"tp": 0, "fp": 0, "fn": 0})
     try:
         for c in gold["cases"]:
-            os.environ["AEGIS_FRAMEWORKS"] = c.get("frameworks", frameworks)  # a case may need another scope (e.g. UK data-residency checks)
+            os.environ["AEGIS_FRAMEWORKS"] = c.get("frameworks", frameworks)  # a case may need another scope (e.g. EU data-residency checks)
             rep = run(root / c["path"], c["name"])
             confirmed = {f.check_id for f in rep.confirmed_findings if f.check_id}
             res = CaseResult(c["name"])

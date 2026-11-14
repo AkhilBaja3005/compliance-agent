@@ -4,7 +4,7 @@ Generates realistic enterprise-scale company datasets modeling GitHub repositori
 and Confluence spaces:
 1. Northwind Labs (`sample_connectors/github`, `sample_connectors/confluence/AIGOV`)
 2. Aegis Health Systems Ltd (`sample_connectors/enterprise/aegis_health_uk/`)
-   - 100% EU AI Act + UK GDPR/DUAA Compliant Enterprise Baseline
+   - 100% EU AI Act + EU GDPR/DUAA Compliant Enterprise Baseline
    - 3 GitHub repositories + 5 Confluence governance documents
 3. Meridian OmniTech PLC (`sample_connectors/enterprise/meridian_omni_ai/`)
    - Multi-System Enterprise with Deep, Hidden Code-vs-Confluence Drift & Regulatory Violations
@@ -164,9 +164,9 @@ class CustomerCreditProfile(BaseModel):
 async def evaluate_credit_limit(profile: CustomerCreditProfile) -> Dict[str, Any]:
     """Evaluates customer credit limits using an automated scoring algorithm.
     CRITICAL COMPLIANCE DEFECTS:
-    1. Sends unmasked UK National Insurance numbers (PII), DOBs, names, and postcodes directly to a US-hosted endpoint.
+    1. Sends unmasked National ID numbers (PII), DOBs, names, and postcodes directly to a US-hosted endpoint.
     2. Enforces solely automated credit line cuts without a human review queue.
-    3. Provides zero human contestation or appeal route, violating UK DUAA 2025 and ICO ADM guidance.
+    3. Provides zero human contestation or appeal route, violating EU GDPR Art. 22 and EU GDPR Art. 22 guidance.
     """
     raw_pii_payload = {
         "model": "gpt-4o",
@@ -325,13 +325,13 @@ The Candidate Ranking Engine automates resume screening, skills assessment scori
 
 **Space:** AIGOV  
 **Document ID:** DPA-CORP-2024-V4  
-**Jurisdiction:** UK GDPR, EU GDPR, and UK Data (Use and Access) Bill 2025  
+**Jurisdiction:** EU GDPR, EU GDPR, and EU AI Act  
 
 ## 1. Technical & Organizational Security Measures
 Northwind Labs maintains strict data sovereignty and minimization protocols:
 - **Presidio Redaction Mandatory:** All personally identifiable information (PII)—including customer names, National Insurance (NI) numbers, passport details, phone numbers, and postcodes—must be redacted via Microsoft Presidio prior to any third-party model ingestion or inference.
-- **EU & UK Data Residency:** Customer data is processed and stored strictly within designated European Union enclaves (`eu-central-1` Frankfurt or `eu-west-2` London). Egress of unredacted personal data to third-party endpoints located outside the EEA/UK (specifically US cloud infrastructure) is strictly prohibited.
-- **Automated Decision-Making Rights:** In compliance with UK DUAA 2025 and UK GDPR Article 22, all automated credit limit reductions, adverse underwriting decisions, or automated employment rejections must provide an accessible human contestation and review mechanism.
+- **EU & UK Data Residency:** Customer data is processed and stored strictly within designated European Union enclaves (`eu-central-1` Frankfurt or `eu-west-2` London). Egress of unredacted personal data to third-party endpoints located outside the EEA/EU (specifically US cloud infrastructure) is strictly prohibited.
+- **Automated Decision-Making Rights:** In compliance with EU GDPR Art. 22 and EU GDPR Article 22, all automated credit limit reductions, adverse underwriting decisions, or automated employment rejections must provide an accessible human contestation and review mechanism.
 
 *(Contradiction with codebase: `credit_scorer.py` transmits raw unmasked PII directly to `api.openai.com/v1` and executes irreversible limit cuts with `appeal_route_available: False`).*
 """
@@ -342,7 +342,7 @@ Northwind Labs maintains strict data sovereignty and minimization protocols:
 
 # =============================================================================
 # COMPANY 1: Aegis Health Systems Ltd (aegis_health_uk)
-# 100% EU AI Act + UK GDPR/DUAA Compliant Enterprise Baseline
+# 100% EU AI Act + EU GDPR/DUAA Compliant Enterprise Baseline
 # =============================================================================
 
 def generate_aegis_health(base_dir: str | Path = "./sample_connectors") -> Path:
@@ -361,10 +361,10 @@ def generate_aegis_health(base_dir: str | Path = "./sample_connectors") -> Path:
     pii_redactor_py = '''"""Clinical Data Privacy & Presidio Anonymization Middleware.
 
 Module: aegis.clinical_triage.middleware.pii_redactor
-Compliance: UK GDPR (Data Protection Act 2018), NHS Digital Caldicott Principles,
+Compliance: EU GDPR (Data Protection Act 2018), NHS Digital Caldicott Principles,
             EU AI Act Art. 10 (Data Governance & Privacy Protection).
 
-Implements rigorous PII redaction pipeline removing NHS Numbers, UK National Insurance Numbers,
+Implements rigorous PII redaction pipeline removing NHS Numbers, National ID Numbers,
 patient full names, UK postcodes, and dates of birth before any LLM inference invocation.
 Strictly routes inference through sovereign UK regional endpoints (eu-west-2 London VPC).
 """
@@ -391,7 +391,7 @@ except ImportError:
 
 # UK NHS Number Regex: 10 digits in 3-3-4 pattern or 10 contiguous digits
 NHS_NUMBER_PATTERN = re.compile(r"\\b(\\d{3}\\s?\\d{3}\\s?\\d{4})\\b")
-# UK National Insurance (NI) Number Pattern
+# National ID (NI) Number Pattern
 NI_NUMBER_PATTERN = re.compile(r"\\b[A-CEGHJ-PR-TW-Z]{2}\\s?\\d{2}\\s?\\d{2}\\s?\\d{2}\\s?[A-D]{1}\\b", re.I)
 # UK Postal Code Pattern
 UK_POSTCODE_PATTERN = re.compile(r"\\b([A-Z]{1,2}\\d[A-Z\\d]?\\s*\\d[A-Z]{2})\\b", re.I)
@@ -518,8 +518,8 @@ Module: aegis.clinical_triage.routes.triage_router
 Regulatory Compliance:
 - EU AI Act Article 14 (Human Oversight / Clinician-in-the-Loop)
 - EU AI Act Article 50(1) (AI System Interaction Transparency Disclosure)
-- UK Data (Use and Access) Bill 2025 / ICO Automated Decision-Making (ADM) Safeguards
-- UK Equality Act 2010 Algorithmic Non-Discrimination Protections
+- EU AI Act / ICO Automated Decision-Making (ADM) Safeguards
+- EU Non-Discrimination Directive Algorithmic Non-Discrimination Protections
 """
 
 from __future__ import annotations
@@ -647,7 +647,7 @@ async def evaluate_clinical_triage(
     is_high_risk = spo2 < 94.0 or pulse > 115.0 or "chest pain" in sanitized_notes.lower()
     acuity_score = 0.82 if is_high_risk else 0.42
 
-    # 4. Mandatory Clinician-in-the-Loop Human Oversight Gate (EU AI Act Art. 14 / UK DUAA 2025)
+    # 4. Mandatory Clinician-in-the-Loop Human Oversight Gate (EU AI Act Art. 14 / EU GDPR Art. 22)
     # Acuity score >= 0.65 triggers mandatory escalation
     requires_human_approval = acuity_score >= 0.65
     clinician_queue_id: Optional[str] = None
@@ -684,7 +684,7 @@ async def evaluate_clinical_triage(
         requires_human_approval=requires_human_approval,
         clinician_approval_status=approval_status,
         clinician_in_the_loop_queue_id=clinician_queue_id,
-        ai_disclosure_notice="AI interaction disclosed pursuant to EU AI Act Art. 50(1) & UK DUAA 2025.",
+        ai_disclosure_notice="AI interaction disclosed pursuant to EU AI Act Art. 50(1) & EU GDPR Art. 22.",
         pii_redacted_indicators=pii_metrics,
         timestamp=datetime.now(timezone.utc).isoformat()
     )
@@ -698,7 +698,7 @@ async def contest_and_override_decision(
     contest: HumanContestRequest,
     response: Response
 ) -> Dict[str, Any]:
-    """Human contestation and override route satisfying UK DUAA 2025 & ICO ADM requirements.
+    """Human contestation and override route satisfying EU GDPR Art. 22 & EU GDPR Art. 22 requirements.
 
     Enables clinicians or patients to challenge, override, or overturn automated assessments.
     """
@@ -900,7 +900,7 @@ class DischargeSummarizerService:
                     "label": "c2pa.patient_privacy",
                     "data": {
                         "patient_reference_hash": patient_reference_hash,
-                        "data_protection_standard": "UK GDPR & DPA 2018",
+                        "data_protection_standard": "EU GDPR & DPA 2018",
                         "redaction_verified": True
                     }
                 },
@@ -972,7 +972,7 @@ fastapi>=0.110.0
 
 **Space:** CLINICAL_GOV  
 **Document ID:** DPIA-AEGIS-2025-V4.2  
-**Jurisdiction:** UK GDPR, Data Protection Act 2018, EU AI Act Article 27 (FRIA)  
+**Jurisdiction:** EU GDPR, Data Protection Act 2018, EU AI Act Article 27 (FRIA)  
 **Lead Reviewer:** Dr. Eleanor Vance, Caldicott Guardian & Chief Clinical Safety Officer  
 **Status:** Approved & Formally Registered with NHS England Information Governance  
 
@@ -987,7 +987,7 @@ The Aegis Clinical Triage Copilot provides emergency and acute care triage decis
 
 ## 3. Mandatory Human-in-the-Loop Safeguards (EU AI Act Article 14)
 - **Automatic Escalation:** Any patient assessment yielding an acuity score of 0.65 or higher, or demonstrating abnormal cardiorespiratory vitals, is automatically routed to the mandatory Clinician Review Queue (`enqueue_clinician_review()`).
-- **Clinician Override Authority:** Pursuant to UK DUAA 2025 and ICO Automated Decision-Making guidance, any clinician or patient advocate can trigger the `/v2/triage/contest-override` endpoint to instantly reverse, modify, or reject AI recommendations without punitive delay.
+- **Clinician Override Authority:** Pursuant to EU GDPR Art. 22 and ICO Automated Decision-Making guidance, any clinician or patient advocate can trigger the `/v2/triage/contest-override` endpoint to instantly reverse, modify, or reject AI recommendations without punitive delay.
 """
     (conf_root / "DPIA_Clinical_Triage_v4.md").write_text(dpia_clinical_triage, encoding="utf-8")
 
@@ -997,7 +997,7 @@ The Aegis Clinical Triage Copilot provides emergency and acute care triage decis
 **Document ID:** DPA-NHS-AEGIS-2025-REVISION-8  
 **Data Controller:** NHS England / Partner Trust Boards  
 **Data Processor:** Aegis Health Systems Ltd  
-**Jurisdiction:** UK GDPR, UK Data (Use and Access) Bill 2025, EU GDPR  
+**Jurisdiction:** EU GDPR, EU AI Act, EU GDPR  
 
 ## 1. Data Minimization & Presidio Anonymization Mandate
 - **Pre-Ingress Anonymization:** Aegis shall not transmit unmasked patient identifiers to any model inference pipeline. All incoming clinical unstructured text must pass through the `ClinicalPIIRedactor` pipeline, ensuring complete redaction of 10-digit NHS numbers, NI numbers, and residential postcodes.
@@ -1058,7 +1058,7 @@ Clinical risk-stratification support in emergency and acute care settings. Not i
 ## Performance Metrics & Red-Team Testing
 - **Red-Team Adversarial Pass Rate:** 99.8% (Exceeds the 99.5% mandatory governance threshold).
 - **PII Leakage Rate:** 0.00% across 50,000 synthetic patient validation runs.
-- **Demographic Parity Ratio:** 0.96 across age cohorts (50+ vs <50), demonstrating full compliance with UK Equality Act 2010.
+- **Demographic Parity Ratio:** 0.96 across age cohorts (50+ vs <50), demonstrating full compliance with EU Non-Discrimination Directive.
 
 ## Machine-Readable Watermarking & Provenance
 All output summaries and decision cards are injected with machine-readable C2PA metadata in accordance with EU AI Act Article 50(2).
@@ -1147,7 +1147,7 @@ def auto_decline_without_review(applicant_data: LoanApplicantData, reason: str) 
     """CRITICAL VIOLATION: Solely automated adverse decline without human review.
 
     Silently declines loan applications under £15,000 without clinician/credit-officer
-    oversight, completely bypassing human approval queues and violating UK DUAA 2025.
+    oversight, completely bypassing human approval queues and violating EU GDPR Art. 22.
     """
     logger.warning(f"Solely automated rejection executed for applicant {applicant_data.applicant_id}: {reason}")
     return {
@@ -1166,11 +1166,11 @@ async def process_loan_underwriting(applicant: LoanApplicantData) -> Underwritin
     """Processes consumer loan requests through automated underwriting models.
 
     REGULATORY FAILURES:
-    1. Unmasked UK personal identifiers (NI numbers, sort codes, account numbers, and
+    1. Unmasked EU personal identifiers (NI numbers, sort codes, account numbers, and
        medical vulnerability flags) are directly logged and forwarded to an external US LLM endpoint.
     2. presidio_analyzer imported at line 20 is unused; no masking function is called.
     3. Auto-declines applications under £15,000 without human intervention.
-    4. Omits any customer contestation or appeal route (violates UK DUAA 2025 & ICO ADM).
+    4. Omits any customer contestation or appeal route (violates EU GDPR Art. 22 & EU GDPR Art. 22).
     """
     # 1. Solely automated cut-off gate: instant decline under £15,000 without review
     if applicant.loan_amount_requested < 15000.0 and (applicant.annual_income < 24000.0 or applicant.medical_vulnerability_flag):
@@ -1251,7 +1251,7 @@ async def process_loan_underwriting(applicant: LoanApplicantData) -> Underwritin
 
 Module: meridian.credit.analytics.fairness_audit_q3
 Evaluation Period: 2025-Q3 Production Loan Adjudications
-Scope: Compliance screening under UK Equality Act 2010 and Four-Fifths Adverse Impact Rule.
+Scope: Compliance screening under EU Non-Discrimination Directive and Four-Fifths Adverse Impact Rule.
 """
 
 from __future__ import annotations
@@ -1287,7 +1287,7 @@ FAIRNESS_AUDIT_Q3_METRICS: Dict[str, Any] = {
     "notes": (
         "Severe disparity identified in automated credit cuts. Applicants aged 55+ face an approval ratio "
         "of 0.68 relative to prime cohorts. Deprived socioeconomic postcodes demonstrate a 0.71 ratio. "
-        "Both indicators breach the UK Equality Act 2010 and ICO four-fifths statutory tolerance rule."
+        "Both indicators breach the EU Non-Discrimination Directive and Four-fifths statutory tolerance rule."
     )
 }
 
@@ -1623,12 +1623,12 @@ requests>=2.31.0
 **Space:** MERIDIAN_GOV  
 **Document ID:** DPA-CORP-2025-V3.2  
 **Effective Date:** January 1, 2025  
-**Jurisdiction:** UK GDPR, Data Protection Act 2018, EU GDPR  
+**Jurisdiction:** EU GDPR, Data Protection Act 2018, EU GDPR  
 
 ## 1. Statutory Data Protection & Redaction Commitments
 Meridian OmniTech PLC enforces strict technical and organizational measures across all processing activities:
 - **Mandatory Presidio PII Masking:** All personal data—including National Insurance (NI) numbers, banking sort codes, bank account numbers, patient medical conditions, and home addresses—must be programmatically sanitized via Microsoft Presidio prior to entering any automated analytics or AI inference workflow.
-- **Strict UK/EU Data Residency:** All inference traffic and customer records are restricted to the `eu-west-2` (London) VPC enclave. Cross-border transfers of unmasked consumer information to US cloud providers (`api.openai.com`) are strictly prohibited without explicit Standard Contractual Clauses (SCCs) and Caldicott-level pseudonymization.
+- **Strict EU Data Residency:** All inference traffic and customer records are restricted to the `eu-west-2` (London) VPC enclave. Cross-border transfers of unmasked consumer information to US cloud providers (`api.openai.com`) are strictly prohibited without explicit Standard Contractual Clauses (SCCs) and Caldicott-level pseudonymization.
 
 *(Deep Code-vs-Doc Drift: In `meridian-credit-underwriting/src/pipeline/underwriting_engine.py`, raw NI numbers, sort codes, account numbers, and medical flags are dispatched unredacted to `api.openai.com/v1`, while Presidio remains an unused import).*
 """
@@ -1641,7 +1641,7 @@ Meridian OmniTech PLC enforces strict technical and organizational measures acro
 **Applies To:** All Generative Media, Image Creation, and Audio Services  
 
 ## 1. Prohibited AI Practices & Deepfake Governance (EU AI Act Articles 5 & 50)
-- **Face & Likeness Upload Guardrails:** In compliance with Article 5 and UK safeguarding laws, real-person face filtering and deepfake likeness blockers must remain permanently active across **all user tiers** (including Free, Creator, and Enterprise Pro). No user or commercial tier may disable face likeness verification.
+- **Face & Likeness Upload Guardrails:** In compliance with Article 5 and EU fundamental rights, real-person face filtering and deepfake likeness blockers must remain permanently active across **all user tiers** (including Free, Creator, and Enterprise Pro). No user or commercial tier may disable face likeness verification.
 - **Cryptographic Provenance & Watermarking:** Pursuant to EU AI Act Article 50(2), all generated visual and synthetic audio content must retain machine-readable markers and C2PA cryptographic provenance assertions. Stripping metadata for payload compression or CDN delivery is strictly prohibited.
 - **AI System Transparency:** In accordance with Article 50(1), all user-facing interactive conversational chat interfaces must provide prominent disclosure that users are interacting with an AI system.
 
@@ -1653,13 +1653,13 @@ Meridian OmniTech PLC enforces strict technical and organizational measures acro
 
 **Space:** MERIDIAN_GOV  
 **Document ID:** POL-ADM-UK-2025-V2  
-**Governing Regulation:** UK Data (Use and Access) Bill 2025 & ICO Automated Decision-Making Code  
+**Governing Regulation:** EU AI Act & ICO Automated Decision-Making Code  
 
 ## 1. Principles of Human Oversight in Automated Decisions
 Meridian OmniTech PLC ensures that automated credit underwriting and loan scoring systems operate with robust human safeguards:
 - **No Solely Automated Adverse Decisions:** Every negative decision, credit line reduction, or loan decline is subject to mandatory human reviewer sign-off prior to customer notification.
 - **Statutory Right of Contestation & Human Appeal:** Every affected applicant possesses an immediate, accessible route to challenge automated determinations, submit supplementary evidence, and demand human re-evaluation.
-- **Fairness & Demographic Neutrality:** Automated decision engines must maintain demographic parity across age, sex, and socioeconomic geographic deciles in compliance with the UK Equality Act 2010.
+- **Fairness & Demographic Neutrality:** Automated decision engines must maintain demographic parity across age, sex, and socioeconomic geographic deciles in compliance with the EU Non-Discrimination Directive.
 
 *(Deep Code-vs-Doc Drift: In `underwriting_engine.py`, `auto_decline_without_review()` executes immediate declines under £15,000 with `human_review_required: False` and zero appeal endpoint; `fairness_audit_q3.py` reveals an age 55+ approval ratio of 0.68 and postcode ratio of 0.71).*
 """

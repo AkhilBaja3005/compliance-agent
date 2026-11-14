@@ -1,4 +1,4 @@
-"""Synthetic data generator for EU & UK AI Compliance Auditor test sandbox.
+"""Synthetic data generator for EU AI Compliance Auditor test sandbox.
 
 Generates 3 realistic mock enterprise targets:
 1. company_a_finscore: High-Risk Fintech credit scoring with code-vs-doc PII & hosting drift.
@@ -113,22 +113,22 @@ uvicorn==0.31.0
 
 **Effective Date:** 1 January 2024  
 **Data Controller:** FinScore Technologies Ltd.  
-**Jurisdiction:** UK GDPR & EU GDPR  
+**Jurisdiction:** EU GDPR & EU GDPR  
 
 ## 1. Scope and Technical Safeguards
 FinScore guarantees robust privacy preservation across all downstream automated inference pipelines:
 - **Presidio Redaction Mandatory:** All customer personally identifiable information (PII)—including but not limited to applicant names, National Insurance (NI) numbers, telephone numbers, and postcodes—is masked via Microsoft Presidio prior to LLM inference or external transmission.
-- **Strict Data Residency:** All inference operations, database storage, and subprocessor API calls execute strictly within European cloud boundaries (`eu-central-1` Frankfurt or `eu-west-2` London). No raw customer data is transferred outside the EEA/UK under any circumstances.
+- **Strict Data Residency:** All inference operations, database storage, and subprocessor API calls execute strictly within European cloud boundaries (`eu-central-1` Frankfurt or `eu-west-2` London). No raw customer data is transferred outside the EEA/EU under any circumstances.
 - **Third-Party Boundary Controls:** Subprocessors are cryptographically restricted from retaining, training on, or re-identifying masked tokens.
 """
 
     governance_policy_md = """# FinScore AI Governance & Model Risk Policy
 
-**Regulatory Alignment:** EU AI Act (High-Risk Credit Scoring Annex III) & UK GDPR Article 22
+**Regulatory Alignment:** EU AI Act (High-Risk Credit Scoring Annex III) & EU GDPR Article 22
 
 ## 1. Human-in-the-Loop Oversight (HITL)
-Credit scoring represents a high-risk automated decision-making system with legal and economic effects. In compliance with EU AI Act Article 14 and UK GDPR Article 22:
-- **No Autonomous Adverse Decisions:** Human loan officers review and approve every automated credit rejection per EU AI Act Article 14 and UK GDPR Article 22 prior to adverse decision notification.
+Credit scoring represents a high-risk automated decision-making system with legal and economic effects. In compliance with EU AI Act Article 14 and EU GDPR Article 22:
+- **No Autonomous Adverse Decisions:** Human loan officers review and approve every automated credit rejection per EU AI Act Article 14 and EU GDPR Article 22 prior to adverse decision notification.
 - **Appeal Mechanism:** Every customer retains the right to request manual reconsideration, obtain human explanation, and contest algorithmic findings.
 - **Dual Sign-Off Gate:** Underwriting decisions tagged with risk scores exceeding 0.60 require two certified credit risk officers to validate the underlying financial rationale.
 """

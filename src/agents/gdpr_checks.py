@@ -45,13 +45,13 @@ def evaluate_gdpr(check_id: str, ix) -> Verdict:
         infra = [c for c in ix.cards if "infra_region_us" in c.capability_tags]
         data_us = [a for a in ix.data_assets if a.get("region") and re.match(r"(?i)^(us|usa)[-_]|^(east|west|central)us", a["region"])]
         if not (us or infra or data_us):
-            return Verdict("PASS", 0.8, "No transfers to US/non-EU recipients detected", "No external endpoint, infrastructure region or data store outside the EU/UK was found.", scan_basis=True)
+            return Verdict("PASS", 0.8, "No transfers to US/non-EU recipients detected", "No external endpoint, infrastructure region or data store outside the EU was found.", scan_basis=True)
         ev = [ev_slice(s) for s in us[:2]] + [ev_card(c) for c in infra[:2]] + [ev_data(a, f"region={a['region']}") for a in data_us[:1]]
         docs = _docs(ix, TRANSFER_RE)
         if docs:
             return Verdict("PASS", 0.7, "Transfer mechanism documented", "Personal data reaches US/non-EU recipients and a Chapter V mechanism (SCCs / DPF / BCRs) is documented. The mechanism's validity is not verified.", ev + docs)
         return Verdict("SUSPECTED_GAP", 0.8, "Transfer to US/non-EU recipient without a documented Chapter V mechanism",
-                       "Data flows to a recipient or region outside the EU/UK, and no document names an adequacy decision, standard contractual clauses or binding corporate rules (GDPR Arts. 44-46).", ev)
+                       "Data flows to a recipient or region outside the EU, and no document names an adequacy decision, standard contractual clauses or binding corporate rules (GDPR Arts. 44-46).", ev)
     if check_id == "GDPR-02":
         if not ix.has_code:
             return no_code_verdict("GDPR-02: no code to inspect")

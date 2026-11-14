@@ -37,7 +37,7 @@ inputs ──► edge extractors ──► tri-modal index ──► Supervisor 
 | MongoDB Atlas | `$vectorSearch`, LangGraph checkpoints, `audit_history` | in-memory store + local BM25 |
 | Databricks | Model Serving, MLflow traces, Unity Catalog tables | deterministic narratives, no-op tracing |
 
-Scope is set by `AEGIS_FRAMEWORKS` (default `EU_AI_ACT,EU_GDPR`; add `UK_GDPR_ICO`, `UK_DSIT`, `UK_COPYRIGHT_TDM` or `ALL`). Licence checks (GPL, non-commercial weights) always run. Details of what each reader sees: [docs/coverage.md](docs/coverage.md).
+Scope is set by `AEGIS_FRAMEWORKS` (default `EU_AI_ACT,EU_GDPR` or `ALL`). Licence checks (GPL, non-commercial weights) always run. Details of what each reader sees: [docs/coverage.md](docs/coverage.md).
 
 ## API
 

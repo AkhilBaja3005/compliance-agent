@@ -114,7 +114,8 @@ def test_doc_parser_plain_text_and_pdf(tmp_path):
     with open(tmp_path / "blank.pdf", "wb") as fh:
         w.write(fh)
     blank = parse_document(tmp_path / "blank.pdf", "blank.pdf", "tenant")  # image-only PDF: visible OCR marker, never silently dropped
-    assert [c.section_header for c in blank] == ["OCR_REQUIRED"]
+    heads = [c.section_header for c in blank]  # without OCR: OCR_REQUIRED; with OCR installed: an empty page is flagged LOW_OCR_CONFIDENCE
+    assert "OCR_REQUIRED" in heads or "LOW_OCR_CONFIDENCE" in heads
 
 
 # ------------------------------------------------------------------ closed world

@@ -102,7 +102,7 @@ class ComplianceFinding(BaseModel):
 
 
 def _scope_helpers():
-    """(in_scope, exposure, summary) filters that hide out-of-scope (UK) references when the audit scope is EU-only."""
+    """(in_scope, exposure, summary) filters that hide out-of-scope references when the audit scope is EU-only."""
     import re as _re
 
     from src.regulatory_rag.tier_a_rules import active_frameworks

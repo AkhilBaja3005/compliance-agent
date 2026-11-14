@@ -47,7 +47,7 @@ def test_doctor_live_github_uses_header_only_and_hides_token(monkeypatch):
 def test_doctor_cli_exit_code(monkeypatch):
     from aegis_audit.cli import app
     monkeypatch.setenv("AEGIS_AUTH_DISABLED", "false")
-    monkeypatch.delenv("AEGIS_API_KEYS", raising=False)
+    monkeypatch.setenv("AEGIS_API_KEYS", "")  # empty (not unset) so the CLI's .env loading cannot refill it
     res = CliRunner().invoke(app, ["doctor"])
     assert res.exit_code == 1 and "API auth" in res.output
 

@@ -11,14 +11,14 @@
 
 ## Core Agent & Stack Architecture
 1. **7 Core Auditing Agents (LangGraph Cyclic Loop) + 1 Background Scout:**
-   - `SupervisorAgent`: Holds mandatory EU/UK checklist, routes single-question tasks to 6 micro-agents, loops until 100% resolved.
-   - `MicroAgent 1 (pii_flow)`: PII leakage & EU/UK vs. US server residency.
-   - `MicroAgent 2 (hitl_oversight)`: Human-in-the-loop approval gates & contest routes (EU AI Act Art. 14 / UK DUAA 2025 ADM).
+   - `SupervisorAgent`: Holds mandatory EU checklist, routes single-question tasks to 6 micro-agents, loops until 100% resolved.
+   - `MicroAgent 1 (pii_flow)`: PII leakage & EU vs. US server residency.
+   - `MicroAgent 2 (hitl_oversight)`: Human-in-the-loop approval gates & contest routes (EU AI Act Art. 14 / EU GDPR Art. 22).
    - `MicroAgent 3 (safety_watermark)`: Unmoderated harmful/hate-speech generation (Art. 5) & Art. 50 AI disclosures/C2PA watermarks.
    - `MicroAgent 4 (oss_license)`: `GPL-3.0` & `CC-BY-NC-4.0` commercial license violations verified via Linkup.
-   - `MicroAgent 5 (dpa_provenance)`: ZDR clauses, UK TDM copyright, Annex IV & FRIA completeness.
+   - `MicroAgent 5 (dpa_provenance)`: ZDR clauses, EU DSM TDM copyright, Annex IV & FRIA completeness.
    - `MicroAgent 6 (code_doc_drift)`: Cross-verifies Confluence/policy promises against GitHub AST & behavioral code facts.
-   - `LinkupRegulatoryScout`: Fetches & cites live EU AI Act and UK ICO/DUAA updates into MongoDB Atlas.
+   - `LinkupRegulatoryScout`: Fetches & cites live EU AI Act and EU DPA/EDPB updates into MongoDB Atlas.
 2. **Three Core Platform Pillars:**
    - **Databricks:** Mosaic AI Model Serving (`DATABRICKS_SERVING_ENDPOINT`, supporting Claude or Llama without `response_format` schema failures), `@mlflow.trace` on all 7 auditing agents, and Unity Catalog Delta tables (`compliance_catalog.audit_prod.*`).
    - **Linkup:** `LinkupClient().search(..., depth="deep", output_type="sourcedAnswer")` providing verified `source_url` citations on regulatory rules and license checks.

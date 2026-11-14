@@ -47,7 +47,7 @@ class PIIFlowAgent(MicroAgent):
             return Verdict("SUSPECTED_GAP", 0.7, "US-hosted endpoint in use", f"US-region endpoint(s) in use: {', '.join(urls)}.", ev)
         if unk:
             return Verdict("SUSPECTED_GAP", 0.6, "External endpoint region could not be determined",
-                           "At least one endpoint is dynamic or has an unrecognised region; EU/UK residency is unproven.",
+                           "At least one endpoint is dynamic or has an unrecognised region; EU residency is unproven.",
                            [ev_slice(s) for s in unk[:4]])
-        return Verdict("PASS", 0.9, "All external endpoints are in EU/UK (or internal)",
-                       "Every external endpoint resolves to an EU/UK region or an internal host.", [ev_slice(s) for s in ext[:4]])
+        return Verdict("PASS", 0.9, "All external endpoints are in EU (or internal)",
+                       "Every external endpoint resolves to an EU region or an internal host.", [ev_slice(s) for s in ext[:4]])

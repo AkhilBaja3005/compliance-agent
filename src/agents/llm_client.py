@@ -139,7 +139,7 @@ class LLMClient:
                 messages=chat_msgs,
                 max_tokens=2048,
             )
-            return res.content[0].text if res.content else ""
+            return "".join(getattr(b, "text", "") or "" for b in (res.content or []) if getattr(b, "type", "text") == "text")
 
         if self.use_databricks:
             http = self._http or httpx.Client(timeout=60)

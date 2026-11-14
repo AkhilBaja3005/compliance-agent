@@ -1,0 +1,414 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/cos02/schemas/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Aegis Compliance Auditor",
+          "organization": "Aegis AI Safety",
+          "semanticVersion": "1.0.0",
+          "informationUri": "https://github.com/aegis-ai/aegis",
+          "rules": [
+            {
+              "id": "EU AI Act Article 5(1)(d) & Confluence AUP Policy Drift",
+              "name": "EU_AI_Act_Article_5_1__d____Confluence_AUP_Policy_Drift",
+              "shortDescription": {
+                "text": "Facial Likeness Moderation Bypass on Pro Tier"
+              },
+              "fullDescription": {
+                "text": "Line 48 of moderation.yaml sets face_upload_filter: false for 'pro' subscribers, enabling unconsented facial uploads and intimate imagery generation, directly violating Confluence AUP Policy v2.1 guarantees."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "9.5",
+                "tags": [
+                  "compliance",
+                  "regulatory",
+                  "CONFIRMED_VIOLATION"
+                ],
+                "precision": "very-high"
+              },
+              "help": {
+                "text": "Statutory Mandate: EU AI Act Article 5(1)(d) & Confluence AUP Policy Drift\nSeverity: CRITICAL\nExposure: Fines up to \u20ac35,000,000 or 7% of worldwide annual turnover for prohibited AI practices under EU AI Act Article 99(3).\n\nRemediation Steps:\n- Remove tier-based bypass in moderation.yaml line 48 and set face_upload_filter: true unconditionally.\n- Enforce cryptographic biometric identity verification across all commercial rendering endpoints.\n- Audit past 90 days of Pro tier image generations for unconsented intimate likeness."
+              }
+            },
+            {
+              "id": "EU AI Act Article 50(2) (Synthetic Content Marking)",
+              "name": "EU_AI_Act_Article_50_2___Synthetic_Content_Marking_",
+              "shortDescription": {
+                "text": "Omission of Machine-Readable C2PA Watermark in Synthetic Media"
+              },
+              "fullDescription": {
+                "text": "src/generate.py emits raw synthetic PNG images without C2PA cryptographic metadata or machine-readable watermarking, violating the Dec 2, 2026 statutory transparency deadline."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "9.5",
+                "tags": [
+                  "compliance",
+                  "regulatory",
+                  "CONFIRMED_VIOLATION"
+                ],
+                "precision": "very-high"
+              },
+              "help": {
+                "text": "Statutory Mandate: EU AI Act Article 50(2) (Synthetic Content Marking)\nSeverity: CRITICAL\nExposure: Fines up to \u20ac15,000,000 or 3% of worldwide annual turnover for Article 50 transparency breaches.\n\nRemediation Steps:\n- Integrate c2pa-python SDK into the render output pipeline.\n- Embed signed cryptographic claim generator into all PNG/WebP headers.\n- Attach 'ai_generated: true' to all API JSON metadata responses."
+              }
+            },
+            {
+              "id": "EU GDPR Article 22 & DPA Drift",
+              "name": "EU_GDPR_Article_22___DPA_Drift",
+              "shortDescription": {
+                "text": "Solely Automated Credit Limits & US PII Data Egress"
+              },
+              "fullDescription": {
+                "text": "src/credit_scorer.py transmits raw customer names, identifiers, and postcodes directly to a US-hosted OpenAI endpoint without Presidio redaction, and executes solely automated credit-limit cuts with appeal_route_available=False."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "9.5",
+                "tags": [
+                  "compliance",
+                  "regulatory",
+                  "CONFIRMED_VIOLATION"
+                ],
+                "precision": "very-high"
+              },
+              "help": {
+                "text": "Statutory Mandate: EU GDPR Article 22 & DPA Drift\nSeverity: CRITICAL\nExposure: EU DPA enforcement notice, statutory damages under GDPR Art. 22 automated decision provisions, and fines up to \u20ac20M / 4% global turnover.\n\nRemediation Steps:\n- Wrap input payload with local Microsoft Presidio anonymizer before inference.\n- Migrate model target to sovereign EU regional inference enclave.\n- Build human-in-the-loop escalation workflow and customer appeal request portal."
+              }
+            },
+            {
+              "id": "Intellectual Property / Open Source License Breach",
+              "name": "Intellectual_Property___Open_Source_License_Breach",
+              "shortDescription": {
+                "text": "Commercial SaaS Deployment of CC-BY-NC-4.0 & GPL-3.0 Weights"
+              },
+              "fullDescription": {
+                "text": "Model_Card.md documents fine-tuning over CC-BY-NC-4.0 non-commercial weights and dynamic linking against GPL-3.0 audiocraft components inside a $149/seat closed commercial SaaS product."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "7.5",
+                "tags": [
+                  "compliance",
+                  "regulatory",
+                  "CONFIRMED_VIOLATION"
+                ],
+                "precision": "very-high"
+              },
+              "help": {
+                "text": "Statutory Mandate: Intellectual Property / Open Source License Breach\nSeverity: HIGH\nExposure: Injunctive relief, mandatory copyright statutory damages, and potential forced open-sourcing of proprietary rendering code under GPL copyleft.\n\nRemediation Steps:\n- Substitute base diffusion weights with Apache-2.0 / MIT cleared foundation models.\n- Refactor audio pipeline into isolated sub-process or replace GPL-3.0 library."
+              }
+            },
+            {
+              "id": "EU AI Act Article 50(1) (Interaction Disclosure)",
+              "name": "EU_AI_Act_Article_50_1___Interaction_Disclosure_",
+              "shortDescription": {
+                "text": "Customer Interaction AI Disclosure Omitted on Email and In-App Widget"
+              },
+              "fullDescription": {
+                "text": "2 of 4 chat entry points in src/routes.py (/v1/email-support/auto-respond and /v1/in-app-widget/instant-reply) fail to inform customers that they are conversing with an automated artificial intelligence system."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "7.5",
+                "tags": [
+                  "compliance",
+                  "regulatory",
+                  "CONFIRMED_VIOLATION"
+                ],
+                "precision": "very-high"
+              },
+              "help": {
+                "text": "Statutory Mandate: EU AI Act Article 50(1) (Interaction Disclosure)\nSeverity: HIGH\nExposure: Regulatory warnings and fines up to \u20ac15,000,000 for Article 50 transparency failures.\n\nRemediation Steps:\n- Add 'ai_disclosure: This message was generated by an AI assistant' to email templates.\n- Update in-app chat widget UI avatar and header to clearly designate bot identity."
+              }
+            },
+            {
+              "id": "EU AI Act Article 27 & Annex III \u00a74(a)",
+              "name": "EU_AI_Act_Article_27___Annex_III__4_a_",
+              "shortDescription": {
+                "text": "Missing Fundamental Rights Impact Assessment (FRIA) for High-Risk HR Screening"
+              },
+              "fullDescription": {
+                "text": "[Closed-World Assumption]: Automated candidate screening deployed without formal Article 27 Fundamental Rights Impact Assessment on record in Confluence space."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "7.5",
+                "tags": [
+                  "compliance",
+                  "regulatory",
+                  "SUSPECTED_GAP"
+                ],
+                "precision": "medium"
+              },
+              "help": {
+                "text": "Statutory Mandate: EU AI Act Article 27 & Annex III \u00a74(a)\nSeverity: HIGH\nExposure: Regulatory enforcement / statutory fines\n\nRemediation Steps:\n"
+              }
+            },
+            {
+              "id": "STATUTORY-RULE",
+              "name": "STATUTORY-RULE",
+              "shortDescription": {
+                "text": "STATUTORY-RULE"
+              },
+              "fullDescription": {
+                "text": "STATUTORY-RULE"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "security-severity": "5.0",
+                "tags": [
+                  "compliance",
+                  "regulatory",
+                  "QUARANTINED_FOR_HUMAN_REVIEW"
+                ],
+                "precision": "medium"
+              },
+              "help": {
+                "text": "Statutory Mandate: STATUTORY-RULE\nSeverity: MEDIUM\nExposure: Regulatory enforcement / statutory fines\n\nRemediation Steps:\n"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "EU AI Act Article 5(1)(d) & Confluence AUP Policy Drift",
+          "level": "error",
+          "message": {
+            "text": "[CRITICAL] Facial Likeness Moderation Bypass on Pro Tier\n\nRule: EU AI Act Article 5(1)(d) & Confluence AUP Policy Drift\n\nLine 48 of moderation.yaml sets face_upload_filter: false for 'pro' subscribers, enabling unconsented facial uploads and intimate imagery generation, directly violating Confluence AUP Policy v2.1 guarantees.\n\nRemediation: Remove tier-based bypass in moderation.yaml line 48 and set face_upload_filter: true unconditionally.; Enforce cryptographic biometric identity verification across all commercial rendering endpoints."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "moderation.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 48,
+                  "endLine": 48,
+                  "snippet": {
+                    "text": "pro:\n  face_upload_filter: false # Line 48: High-tier bypass allows unverified faces\n  deepfake_detection_enforced: false"
+                  }
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Section 1.1",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "Intimate and non-consensual imagery generation is blocked unconditionally across all tiers, including Free, Creator, and Pro accounts."
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "findingId": "FINDING-NW-001",
+            "status": "CONFIRMED_VIOLATION",
+            "confidence": 0.99,
+            "humanReviewRequired": false
+          }
+        },
+        {
+          "ruleId": "EU AI Act Article 50(2) (Synthetic Content Marking)",
+          "level": "error",
+          "message": {
+            "text": "[CRITICAL] Omission of Machine-Readable C2PA Watermark in Synthetic Media\n\nRule: EU AI Act Article 50(2) (Synthetic Content Marking)\n\nsrc/generate.py emits raw synthetic PNG images without C2PA cryptographic metadata or machine-readable watermarking, violating the Dec 2, 2026 statutory transparency deadline.\n\nRemediation: Integrate c2pa-python SDK into the render output pipeline.; Embed signed cryptographic claim generator into all PNG/WebP headers."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "generate_image()",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 43,
+                  "endLine": 52,
+                  "snippet": {
+                    "text": "return {\"status\": \"SUCCESS\", \"render_id\": \"rnd_981249\", \"media_url\": generated_media_url, \"format\": request.output_format}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "findingId": "FINDING-NW-002",
+            "status": "CONFIRMED_VIOLATION",
+            "confidence": 0.98,
+            "humanReviewRequired": false
+          }
+        },
+        {
+          "ruleId": "EU GDPR Article 22 & DPA Drift",
+          "level": "error",
+          "message": {
+            "text": "[CRITICAL] Solely Automated Credit Limits & US PII Data Egress\n\nRule: EU GDPR Article 22 & DPA Drift\n\nsrc/credit_scorer.py transmits raw customer names, identifiers, and postcodes directly to a US-hosted OpenAI endpoint without Presidio redaction, and executes solely automated credit-limit cuts with appeal_route_available=False.\n\nRemediation: Wrap input payload with local Microsoft Presidio anonymizer before inference.; Migrate model target to sovereign EU regional inference enclave."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "evaluate_credit_limit()",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 38,
+                  "endLine": 56,
+                  "snippet": {
+                    "text": "prompt = f\"Analyze credit limit for customer: {request.applicant_name}, ID: {request.id}...\"\nreturn {\"decision\": \"AUTOMATED_LIMIT_REDUCTION\", \"appeal_route_available\": False}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "findingId": "FINDING-NW-003",
+            "status": "CONFIRMED_VIOLATION",
+            "confidence": 0.97,
+            "humanReviewRequired": false
+          }
+        },
+        {
+          "ruleId": "Intellectual Property / Open Source License Breach",
+          "level": "error",
+          "message": {
+            "text": "[HIGH] Commercial SaaS Deployment of CC-BY-NC-4.0 & GPL-3.0 Weights\n\nRule: Intellectual Property / Open Source License Breach\n\nModel_Card.md documents fine-tuning over CC-BY-NC-4.0 non-commercial weights and dynamic linking against GPL-3.0 audiocraft components inside a $149/seat closed commercial SaaS product.\n\nRemediation: Substitute base diffusion weights with Apache-2.0 / MIT cleared foundation models.; Refactor audio pipeline into isolated sub-process or replace GPL-3.0 library."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Section 1",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "Released under CC-BY-NC-4.0 (Creative Commons Attribution-NonCommercial 4.0 International)... links against GPL-3.0."
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "findingId": "FINDING-NW-004",
+            "status": "CONFIRMED_VIOLATION",
+            "confidence": 0.96,
+            "humanReviewRequired": true
+          }
+        },
+        {
+          "ruleId": "EU AI Act Article 50(1) (Interaction Disclosure)",
+          "level": "error",
+          "message": {
+            "text": "[HIGH] Customer Interaction AI Disclosure Omitted on Email and In-App Widget\n\nRule: EU AI Act Article 50(1) (Interaction Disclosure)\n\n2 of 4 chat entry points in src/routes.py (/v1/email-support/auto-respond and /v1/in-app-widget/instant-reply) fail to inform customers that they are conversing with an automated artificial intelligence system.\n\nRemediation: Add 'ai_disclosure: This message was generated by an AI assistant' to email templates.; Update in-app chat widget UI avatar and header to clearly designate bot identity."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "in_app_instant_reply()",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 40,
+                  "endLine": 48,
+                  "snippet": {
+                    "text": "return {\"reply_bubble\": f\"Hi! Regarding your query...\", \"rep_name\": \"Sarah (Support Associate)\"}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "findingId": "FINDING-NW-005",
+            "status": "CONFIRMED_VIOLATION",
+            "confidence": 0.95,
+            "humanReviewRequired": false
+          }
+        },
+        {
+          "ruleId": "EU AI Act Article 27 & Annex III \u00a74(a)",
+          "level": "error",
+          "message": {
+            "text": "[HIGH] Missing Fundamental Rights Impact Assessment (FRIA) for High-Risk HR Screening\n\nRule: EU AI Act Article 27 & Annex III \u00a74(a)\n\n[Closed-World Assumption]: Automated candidate screening deployed without formal Article 27 Fundamental Rights Impact Assessment on record in Confluence space."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "repository",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "findingId": "GAP-NW-001",
+            "status": "SUSPECTED_GAP",
+            "confidence": 0.92,
+            "humanReviewRequired": false
+          }
+        },
+        {
+          "ruleId": "STATUTORY-RULE",
+          "level": "warning",
+          "message": {
+            "text": "[MEDIUM] Statutory Finding\n\nRule: STATUTORY-RULE"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "repository",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "findingId": "QUARANTINE-NW-001",
+            "status": "QUARANTINED_FOR_HUMAN_REVIEW",
+            "confidence": 0.38,
+            "humanReviewRequired": false
+          }
+        }
+      ]
+    }
+  ]
+}

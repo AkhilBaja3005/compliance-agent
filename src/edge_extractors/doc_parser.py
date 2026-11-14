@@ -218,7 +218,7 @@ def extract_assertions_llm(chunks: list[DocumentChunk], llm, max_chunks: int = 6
         claims: list[_Claim] = Field(default_factory=list)
 
     system = ("You extract compliance PROMISES made by a company document. Types: PRIVACY (personal data is masked/redacted before external "
-              "calls), HOSTING (data stays in EU/UK regions), HITL (a human reviews/approves decisions), SAFETY_MODERATION (harmful content is "
+              "calls), HOSTING (data stays in EU regions), HITL (a human reviews/approves decisions), SAFETY_MODERATION (harmful content is "
               "filtered), WATERMARK (AI outputs are marked/labelled), IP_LICENSE (commercial rights to models/dependencies). Copy `quote` "
               "EXACTLY from the text. Set negated=true if the sentence says the control is NOT done.")
     norm = lambda t: re.sub(r"\s+", " ", t).strip().lower()

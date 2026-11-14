@@ -39,7 +39,7 @@ def print_graphite_banner() -> None:
 [bold white]  \\_, |_|  \\__,_| .__/ |_| |_|_|\\__\\___|[/]
 [bold white]  |___/         |_|                     [/]
 [bold #70C5FF]  AI Safety & Regulatory Compliance Auditor[/]
-[dim]  EU AI Act (2024/1689) · UK DUAA 2025 · IP & GDPR[/]"""
+[dim]  EU AI Act (2024/1689) · GDPR · IP[/]"""
 
     grid = Table.grid(padding=(0, 2))
     grid.add_column(vertical="middle")
@@ -126,7 +126,7 @@ def scan(
                 f"[bold cyan]Input Connectors / Source:[/bold cyan] {effective_source}\n"
                 + (f"[bold cyan]Incremental PR Diff:[/bold cyan] {diff}\n" if diff else "")
                 + f"[bold cyan]Report Format:[/bold cyan] {format.upper()} | [bold cyan]CI/CD Gate:[/bold cyan] {fail_on.upper()}",
-                title="[bold #70C5FF]🛡️ Graphite AI Regulatory Compliance Audit Execution[/bold #70C5FF]",
+                title="[bold #70C5FF]Graphite AI Regulatory Compliance Audit Execution[/bold #70C5FF]",
                 border_style="#386B94",
             )
         )
@@ -198,7 +198,7 @@ def scan(
         )
         if should_fail:
             console.print(
-                f"[bold red]❌ CI/CD Gate Failed: Detected statutory findings meeting threshold '{fail_threshold.upper()}'.[/bold red]"
+                f"[bold red]CI/CD Gate Failed: Detected statutory findings meeting threshold '{fail_threshold.upper()}'.[/bold red]"
             )
             raise typer.Exit(code=1)
 
@@ -207,7 +207,7 @@ def _build_sync_config(config: Optional[str], folder: list[str], url: list[str],
     from src.law_sync.ingest import FolderSource, SyncConfig, UrlSource, load_config
 
     cfg = load_config(config) if (config or Path("sync_sources.yaml").is_file() or os.getenv("AEGIS_SYNC_CONFIG")) else SyncConfig()
-    j = {"EU": "EU_AI_ACT", "UK": "UK_GDPR_ICO"}.get(jurisdiction.upper(), "EU_AI_ACT")
+    j = "EU_AI_ACT" if "GDPR" not in jurisdiction.upper() else "EU_GDPR"
     cfg.folders += [FolderSource(str(Path(f).resolve()), j) for f in folder]
     cfg.urls += [UrlSource(u, j) for u in url]
     if not cfg.folders and not cfg.urls and not folder and not url and pdf_dir and Path(pdf_dir).is_dir():
@@ -235,7 +235,7 @@ def _print_sync_report(rep) -> None:
 
 @app.command("sync-laws")
 def sync_laws(
-    jurisdiction: str = typer.Option("EU", "--jurisdiction", "-j", help="Jurisdiction tag for --folder/--url sources (EU or UK)"),
+    jurisdiction: str = typer.Option("EU", "--jurisdiction", "-j", help="Jurisdiction tag for --folder/--url sources (EU)"),
     deep_linkup: bool = typer.Option(True, "--deep-linkup/--no-deep-linkup", help="Use Linkup deep web search for active legal amendments"),
     folder: list[str] = typer.Option([], "--folder", "-f", help="Folder to ingest (repeatable): PDF, md, txt, docx, xlsx, pptx, html, rtf, odt, csv"),
     url: list[str] = typer.Option([], "--url", "-u", help="https web page or PDF to ingest (repeatable)"),
@@ -298,7 +298,7 @@ def ingest_pdf(
         "EU_AI_ACT",
         "--jurisdiction",
         "-j",
-        help="Statutory jurisdiction (EU_AI_ACT, UK_GDPR_ICO, etc.)",
+        help="Statutory jurisdiction (EU_AI_ACT, EU_GDPR, etc.)",
     ),
     category: str = typer.Option(
         "REGULATORY_PDF",
@@ -334,7 +334,7 @@ def ingest_pdf(
             f"[bold cyan]Input Target:[/bold cyan] {path} ({len(pdf_files)} PDF file(s))\n"
             f"[bold cyan]Jurisdiction:[/bold cyan] {jurisdiction} | [bold cyan]Category:[/bold cyan] {category}\n"
             f"[bold cyan]Tenant ID:[/bold cyan] {tenant_id}",
-            title="[bold blue]📄 Aegis Admin PDF Ingestion & Indexer[/bold blue]",
+            title="[bold blue]Graphite Admin PDF Ingestion & Indexer[/bold blue]",
             border_style="blue",
         )
     )
@@ -414,7 +414,7 @@ def query_rules(
             f"[bold cyan]Query:[/bold cyan] {query}\n"
             f"[bold cyan]Jurisdiction Filter:[/bold cyan] {jurisdiction or 'All'}\n"
             f"[bold cyan]Top K:[/bold cyan] {top_k}",
-            title="[bold magenta]🔎 Aegis Regulatory Knowledge & PDF Search[/bold magenta]",
+            title="[bold magenta]Graphite Regulatory Knowledge & PDF Search[/bold magenta]",
             border_style="magenta",
         )
     )
@@ -491,7 +491,7 @@ def fix_cmd(
             f"[bold cyan]Target Repositories:[/bold cyan] {', '.join(repos)}\n"
             f"[bold cyan]Mode:[/bold cyan] {'In-place Apply' if apply else 'Dry-run Patch Generation'}\n"
             + (f"[bold cyan]Patch Output File:[/bold cyan] {patch_out}\n" if patch_out else ""),
-            title="[bold green]🛠️ Aegis Automated Statutory Remediator[/bold green]",
+            title="[bold green]Graphite Automated Statutory Remediator[/bold green]",
             border_style="green",
         )
     )

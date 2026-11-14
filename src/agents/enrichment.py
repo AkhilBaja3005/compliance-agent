@@ -14,7 +14,7 @@ EFFORT = {"PII-01": 3, "PII-02": 5, "HITL-01": 8, "HITL-02": 5, "SAFE-01": 6, "G
 REMEDIATION = {
     "PII-01": ["Insert PII detection/redaction (e.g. Presidio) before every external model or HTTP call.",
                "Add a unit test asserting no raw identifiers leave the service boundary."],
-    "PII-02": ["Move inference to an EU/UK-region endpoint or document a valid UK GDPR Art. 44-46 transfer mechanism.",
+    "PII-02": ["Move inference to an EU-region endpoint or document a valid EU GDPR Chapter V transfer mechanism.",
                "Align the documented hosting statement with the actual endpoints."],
     "HITL-01": ["Route consequential decisions through a human approval queue before release.",
                 "Log reviewer identity, decision and override reason (Art. 12 record-keeping)."],
@@ -61,7 +61,7 @@ RELATED = [("PII-01", "DRIFT-PRIVACY"), ("PII-02", "DRIFT-HOSTING"), ("PII-01", 
 EXPOSURE_GDPR = "Potential exposure: administrative fines of up to EUR 20m or 4% of worldwide annual turnover for breaches of data-subject rights, special-category and transfer rules (GDPR Art. 83(5)); up to EUR 10m or 2% for controller/processor obligations such as Arts. 28, 32 and 35 (Art. 83(4))."
 EXPOSURE = {
     "PROHIBITED": "Potential exposure: administrative fines of up to EUR 35m or 7% of worldwide annual turnover for prohibited practices (EU AI Act Art. 99), plus possible market withdrawal.",
-    "HIGH_RISK": "Potential exposure: fines of up to EUR 15m or 3% of worldwide annual turnover (EU AI Act Art. 99) and/or up to GBP 17.5m or 4% under UK GDPR, plus regulator enforcement action.",
+    "HIGH_RISK": "Potential exposure: fines of up to EUR 15m or 3% of worldwide annual turnover (EU AI Act Art. 99) plus regulator enforcement action.",
     "LIMITED_RISK": "Potential exposure: fines of up to EUR 15m or 3% of worldwide annual turnover for transparency obligations (EU AI Act Art. 99).",
     "NON_COMPLIANT_IP": "Potential exposure: copyright/licence infringement claims, injunctions and damages; possible forced withdrawal of affected models or software.",
 }

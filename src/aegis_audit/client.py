@@ -97,7 +97,7 @@ class AuditSession:
                 f"[bold white]{self.company_name}[/bold white] — [bold red]{self.overall_readiness}[/bold red]\n"
                 f"[dim]Scope: {self.scope} | Report ID: {self.report_id} | Coverage: {self.input_coverage_pct}%[/dim]\n"
                 f"[yellow]{self.readiness_summary}[/yellow]",
-                title="[bold #70C5FF]⚖️ GRAPHITE AI SAFETY & REGULATORY COMPLIANCE AUDITOR[/bold #70C5FF]",
+                title="[bold #70C5FF]GRAPHITE AI SAFETY & REGULATORY COMPLIANCE AUDITOR[/bold #70C5FF]",
                 border_style="red" if "NOT" in self.overall_readiness else "green",
             )
         )
@@ -120,22 +120,22 @@ class AuditSession:
         m_table.add_column("Status / Policy Interpretation", style="white")
 
         m_table.add_row(
-            "🚨 Confirmed Violations",
+            "[bold red]Confirmed Violations[/bold red]",
             str(len(self.confirmed_findings)),
             "[bold red]Breach of statutory mandates / Contractual DPA drift[/bold red]",
         )
         m_table.add_row(
-            "⚠️ Suspected Gaps (Closed-World)",
+            "[bold yellow]Suspected Gaps (Closed-World)[/bold yellow]",
             str(len(self.suspected_gaps)),
             "[yellow]Unproven statutory controls (Zero False Negatives enforced)[/yellow]",
         )
         m_table.add_row(
-            "🛡️ Quarantined Claims",
+            "[bold blue]Quarantined Claims[/bold blue]",
             str(len(self.quarantined_for_human_review)),
             "[blue]Held in Guardrail Gate 4 (Quarantine-over-drop policy)[/blue]",
         )
         m_table.add_row(
-            "✅ Passed Controls",
+            "[bold green]Passed Controls[/bold green]",
             str(len(self.passed_checks)),
             "[green]Verified technical & organizational safeguards[/green]",
         )
@@ -231,7 +231,7 @@ class ComplianceAuditor:
                 "repo": "support-assistant",
                 "purpose": "Omnichannel customer query resolution (Email, Web, Mobile, Widget)",
                 "eu_tier": "Article 50(1) Generative AI",
-                "uk_regime": "UK Consumer Rights & ICO",
+                "uk_regime": "EU Consumer Rights (Directive 2011/83/EU)",
                 "declared": True,
             },
             {
@@ -240,7 +240,7 @@ class ComplianceAuditor:
                 "repo": "talent-screener-vendor",
                 "purpose": "Automated resume parsing and applicant shortlisting",
                 "eu_tier": "Annex III §4(a) High-Risk (Employment)",
-                "uk_regime": "UK Equality Act 2010 / ICO",
+                "uk_regime": "EU Non-Discrimination Directives",
                 "declared": False,  # Purple undeclared badge
             },
             {
@@ -249,7 +249,7 @@ class ComplianceAuditor:
                 "repo": "credit-decision-engine",
                 "purpose": "Automated underwriting and dynamic credit limit reductions",
                 "eu_tier": "Annex III §5(b) High-Risk (Creditworthiness)",
-                "uk_regime": "UK DUAA 2025 ADM / UK GDPR Art 22",
+                "uk_regime": "EU GDPR Art 22 Automated Profiling",
                 "declared": True,
             },
             {
@@ -258,7 +258,7 @@ class ComplianceAuditor:
                 "repo": "imagery-studio",
                 "purpose": "Commercial diffusion image and portrait synthesis",
                 "eu_tier": "Article 50(2) Generative AI & Prohibited Risk",
-                "uk_regime": "UK Copyright (TDM) & Safety",
+                "uk_regime": "EU DSM Directive Art 4 (TDM)",
                 "declared": False,  # Purple undeclared badge
             },
             {
@@ -267,7 +267,7 @@ class ComplianceAuditor:
                 "repo": "voice-cloning-api",
                 "purpose": "Audio generation and text-to-speech rendering",
                 "eu_tier": "Article 50(2) Synthetic Audio",
-                "uk_regime": "UK Media Transparency",
+                "uk_regime": "EU AI Act Art 50 Transparency",
                 "declared": True,
             },
             {
@@ -276,7 +276,7 @@ class ComplianceAuditor:
                 "repo": "internal-knowledge-rag",
                 "purpose": "Internal policy document indexing and retrieval",
                 "eu_tier": "Limited Risk (Internal)",
-                "uk_regime": "UK GDPR & IP TDM",
+                "uk_regime": "EU GDPR & EU TDM",
                 "declared": True,
             },
             {
@@ -285,7 +285,7 @@ class ComplianceAuditor:
                 "repo": "developer-copilot",
                 "purpose": "Internal code autocomplete and docstring generator",
                 "eu_tier": "Minimal / No Risk",
-                "uk_regime": "UK General Software",
+                "uk_regime": "EU General Software",
                 "declared": True,
             },
         ]
@@ -303,7 +303,7 @@ class ComplianceAuditor:
                 "system_id": "S4",
                 "system_name": "Imagery Studio",
                 "primary_rule": "EU AI Act Article 5(1)(d) & Confluence AUP Policy Drift",
-                "also_engages": "UK Online Safety Act 2023 / ICO Privacy",
+                "also_engages": "EU Digital Services Act (DSA) / GDPR Privacy",
                 "summary": "Line 48 of moderation.yaml sets face_upload_filter: false for 'pro' subscribers, enabling unconsented facial uploads and intimate imagery generation, directly violating Confluence AUP Policy v2.1 guarantees.",
                 "code_vs_doc_drift": {
                     "doc_claim": "AUP_Policy_v2_1.md §1.1: 'Intimate imagery is blocked unconditionally across all tiers, including Free, Creator, and Pro accounts. Zero bypass allowed.'",
@@ -357,7 +357,7 @@ class ComplianceAuditor:
                 "system_id": "S4",
                 "system_name": "Imagery Studio",
                 "primary_rule": "EU AI Act Article 50(2) (Synthetic Content Marking)",
-                "also_engages": "UK DSIT AI Transparency Standards / ISO 5474",
+                "also_engages": "CEN-CENELEC / ISO 5474 Synthetic Media Standards",
                 "summary": "src/generate.py emits raw synthetic PNG images without C2PA cryptographic metadata or machine-readable watermarking, violating the Dec 2, 2026 statutory transparency deadline.",
                 "code_vs_doc_drift": {
                     "doc_claim": "Model_Card.md §2: 'Target Distribution: Deployed as Enterprise SaaS adhering to emerging global transparency rules.'",
@@ -400,11 +400,11 @@ class ComplianceAuditor:
                 "title": "Solely Automated Credit Limits & US PII Data Egress",
                 "system_id": "S3",
                 "system_name": "Credit Decision Engine",
-                "primary_rule": "UK DUAA 2025 / UK GDPR Art 22 & DPA Drift",
+                "primary_rule": "EU GDPR Article 22 & DPA Drift",
                 "also_engages": "EU AI Act Annex III §5(b) High-Risk Credit Scoring",
-                "summary": "src/credit_scorer.py transmits raw customer names, NI numbers, and postcodes directly to a US-hosted OpenAI endpoint without Presidio redaction, and executes solely automated credit-limit cuts with appeal_route_available=False.",
+                "summary": "src/credit_scorer.py transmits raw customer names, identifiers, and postcodes directly to a US-hosted OpenAI endpoint without Presidio redaction, and executes solely automated credit-limit cuts with appeal_route_available=False.",
                 "code_vs_doc_drift": {
-                    "doc_claim": "DPA_Customer_Data.md §1: 'All PII must be redacted via Presidio... Customer data is processed strictly within European enclaves (eu-central-1/eu-west-2)... all automated decisions must provide accessible human contestation.'",
+                    "doc_claim": "DPA_Customer_Data.md §1: 'All PII must be redacted via Presidio... Customer data is processed strictly within European enclaves (eu-central-1)... all automated decisions must provide accessible human contestation.'",
                     "code_reality": "src/credit_scorer.py L12 & L48: OpenAI(base_url='https://api.openai.com/v1') receiving raw prompt and returning appeal_route_available=False.",
                 },
                 "evidence": [
@@ -414,24 +414,24 @@ class ComplianceAuditor:
                         "artifact_id": "github/credit-decision-engine/src/credit_scorer.py",
                         "exact_locator": "evaluate_credit_limit():L38-L56",
                         "sha256_hash": "a4f89d31e8c04b12",
-                        "source_url": "https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/automated-decision-making-and-profiling/",
+                        "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679",
                         "source_date": "2026-11-14",
-                        "snippet": 'prompt = f"Analyze credit limit for customer: {request.applicant_name}, NI: {request.ni_number}..."\nreturn {"decision": "AUTOMATED_LIMIT_REDUCTION", "appeal_route_available": False}',
+                        "snippet": 'prompt = f"Analyze credit limit for customer: {request.applicant_name}, ID: {request.id}..."\nreturn {"decision": "AUTOMATED_LIMIT_REDUCTION", "appeal_route_available": False}',
                     }
                 ],
-                "exposure_text": "ICO enforcement notice, statutory damages under UK DUAA 2025 ADM provisions, and GDPR fines up to £17.5M.",
+                "exposure_text": "EU DPA enforcement notice, statutory damages under GDPR Art. 22 automated decision provisions, and fines up to €20M / 4% global turnover.",
                 "owner": "Head of Credit Underwriting & FinTech Ops",
                 "effort_days": 5,
                 "human_review_required": False,
                 "remediation_steps": [
                     "Wrap input payload with local Microsoft Presidio anonymizer before inference.",
-                    "Migrate model target to sovereign UK/EU regional inference enclave.",
+                    "Migrate model target to sovereign EU regional inference enclave.",
                     "Build human-in-the-loop escalation workflow and customer appeal request portal.",
                 ],
                 "history_status": "NEW",
                 "linkup_citation_urls": [
-                    "https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/automated-decision-making-and-profiling/",
-                    "https://bills.parliament.uk/bills/3748",
+                    "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679",
+                    "https://artificialintelligenceact.eu/annex/3/",
                 ],
             },
             {
@@ -488,7 +488,7 @@ class ComplianceAuditor:
                 "system_id": "S1",
                 "system_name": "Customer Support Assistant",
                 "primary_rule": "EU AI Act Article 50(1) (Interaction Disclosure)",
-                "also_engages": "UK Consumer Protection from Unfair Trading Regulations",
+                "also_engages": "EU Unfair Commercial Practices Directive",
                 "summary": "2 of 4 chat entry points in src/routes.py (/v1/email-support/auto-respond and /v1/in-app-widget/instant-reply) fail to inform customers that they are conversing with an automated artificial intelligence system.",
                 "code_vs_doc_drift": {
                     "doc_claim": "AUP_Policy_v2_1.md: 'All customer-facing synthetic dialogs maintain clear transparency notices.'",
@@ -533,7 +533,7 @@ class ComplianceAuditor:
                 "system_id": "S2",
                 "system_name": "Candidate Ranking Engine",
                 "primary_rule": "EU AI Act Article 27 & Annex III §4(a)",
-                "also_engages": "UK ICO AI Guidance on Employment",
+                "also_engages": "EU AI Act Annex III Employment Guidelines",
                 "summary": "[Closed-World Assumption]: Automated candidate screening deployed without formal Article 27 Fundamental Rights Impact Assessment on record in Confluence space.",
             }
         ]
@@ -572,13 +572,13 @@ class ComplianceAuditor:
             company_name=company_name,
             assessed_at=now_str,
             scope=f"GitHub Repositories ({len(systems)} systems) & Confluence AIGOV Space",
-            rule_library_version="EU-UK-2026.11-Unified",
+            rule_library_version="EU-2026.11-Unified",
             input_coverage_pct=94,
             overall_readiness="NOT READY — 5 CRITICAL STATUTORY BREACHES",
             readiness_summary=(
                 "Northwind Labs faces severe regulatory exposure across EU AI Act Article 5(1)(d) (facial likeness bypass), "
                 "Article 50(2) (missing C2PA synthetic media watermark ahead of Dec 2, 2026 deadline), "
-                "UK DUAA 2025 solely automated credit cuts, and commercial CC-BY-NC-4.0 license infringement."
+                "EU GDPR Article 22 solely automated decision profiling, and commercial CC-BY-NC-4.0 license infringement."
             ),
             bundle_sha256="7c992a019488f1c09892ba0174ef9921cba10291ba488219ba488109ba472910",
             stack_telemetry={

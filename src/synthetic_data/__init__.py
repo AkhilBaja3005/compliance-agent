@@ -1,4 +1,4 @@
-"""Synthetic data package for EU & UK AI Compliance Auditor."""
+"""Synthetic data package for EU AI Compliance Auditor."""
 
 from src.synthetic_data.generator import (
     generate_all_companies,

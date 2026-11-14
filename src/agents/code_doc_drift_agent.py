@@ -38,7 +38,7 @@ def _hosting(ix):
     unk = [s for s in ext if "UNKNOWN" in slice_regions(s)]
     if unk:
         return "UNVERIFIABLE", [ev_slice(s) for s in unk[:3]], "endpoint region could not be determined"
-    return "SUPPORTS", [ev_slice(s) for s in ext[:2]], "all endpoints EU/UK/internal"
+    return "SUPPORTS", [ev_slice(s) for s in ext[:2]], "all endpoints EU/internal"
 
 
 def _hitl(ix):

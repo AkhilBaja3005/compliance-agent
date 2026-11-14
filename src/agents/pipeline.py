@@ -92,7 +92,7 @@ def finalize_report(report: TriagedAuditReport, run: AgentRun, store, sink: Data
     from src.regulatory_rag.tier_a_rules import active_frameworks
     _fw = active_frameworks()
     names = {"EU_AI_ACT": "EU AI Act", "EU_GDPR": "EU GDPR", "UK_GDPR_ICO": "UK GDPR/ICO", "UK_DSIT": "UK DSIT", "UK_COPYRIGHT_TDM": "UK copyright/TDM"}
-    fw_label = "EU/UK" if _fw is None else " + ".join(names.get(x, x) for x in sorted(_fw, key=lambda k: (k != "EU_AI_ACT", k)))
+    fw_label = "EU" if _fw is None else " + ".join(names.get(x, x) for x in sorted(_fw, key=lambda k: (k != "EU_AI_ACT", k)))
     report.frameworks = ["ALL"] if _fw is None else sorted(_fw)
     report.scope = (f"{len(ix.systems)} AI system(s); code: {ix.code_origin}"
                     f"{' @' + ix.commit_sha[:10] if ix.commit_sha else ''}"

@@ -61,13 +61,13 @@
               }
             },
             {
-              "id": "UK DUAA 2025 / UK GDPR Art 22 & DPA Drift",
-              "name": "UK_DUAA_2025___UK_GDPR_Art_22___DPA_Drift",
+              "id": "EU GDPR Article 22 & DPA Drift",
+              "name": "EU_GDPR_Article_22___DPA_Drift",
               "shortDescription": {
                 "text": "Solely Automated Credit Limits & US PII Data Egress"
               },
               "fullDescription": {
-                "text": "src/credit_scorer.py transmits raw customer names, NI numbers, and postcodes directly to a US-hosted OpenAI endpoint without Presidio redaction, and executes solely automated credit-limit cuts with appeal_route_available=False."
+                "text": "src/credit_scorer.py transmits raw customer names, identifiers, and postcodes directly to a US-hosted OpenAI endpoint without Presidio redaction, and executes solely automated credit-limit cuts with appeal_route_available=False."
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -82,7 +82,7 @@
                 "precision": "very-high"
               },
               "help": {
-                "text": "Statutory Mandate: UK DUAA 2025 / UK GDPR Art 22 & DPA Drift\nSeverity: CRITICAL\nExposure: ICO enforcement notice, statutory damages under UK DUAA 2025 ADM provisions, and GDPR fines up to \u00a317.5M.\n\nRemediation Steps:\n- Wrap input payload with local Microsoft Presidio anonymizer before inference.\n- Migrate model target to sovereign UK/EU regional inference enclave.\n- Build human-in-the-loop escalation workflow and customer appeal request portal."
+                "text": "Statutory Mandate: EU GDPR Article 22 & DPA Drift\nSeverity: CRITICAL\nExposure: EU DPA enforcement notice, statutory damages under GDPR Art. 22 automated decision provisions, and fines up to \u20ac20M / 4% global turnover.\n\nRemediation Steps:\n- Wrap input payload with local Microsoft Presidio anonymizer before inference.\n- Migrate model target to sovereign EU regional inference enclave.\n- Build human-in-the-loop escalation workflow and customer appeal request portal."
               }
             },
             {
@@ -265,10 +265,10 @@
           }
         },
         {
-          "ruleId": "UK DUAA 2025 / UK GDPR Art 22 & DPA Drift",
+          "ruleId": "EU GDPR Article 22 & DPA Drift",
           "level": "error",
           "message": {
-            "text": "[CRITICAL] Solely Automated Credit Limits & US PII Data Egress\n\nRule: UK DUAA 2025 / UK GDPR Art 22 & DPA Drift\n\nsrc/credit_scorer.py transmits raw customer names, NI numbers, and postcodes directly to a US-hosted OpenAI endpoint without Presidio redaction, and executes solely automated credit-limit cuts with appeal_route_available=False.\n\nRemediation: Wrap input payload with local Microsoft Presidio anonymizer before inference.; Migrate model target to sovereign UK/EU regional inference enclave."
+            "text": "[CRITICAL] Solely Automated Credit Limits & US PII Data Egress\n\nRule: EU GDPR Article 22 & DPA Drift\n\nsrc/credit_scorer.py transmits raw customer names, identifiers, and postcodes directly to a US-hosted OpenAI endpoint without Presidio redaction, and executes solely automated credit-limit cuts with appeal_route_available=False.\n\nRemediation: Wrap input payload with local Microsoft Presidio anonymizer before inference.; Migrate model target to sovereign EU regional inference enclave."
           },
           "locations": [
             {
@@ -281,7 +281,7 @@
                   "startLine": 38,
                   "endLine": 56,
                   "snippet": {
-                    "text": "prompt = f\"Analyze credit limit for customer: {request.applicant_name}, NI: {request.ni_number}...\"\nreturn {\"decision\": \"AUTOMATED_LIMIT_REDUCTION\", \"appeal_route_available\": False}"
+                    "text": "prompt = f\"Analyze credit limit for customer: {request.applicant_name}, ID: {request.id}...\"\nreturn {\"decision\": \"AUTOMATED_LIMIT_REDUCTION\", \"appeal_route_available\": False}"
                   }
                 }
               }
