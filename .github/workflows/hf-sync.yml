@@ -1,0 +1,42 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  sync-to-huggingface:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::Secret HF_TOKEN is not set in GitHub repository settings!"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add hf "https://abaja:${HF_TOKEN}@huggingface.co/spaces/abaja/graphite"
+          git push hf main --force
+
+      - name: Trigger Hugging Face Factory Rebuild
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "Triggering Hugging Face factory rebuild to invalidate Docker caches..."
+          status_code=$(curl -s -o /tmp/hf_restart_response.json -w "%{http_code}" -X POST "https://huggingface.co/api/spaces/abaja/graphite/restart?factory=true" \
+            -H "Authorization: Bearer ${HF_TOKEN}")
+          echo "Hugging Face restart API responded with HTTP: $status_code"
+          cat /tmp/hf_restart_response.json
+          if [ "$status_code" -ne 200 ]; then
+            echo "::warning::Hugging Face restart API returned HTTP $status_code"
+          fi
