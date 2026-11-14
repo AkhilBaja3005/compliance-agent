@@ -129,7 +129,9 @@ def init_state(force: bool = False) -> None:
 async def lifespan(app: FastAPI):
     from src.dashboard.service import DashboardService
     from src.storage.dashboard import get_dashboard_repository
+    from src.dashboard.assets_bundle import ensure_assets
 
+    ensure_assets()
     configure_logging(os.getenv("GRAPHITE_LOG_LEVEL", "INFO"))
     init_state()
     app.state.dashboard = None

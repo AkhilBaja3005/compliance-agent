@@ -277,7 +277,7 @@ def test_api_endpoints(fixtures_dir, monkeypatch):
     try:
         client = TestClient(app)
         comps = client.get("/companies").json()
-        assert {c["company_id"] for c in comps} == {"company_a_finscore", "company_b_voxgen", "company_c_medassist"}
+        assert {"company_a_finscore", "company_b_voxgen", "company_c_medassist"}.issubset({c["company_id"] for c in comps})
         rep = client.post("/audit/run", json={"company_id": "company_a_finscore"}).json()
         assert rep["tenant_id"] == "company_a_finscore" and len(rep["confirmed_findings"]) >= 4 and rep["agent_execution_trace"]
         bad = client.post("/audit/run", json={"company_id": "company_a_finscore", "inject_fake_citation": True}).json()

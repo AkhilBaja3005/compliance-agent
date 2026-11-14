@@ -25,14 +25,15 @@
   ];
   const colors = ["var(--confirmed)", "var(--suspected)", "var(--review)", "var(--passed)"];
 
-  // Populate inline base64 logo if assets directory is empty or blocked
+  // Graceful fallback for environments where binary assets are blocked
   if (window.GRAPHITE_LOGO_B64) {
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll('img[src*="graphite_report_logo.png"]').forEach((img) => {
-        img.src = window.GRAPHITE_LOGO_B64;
+        img.onerror = () => {
+          img.onerror = null;
+          img.src = window.GRAPHITE_LOGO_B64;
+        };
       });
-      const favicon = document.querySelector('link[rel="icon"]');
-      if (favicon) favicon.href = window.GRAPHITE_LOGO_B64;
     });
   }
   const state = {
