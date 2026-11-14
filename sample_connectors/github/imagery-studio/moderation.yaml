@@ -1,0 +1,38 @@
+# Northwind Labs Imagery Studio - Multi-Modal Moderation Pipeline
+version: "2.1.0"
+pipeline:
+  name: "imagery-studio-guard"
+  text_moderation:
+    enabled: true
+    provider: "internal-distilbert"
+    toxic_threshold: 0.85
+    sexual_content_threshold: 0.90
+    violence_threshold: 0.88
+  safety_checks:
+    csam_hash_check: true
+    known_terrorist_symbols: true
+    celebrity_likeness_check: false
+  tiers:
+    free:
+      rate_limit_per_minute: 5
+      max_resolution: "1024x1024"
+      face_upload_filter: true
+      deepfake_detection_enforced: true
+      strict_nudity_block: true
+    creator:
+      rate_limit_per_minute: 20
+      max_resolution: "2048x2048"
+      face_upload_filter: true
+      deepfake_detection_enforced: true
+      strict_nudity_block: true
+    pro:
+      rate_limit_per_minute: 60
+      max_resolution: "4096x4096"
+      allow_raw_prompts: true
+      bypass_content_warning: true
+      face_upload_filter: false # Line 48: High-tier bypass allows unverified faces & intimate likeness
+      deepfake_detection_enforced: false
+      strict_nudity_block: false
+    enterprise:
+      dedicated_gpu_cluster: true
+      custom_safety_filter: true
