@@ -24,7 +24,7 @@ WORKDIR /app
 COPY pyproject.toml CLAUDE.md ./
 COPY src ./src
 COPY assets ./assets
-COPY tests/fixtures/companies ./tests/fixtures/companies
+COPY tests ./tests
 COPY synthetic_companies ./synthetic_companies
 COPY regulatory_pdfs ./regulatory_pdfs
 COPY sync_sources.yaml ./sync_sources.yaml

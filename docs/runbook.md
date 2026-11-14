@@ -1,7 +1,7 @@
 # Runbook
 
 ## First deploy
-1. `cp .env.example .env`; generate keys: `python -c "import secrets;print(secrets.token_urlsafe(32))"`; set `GRAPHITE_API_KEYS` (one admin key, one auditor key per tenant group, viewer keys for readers).
+1. `cp .env.template .env`; generate keys: `python -c "import secrets;print(secrets.token_urlsafe(32))"`; set `GRAPHITE_API_KEYS` (one admin key, one auditor key per tenant group, viewer keys for readers).
 2. Set `GRAPHITE_DATA_DIR` to a persistent volume (jobs, reports, sign-offs). Without it everything is in memory.
 3. `graphite doctor --live` and fix every FAIL. WARN/SKIP are acceptable when the service is intentionally unused.
 4. `graphite sync-laws` (indexes statutory rules and `regulatory_pdfs/` into Atlas). Atlas builds vector indexes in the background (about a minute): wait for them to be queryable (`graphite doctor --live` lists their state) before relying on semantic search; BM25 is the fallback meanwhile.

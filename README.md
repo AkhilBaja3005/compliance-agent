@@ -1,83 +1,208 @@
-# Graphite: AI safety and regulatory compliance auditor
+# Graphite: AI Safety and EU Regulatory Compliance Auditor
 
-Audits a company's code, documents and data against the EU AI Act and EU GDPR and produces a triaged, evidence-backed report (JSON and a 6-section PDF). Findings are technical observations for human review, not legal advice.
+Graphite is an enterprise-grade AI safety and regulatory compliance auditing platform. It audits an organization's code repositories, governance documents, and data pipelines against the **EU AI Act (Regulation 2024/1689)** and the **EU General Data Protection Regulation (GDPR)**, producing evidence-backed, triaged audit reports in JSON, SARIF 2.1.0, and publication-ready 6-section PDFs.
 
-**Core rules.** Missing evidence is `SUSPECTED_GAP`, never `PASS` (closed world). A finding that fails the citation, tenant-leak or entailment gate is `QUARANTINED_FOR_HUMAN_REVIEW`, never deleted. Every finding carries an exact locator and a sha256 of its evidence.
+Findings are technical compliance observations for engineering and governance review, not legal advice.
 
-## Quick start
+---
+
+## Core Guarantees & Philosophy
+
+1. **Closed-World Assumption (No Evidence != Pass):**
+   Missing or inconclusive evidence always yields `SUSPECTED_GAP`, never `PASS`. A control passes only when supported by verifiable AST code facts or document citations.
+2. **Quarantine-Over-Drop:**
+   Findings that fail validation gates (unresolvable citations, cross-tenant isolation, or weak entailment) are flagged as `QUARANTINED_FOR_HUMAN_REVIEW` with exact diagnostic reasons, never silently discarded.
+3. **Cryptographic Proofs & Exact Locators:**
+   Every finding includes the SHA-256 hash of the analyzed artifact, file paths, and exact source-code line numbers or document sections.
+4. **EU Regulatory Focus:**
+   Strictly aligned with the EU statutory perimeter: EU AI Act (Articles 5, 10, 14, 27, 50, 52, 53, 99; Annexes III & IV) and EU GDPR (Articles 5, 9, 22, 28, 44–49).
+
+---
+
+## Architecture Overview
+
+```
+                      ┌──────────────────────────────────────────────┐
+                      │                 INPUT SOURCES                │
+                      │  • Code (Python, TS/JS, Java, Go, C#, etc.)  │
+                      │  • Docs (Markdown, Confluence, PDF, Office)  │
+                      │  • Data (Schemas, Catalogs, dbt, Parquet)    │
+                      └──────────────────────┬───────────────────────┘
+                                             │
+                                             ▼
+                      ┌──────────────────────────────────────────────┐
+                      │               EDGE EXTRACTORS                │
+                      │  • AST Slices & Model Inference Calls        │
+                      │  • Document Assertions & Policy Claims       │
+                      │  • Data Asset Classifications                │
+                      └──────────────────────┬───────────────────────┘
+                                             │
+                                             ▼
+                      ┌──────────────────────────────────────────────┐
+                      │              TRI-MODAL INDEX                 │
+                      └──────────────────────┬───────────────────────┘
+                                             │
+                                             ▼
+                      ┌──────────────────────────────────────────────┐
+                      │         SUPERVISOR (LangGraph Loop)          │
+                      │   Routes tasks to 6 specialized agents:      │
+                      │   1. PII Flow & Sovereign Data Residency     │
+                      │   2. Human-in-the-Loop (HITL) Oversight      │
+                      │   3. Harmful Generation, Safety & Watermarks │
+                      │   4. Open-Source & Model License Compliance  │
+                      │   5. DPA, Provenance & Technical Files       │
+                      │   6. Code-vs-Documentation Policy Drift      │
+                      └──────────────────────┬───────────────────────┘
+                                             │
+                                             ▼
+                      ┌──────────────────────────────────────────────┐
+                      │             4 GUARDRAIL GATES                │
+                      │   Gate 1: Grounded Citation Verification     │
+                      │   Gate 2: Multi-Tenant Data Isolation        │
+                      │   Gate 3: Code/Doc Entailment & Proof        │
+                      │   Gate 4: Severity & Exposure Framing        │
+                      └──────────────────────┬───────────────────────┘
+                                             │
+                                             ▼
+                      ┌──────────────────────────────────────────────┐
+                      │              DELIVERY OUTPUTS                │
+                      │  • Executive PDF (6 Sections, A4 print ready)│
+                      │  • SARIF 2.1.0 Export (GitHub Code Scanning) │
+                      │  • Automated Remediation Diffs & Fix Patches │
+                      │  • Interactive Web Dashboard & Real-Time API │
+                      │  • Delta Lake Tables & Atlas History Tracking│
+                      └──────────────────────────────────────────────┘
+```
+
+---
+
+## Platform Integrations
+
+All components have deterministic offline fallbacks. The system operates fully with or without external credentials.
+
+| Platform | Role in Graphite | Offline Fallback |
+|---|---|---|
+| **Linkup** | Live regulatory scraping and OSS license verification via deep search | Embedded seed regulatory rules and standard license taxonomies |
+| **MongoDB Atlas** | `$vectorSearch` over rules/artifacts, LangGraph state checkpoints (`MongoDBSaver`), longitudinal drift (`audit_history`) | Local BM25 + embedding store, `MemorySaver`, JSON audit history |
+| **LangGraph** | Cyclic agent execution graph (`StateGraph`) orchestrating supervisor routing, iterative evaluation loops, and durable state resumption | In-memory cyclic graph with deterministic turn boundaries |
+| **Databricks** | Mosaic AI Model Serving, `@mlflow.trace` execution spans, Unity Catalog Delta sinks | Deterministic offline evaluator, no-op telemetry |
+
+---
+
+## Quick Start
+
+### 1. Installation
+
+Requires Python 3.11+, Git, and WeasyPrint system dependencies (Pango/HarfBuzz).
 
 ```bash
-make install                  # venv + dependencies
-cp .env.example .env          # all engines have offline fallbacks; fill in only what you have
-.venv/bin/graphite doctor        # shows which integrations are live; add --live for one read-only call each
-make test                     # unit tests + the precision/recall gate
-make demo                     # audits three sample companies -> demo_output/*.pdf + summary.json
+# Clone the repository
+git clone https://github.com/AkhilBaja3005/compliance-agent.git
+cd compliance-agent
+
+# Set up virtual environment and install dependencies
+make install
+# or manually:
+python3 -m venv .venv
+.venv/bin/pip install -e '.[dev]'
+
+# Configure optional integrations with offline defaults
+cp .env.template .env
 ```
 
-Keep the regulatory knowledge base current: `graphite sync-laws` (rules + folders and URLs from `sync_sources.yaml`, or `--folder DIR --url https://...`); schedule it with `graphite sync-daemon` or cron ([runbook](docs/runbook.md)).
+### 2. Verify Environment & Integrations
 
-Audit your own folder: `graphite scan -t <folder> -c "Company" -o report.pdf`. A folder may hold `github/` and `confluence/` subfolders, or just files.
-
-PR gate: `graphite scan -t <repo> --diff origin/main --fail-on high` audits only the code files changed since the base (`git diff --name-only <base>...HEAD`). Unchanged files are served from a content-addressed AST cache (`GRAPHITE_AST_CACHE_DIR=.graphite_cache` persists it between runs). Micro-agent checks run in parallel (`GRAPHITE_AGENT_WORKERS`, default 6) with deterministic ordering.
-
-## Architecture
-
-```
-inputs ──► edge extractors ──► tri-modal index ──► Supervisor (LangGraph loop) ──► 4 guardrail gates ──► report
- code (10 languages, notebooks)   AST slices         mandatory checklist           1 citations exist        JSON / PDF
- infra + manifests                capability cards   6 micro-agents                2 tenant isolation       Unity Catalog
- docs (md, pdf, office, remote)   assertions         (pii_flow, hitl_oversight,    3 entailment             Mongo history
- data (schemas, cards, stores)    data assets        safety_watermark, oss_license, 4 framing / escalation  (NEW/RECURRING/
-                                                     dpa_provenance, code_doc_drift)                         RESOLVED)
+```bash
+# Run integration diagnostics
+.venv/bin/graphite doctor
+# (Add --live to perform non-destructive read checks against configured cloud endpoints)
 ```
 
-| Platform | Role | Without credentials |
-|---|---|---|
-| Linkup | live citations for rules and licences | seed rule library |
-| MongoDB Atlas | `$vectorSearch`, LangGraph checkpoints, `audit_history` | in-memory store + local BM25 |
-| Databricks | Model Serving, MLflow traces, Unity Catalog tables | deterministic narratives, no-op tracing |
+After installation, activate the environment with `source .venv/bin/activate` to use the commands below.
 
-Scope is set by `GRAPHITE_FRAMEWORKS` (default `EU_AI_ACT,EU_GDPR` or `ALL`). Licence checks (GPL, non-commercial weights) always run. Details of what each reader sees: [docs/coverage.md](docs/coverage.md).
+### 3. Run an Audit Scan
 
-## API
+```bash
+# Audit a local project directory or repository
+graphite scan -t synthetic_companies/merriton_labs_text_verify -c "Merriton Labs" -o merriton_report.pdf
 
-`uvicorn src.api:app`. **Closed by default**: set `GRAPHITE_API_KEYS="key:tenants:role,..."` (roles `admin`, `auditor`, `viewer`; tenants `*` or `a|b`). `GRAPHITE_AUTH_DISABLED=true` is for local development only.
+# Export SARIF for GitHub Code Scanning
+graphite scan -t synthetic_companies/veylan_analytics_face_identity -c "Veylan Analytics" --sarif-out veylan_report.sarif
+
+# Audit incremental PR changes against a base branch
+graphite scan -t synthetic_companies/merriton_labs_text_verify --diff HEAD~1 --fail-on high
+```
+
+Scope is set by `GRAPHITE_FRAMEWORKS` (default `EU_AI_ACT,EU_GDPR` or `ALL`). License checks always run. See [reader coverage](docs/coverage.md) for supported inputs. Unchanged files use a content-addressed AST cache (`GRAPHITE_AST_CACHE_DIR=.graphite_cache` persists it between runs); micro-agent checks run in parallel with deterministic ordering (`GRAPHITE_AGENT_WORKERS`, default 6).
+
+Run `graphite demo` to audit all three bundled sample companies and write PDFs plus `demo_output/summary.json`.
+
+### 4. Automated Statutory Remediation
+
+Generate unified diff patches to remediate confirmed violations using an audit report:
+
+```bash
+# Generate patch file without modifying code
+graphite fix --report report.json --repos <repo_path> --patch-out remediation.patch
+
+# Apply verified patches directly to disk
+graphite fix --report report.json --repos <repo_path> --apply
+```
+
+### 5. Regulatory Synchronization
+
+Synchronize the regulatory rule library against active EU legislative publications and local policy repositories:
+
+```bash
+# Ingest and re-embed statutory sources
+graphite sync-laws
+
+# Run continuous sync daemon (or run via cron / systemd)
+graphite sync-daemon
+```
+
+---
+
+## Interactive Dashboard & Web API
+
+Graphite includes an interactive web dashboard for leadership overviews, engineering finding triage, and continuous audit scheduling.
+
+Open the dashboard and select a company, then choose **Run audit** to create the first assessment. Startup never triggers an audit. Both views refresh every five seconds and preserve the selected company. Failed runs retain the previous completed assessment; empty and disconnected states remain explicit.
+
+The finding explorer supports status, severity, system, jurisdiction and text filters, with expandable evidence, citations, ownership and remediation steps. The UI shows assessment time, refresh time, audit activity, coverage, engine fallback modes, and the latest 30 assessments.
+
+### Local Development Server
+
+```bash
+GRAPHITE_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --host 127.0.0.1 --port 8000
+```
+
+- **Executive Overview:** [http://localhost:8000/dashboard/overview](http://localhost:8000/dashboard/overview)
+- **Finding Explorer:** [http://localhost:8000/dashboard/findings](http://localhost:8000/dashboard/findings)
+- **Interactive OpenAPI Documentation (Swagger):** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Interactive ReDoc Documentation:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Full API Specification & Endpoints Guide:** [docs/api.md](docs/api.md)
+
+### API Endpoints
+
+Authentication is enforced by default via API key headers (`X-API-Key`). Configure access using `GRAPHITE_API_KEYS="key:tenants:role,..."`.
 
 | Route | Role | Purpose |
 |---|---|---|
-| `GET /healthz`, `/readyz` | none | liveness, readiness |
-| `POST /audit/jobs` (+ `Idempotency-Key`), `GET /audit/jobs/{id}`, `/report`, `POST .../cancel` | auditor / viewer | async audits |
-| `POST /audit/run` | auditor | synchronous audit |
-| `GET /reports/{id}`, `POST|GET /reports/{id}/signoff` | viewer / auditor | reports; hash-chained human sign-off |
-| `POST /laws/sync`, `/laws/simulate-update`, `GET /laws/pending`, `POST /laws/pending/{id}/approve` | admin | rule library; set `GRAPHITE_RULE_REVIEW_REQUIRED=true` to stage changes for approval |
-| `GET /metrics`, `/stack/status`, `POST /admin/ingest-pdf` | admin | operations |
+| `GET /healthz`, `/readyz` | Public | Liveness and readiness probes |
+| `POST /audit/run` | `auditor` | Synchronous codebase and policy audit |
+| `POST /audit/jobs` | `auditor` | Queue asynchronous background audit job (supports `Idempotency-Key`) |
+| `GET /audit/jobs/{id}` | `viewer` | Retrieve background job execution status |
+| `GET /reports/{id}` | `viewer` | Retrieve stored `TriagedAuditReport` JSON |
+| `POST /reports/{id}/signoff` | `auditor` | Cryptographically sign off on audit findings (hash-chained audit ledger) |
+| `POST /laws/sync` | `admin` | Trigger immediate regulatory knowledge sync |
+| `GET /metrics`, `/stack/status` | `admin` | Prometheus metrics and cloud integration status |
 
-Hardening: constant-time key check, per-key rate limits, body-size limit, https-only allow-listed repo URLs, admin-only confined local paths, security headers, JSON logs with request ids (keys never logged). See [docs/threat-model.md](docs/threat-model.md) and [docs/runbook.md](docs/runbook.md).
+Hardening includes constant-time key checks, per-key rate limits, body-size limits, HTTPS-only allowed repository hosts, confined admin-only local paths, security headers, and JSON logs with request IDs. See the [threat model](docs/threat-model.md) and [operations runbook](docs/runbook.md).
 
-## Compliance dashboard
+---
 
-The FastAPI application serves a [leadership overview](http://localhost:8000/dashboard/overview),
-an [engineering finding explorer](http://localhost:8000/dashboard/findings), and
-[API documentation](http://localhost:8000/docs). Both views use completed `TriagedAuditReport`
-results, refresh every five seconds, and preserve the selected company when navigating.
-The finding explorer supports status, severity, system, jurisdiction and text filters, with
-expandable evidence, citations, ownership and remediation steps.
-
-### Run locally
-
-Requires Python 3.11 or newer, Git, and [WeasyPrint's native libraries](https://doc.courtbouillon.org/weasyprint/latest/first_steps.html#installation).
-
-```sh
-python -m venv .venv
-.venv/bin/pip install -e '.[dev]'
-GRAPHITE_AUTH_DISABLED=true BYOM_OFFLINE=true .venv/bin/uvicorn src.api:app --host 127.0.0.1 --port 8000 --workers 1
-```
-
-Open http://localhost:8000 and select a company. Choose **Run audit** to create the first
-assessment. Startup never triggers an audit. The bundled fixtures work without external
-credentials. Empty, failed and disconnected states remain explicit; a failed run retains
-the previous completed assessment. The UI shows assessment time, successful refresh time,
-audit activity, coverage, engine fallback modes, and the latest 30 assessments.
+## Container Deployment
 
 ### Docker Compose
 
@@ -189,9 +314,9 @@ configuration through exported environment variables or a private `.env` read by
 - GitHub: `GITHUB_TOKEN`.
 - Confluence: `CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN`, and a saved space key.
 
-`.env.template` covers the shared Compose stack. The broader `.env.example` lists
-application settings but contains placeholder external credentials; replace or remove those
-placeholders before using it. The image excludes `.env` files. Container model
+`.env.template` covers the shared Compose stack with offline defaults and blank optional
+credentials. Additional application settings are described below and in the [operations runbook](docs/runbook.md).
+The image excludes `.env` files. Container model
 URLs must reach the serving host; `localhost` inside a container refers to that container.
 
 ### Persistent state and the separate scanner
@@ -266,9 +391,51 @@ Docker and Podman require their respective installed runtime and Compose provide
 The Git container tests enable the `git` profile in the shared stack and check dashboard
 health, SSH clone/push enforcement, and Git persistence for each installed runtime.
 
-## Evaluation
+---
+
+## Testing & Quality Gate
+
+```bash
+# Run unit, integration, and guardrail tests
+pytest -q
+
+# Run precision and recall evaluation against gold standard test suite
+graphite eval
+# or:
+pytest tests/test_eval_gate.py
+```
 
 `graphite eval` scores confirmed findings against `tests/eval/gold.json` and `tests/test_eval_gate.py` fails CI on a regression. The gold set is small, synthetic and written by the same team that tuned the checks, so a score of 1.0 means the planted defects are found, not that real repositories will be.
+
+---
+
+## Configuration Reference (`.env`)
+
+Copy `.env.template` to `.env` to configure optional remote services:
+
+```ini
+# Core scope
+GRAPHITE_FRAMEWORKS=EU_AI_ACT,EU_GDPR
+
+# Multi-tenant Auth & API
+GRAPHITE_AUTH_DISABLED=false
+GRAPHITE_API_KEYS=admin-secret:*:admin,auditor-key:acme|corp:auditor
+
+# Storage & Atlas
+MONGODB_URI=mongodb+srv://...
+MONGODB_DATABASE=graphite_compliance
+
+# Databricks & MLflow
+DATABRICKS_HOST=https://...
+DATABRICKS_TOKEN=dapi...
+DATABRICKS_SERVING_ENDPOINT=databricks-meta-llama-3-3-70b-instruct
+MLFLOW_TRACKING_URI=databricks
+
+# Linkup Deep Search
+LINKUP_API_KEY=lk_...
+```
+
+---
 
 ## Known limitations
 
@@ -278,3 +445,9 @@ health, SSH clone/push enforcement, and Git persistence for each installed runti
 - Rule text is a paraphrased seed library that counsel has not reviewed. Dates (e.g. Art. 50 transition) are hardcoded.
 - A running audit thread cannot be killed: cancel and timeout mark the job and discard the result. A restart marks unfinished jobs `interrupted`.
 - Tenant isolation is logical (every query and key is tenant-scoped); there is no per-tenant encryption.
+
+---
+
+## License
+
+This project is licensed under the Apache 2.0 License.
