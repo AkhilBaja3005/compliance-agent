@@ -137,19 +137,7 @@ Scope is set by `GRAPHITE_FRAMEWORKS` (default `EU_AI_ACT,EU_GDPR` or `ALL`). Li
 
 Run `graphite demo` to audit all three bundled sample companies and write PDFs plus `demo_output/summary.json`.
 
-### 4. Automated Statutory Remediation
-
-Generate unified diff patches to remediate confirmed violations using an audit report:
-
-```bash
-# Generate patch file without modifying code
-graphite fix --report report.json --repos <repo_path> --patch-out remediation.patch
-
-# Apply verified patches directly to disk
-graphite fix --report report.json --repos <repo_path> --apply
-```
-
-### 5. Regulatory Synchronization
+### 4. Regulatory Synchronization
 
 Synchronize the regulatory rule library against active EU legislative publications and local policy repositories:
 
