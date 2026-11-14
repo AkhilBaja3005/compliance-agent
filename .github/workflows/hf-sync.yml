@@ -39,6 +39,10 @@ jobs:
           # Remove from filesystem as well
           rm -rf assets/*.png assets/*.jpg assets/*.jpeg *.pdf reports/*.pdf regulatory_pdfs/*.pdf
 
+          # Fix Dockerfile in the deployment branch to remove COPY assets and COPY regulatory_pdfs
+          sed -i '/COPY assets/d' Dockerfile || sed -i '' '/COPY assets/d' Dockerfile
+          sed -i '/COPY regulatory_pdfs/d' Dockerfile || sed -i '' '/COPY regulatory_pdfs/d' Dockerfile
+
           # 3. Prepend Hugging Face YAML frontmatter to README if missing
           if ! grep -q "app_port: 8000" README.md; then
             cat << 'EOF' > /tmp/hf_header.txt
