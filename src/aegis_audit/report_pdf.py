@@ -35,7 +35,7 @@ def _get_css() -> str:
         size: A4 portrait;
         margin: 14mm 12mm 16mm 12mm;
         @bottom-left {
-            content: "CONFIDENTIAL & PROPRIETARY — AEGIS AI COMPLIANCE AUDITOR";
+            content: "CONFIDENTIAL & PROPRIETARY — GRAPHITE AI COMPLIANCE AUDITOR • MADE BY GRAPHITE";
             font-size: 7pt;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #94A3B8;
@@ -73,6 +73,53 @@ def _get_css() -> str:
         border-bottom: 2px solid #0F172A;
         padding-bottom: 8px;
         margin-bottom: 12px;
+    }
+    .header-layout {
+        display: table;
+        width: 100%;
+    }
+    .header-left {
+        display: table-cell;
+        vertical-align: middle;
+    }
+    .header-right {
+        display: table-cell;
+        vertical-align: middle;
+        text-align: right;
+        width: 140px;
+    }
+    .brand-badge {
+        display: inline-flex;
+        align-items: center;
+        background-color: #F1F5F9;
+        border: 1px solid #CBD5E1;
+        border-radius: 4px;
+        padding: 4px 8px;
+    }
+    .brand-logo-img {
+        width: 28px;
+        height: 28px;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
+    .brand-text-block {
+        display: inline-block;
+        text-align: left;
+        vertical-align: middle;
+    }
+    .brand-title {
+        font-size: 8pt;
+        font-weight: 800;
+        color: #0F172A;
+        letter-spacing: 0.5px;
+        line-height: 1;
+    }
+    .brand-sub {
+        font-size: 6pt;
+        color: #64748B;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     .assessment-sub {
         font-size: 8pt;
@@ -442,13 +489,29 @@ def _get_css() -> str:
     """
 
 
+
+def _get_logo_data_uri() -> str:
+    """Reads assets/graphite_report_logo.png and returns a base64 data URI."""
+    logo_path = Path(__file__).resolve().parent.parent.parent / "assets" / "graphite_report_logo.png"
+    if not logo_path.is_file():
+        logo_path = Path("assets/graphite_report_logo.png")
+    if logo_path.is_file():
+        try:
+            b64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
+            return f"data:image/png;base64,{b64}"
+        except Exception:
+            pass
+    return ""
+
+
 def render_html_report(report_data: Dict[str, Any]) -> str:
     """Generates the full HTML markup for the 6-section A4 audit report."""
+    logo_uri = _get_logo_data_uri()
     company = html.escape(str(report_data.get("company_name", "Enterprise Target")))
     report_id = html.escape(str(report_data.get("report_id", "AEGIS-AUDIT-2026-001")))
     assessed_at = html.escape(str(report_data.get("assessed_at", datetime.now(timezone.utc).strftime("%d %B %Y"))))
     scope = html.escape(str(report_data.get("scope", "GitHub Org & Confluence Workspace (S1–S7)")))
-    rule_lib = html.escape(str(report_data.get("rule_library_version", "EU-AI-ACT-2026.11")))
+    rule_lib = html.escape(str(report_data.get("rule_library_version", "EU-2026.11")))
     coverage_pct = report_data.get("input_coverage_pct", 94)
     overall_readiness = report_data.get("overall_readiness", "NOT READY — HIGH REGULATORY EXPOSURE")
     readiness_summary = report_data.get(
@@ -470,10 +533,21 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     quarantined = report_data.get("quarantined_for_human_review", [])
     passed = report_data.get("passed_checks", [])
 
+    try:
+        from aegis_audit import report_sections as _sections
+    except ImportError:  # pragma: no cover
+        from . import report_sections as _sections
+    is_real = bool(report_data.get("eval_results"))
+    _names = {"EU_AI_ACT": "EU AI ACT", "EU_GDPR": "EU GDPR", "UK_GDPR_ICO": "UK GDPR", "UK_DSIT": "UK DSIT", "UK_COPYRIGHT_TDM": "UK COPYRIGHT", "ALL": "EU + UK"}
+    fw_label = html.escape(" + ".join(_names.get(x, x) for x in report_data.get("frameworks", [])) or "EU + UK")
+    systems = [_sections.normalize_system(s) for s in systems]
+    all_f = confirmed_findings + suspected_gaps + quarantined + passed
+    _sv = lambda f: str(f.get("severity") or "").upper()
+
     # Counts
-    crit_count = sum(1 for f in confirmed_findings if f.get("severity") == "CRITICAL")
-    high_count = sum(1 for f in confirmed_findings if f.get("severity") == "HIGH")
-    med_count = sum(1 for f in confirmed_findings if f.get("severity") in ("MEDIUM", "LIMITED"))
+    crit_count = sum(1 for f in confirmed_findings if _sv(f) == "CRITICAL")
+    high_count = sum(1 for f in confirmed_findings if _sv(f) == "HIGH")
+    med_count = sum(1 for f in confirmed_findings if _sv(f) in ("MEDIUM", "LIMITED"))
     undeclared_count = sum(1 for s in systems if s.get("declared") is False)
     total_controls = len(confirmed_findings) + len(suspected_gaps) + len(passed)
     passing_controls = len(passed)
@@ -524,10 +598,23 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
 <!-- SECTION 1: EXECUTIVE SUMMARY -->
 <!-- ======================================================================= -->
 <div class="top-header">
-    <div class="assessment-sub">Aegis Regulatory Engine • Company-Wide Assessment · EU AI Act</div>
-    <div class="company-title-row">
-        <h1 class="company-name">{company}</h1>
-        <div class="report-date">Assessed: <strong>{assessed_at}</strong></div>
+    <div class="header-layout">
+        <div class="header-left">
+            <div class="assessment-sub">Graphite Regulatory Engine • Company-Wide Assessment · {fw_label}</div>
+            <div class="company-title-row">
+                <h1 class="company-name">{company}</h1>
+                <div class="report-date">Assessed: <strong>{assessed_at}</strong></div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="brand-badge">
+                {'<img class="brand-logo-img" src="' + logo_uri + '" alt="Graphite Logo">' if logo_uri else ''}
+                <div class="brand-text-block">
+                    <div class="brand-title">GRAPHITE</div>
+                    <div class="brand-sub">MADE BY GRAPHITE</div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -586,7 +673,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     <tbody>
 """
     for f in confirmed_findings[:4]:
-        sev = f.get("severity", "HIGH")
+        sev = str(f.get("severity") or "HIGH").upper()
         badge_cls = f"badge-{sev.lower()}"
         html_out += f"""
         <tr>
@@ -657,6 +744,11 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
     </tbody>
 </table>
 
+"""
+    if is_real:
+        html_out += _sections.sec2_callout(systems, all_f)
+    else:
+        html_out += """
 <div class="callout-card">
     <div style="font-size:8pt; font-weight:700; color:#0F172A; margin-bottom:6px; text-transform:uppercase;">Classification Record: Deep-Dive Analysis</div>
     <div class="callout-grid">
@@ -678,9 +770,16 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
         </div>
     </div>
 </div>
+"""
+    html_out += """
 
 <div class="page-break"></div>
 
+"""
+    if is_real:
+        html_out += _sections.sec3(report_data, systems, all_f)
+    else:
+        html_out += """
 <!-- ======================================================================= -->
 <!-- SECTION 3: COMPLIANCE MATRIX -->
 <!-- ======================================================================= -->
@@ -779,6 +878,8 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
         </tr>
     </tbody>
 </table>
+"""
+    html_out += """
 
 <div class="page-break"></div>
 
@@ -792,7 +893,7 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
 """
 
     for f in confirmed_findings:
-        sev = f.get("severity", "HIGH")
+        sev = str(f.get("severity") or "HIGH").upper()
         hist = f.get("history_status", "NEW")
         hist_cls = "badge-new" if hist == "NEW" else "badge-recurring"
         badge_cls = f"badge-{sev.lower()}"
@@ -838,7 +939,7 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
     <div class="finding-substrip">
         <strong>System:</strong> {f.get('system_id', 'S-General')} ({f.get('system_name', 'System')}) | 
         <strong>Primary Rule:</strong> {f.get('primary_rule')} | 
-        <strong>Also Engages:</strong> {f.get('also_engages', 'None')} | 
+        <strong>Also Engages:</strong> {', '.join(f.get('also_engages') or []) or 'None'} | 
         <strong>Confidence:</strong> {int(f.get('confidence', f.get('confidence_score', 0.95)) * 100)}%
     </div>
     <div class="finding-body">
@@ -873,9 +974,15 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
 </div>
 """
 
+    html_out += _sections.sec4_extra(report_data)
     html_out += """
 <div class="page-break"></div>
 
+"""
+    if is_real:
+        html_out += _sections.sec5(report_data, all_f)
+    else:
+        html_out += """
 <!-- ======================================================================= -->
 <!-- SECTION 5: SAFETY & FAIRNESS TESTING -->
 <!-- ======================================================================= -->
@@ -937,9 +1044,16 @@ Automated red-teaming eval suite results and demographic selection-rate parity a
         establishing statutory non-compliance under EU AI Act Annex III §4(a).
     </div>
 </div>
+"""
+    html_out += """
 
 <div class="page-break"></div>
 
+"""
+    if is_real:
+        html_out += _sections.sec6(report_data)
+    else:
+        html_out += """
 <!-- ======================================================================= -->
 <!-- SECTION 6: REMEDIATION ROADMAP, INPUT COVERAGE & SIGN-OFF -->
 <!-- ======================================================================= -->
@@ -1015,6 +1129,8 @@ Structured, phased execution plan to achieve full statutory compliance before st
     </tbody>
 </table>
 
+"""
+    html_out += f"""
 <h4 style="font-size:8pt; margin-top:8px; margin-bottom:4px; text-transform:uppercase;">Executive Sign-Off & Verification</h4>
 <table class="signoff-table">
     <thead>
@@ -1034,6 +1150,7 @@ Structured, phased execution plan to achieve full statutory compliance before st
 </table>
 
 <div class="telemetry-footer">
+    <div style="float:right; font-weight:bold; color:#70C5FF;">MADE BY GRAPHITE</div>
     <strong>STACK TELEMETRY & IMMUTABLE PROVENANCE:</strong><br>
     Databricks Serving Endpoint: <code>{databricks_ep}</code> | 
     Unity Catalog Table: <code>{uc_table}</code><br>

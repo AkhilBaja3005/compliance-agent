@@ -10,7 +10,7 @@ from src.edge_extractors import TriModalIndex, build_index
 from src.law_sync import get_store
 from src.law_sync.linkup_scout import get_scout
 from src.regulatory_rag import MandatoryCheck, build_checklist, build_profile, get_retriever
-from src.schemas.findings import ComplianceFinding, TriagedAuditReport
+from src.schemas.findings import ComplianceFinding, StackTelemetry, TriagedAuditReport
 from src.storage import DatabricksGovernanceSink, get_compliance_store
 
 from . import report_builder as rb
@@ -38,10 +38,20 @@ class AgentRun:
 
 def run_agents(company_dir: Path | str | None = None, tenant_id: str | None = None, llm: LLMClient | None = None, *,
                github_source=None, confluence_source=None, space_key: str | None = None, linkup=None,
-               compliance_store=None) -> AgentRun:
+               compliance_store=None, doc_sources=None, diff_base: str | None = None) -> AgentRun:
     store = compliance_store or get_compliance_store()
-    index = build_index(company_dir, tenant_id, github_source=github_source, confluence_source=confluence_source, space_key=space_key)
+    index = build_index(company_dir, tenant_id, github_source=github_source, confluence_source=confluence_source, space_key=space_key,
+                        doc_sources=doc_sources, diff_base=diff_base)
     law_store = get_store()
+    try:  # LLM claim extraction adds paraphrased promises on top of the regex floor; offline it is a no-op
+        from src.edge_extractors.doc_parser import extract_assertions_llm
+
+        _llm = llm or LLMClient()
+        known = {a.assertion_id for a in index.assertions}
+        index.assertions += [a for a in extract_assertions_llm(index.chunks, _llm) if a.assertion_id not in known]
+        llm = _llm
+    except Exception:
+        pass
     try:  # Mongo Atlas / in-memory vector indexes for rules and this tenant's artifacts
         store.index_rules(law_store.snapshot())
         store.index_tenant_artifacts(index)
@@ -81,9 +91,12 @@ def finalize_report(report: TriagedAuditReport, run: AgentRun, store, sink: Data
     report.assessed_at = run.assessed_at
     from src.regulatory_rag.tier_a_rules import active_frameworks
     _fw = active_frameworks()
-    fw_label = "EU/UK" if _fw is None else "EU AI Act" if _fw == {"EU_AI_ACT"} else "/".join(sorted(_fw))
+    names = {"EU_AI_ACT": "EU AI Act", "EU_GDPR": "EU GDPR", "UK_GDPR_ICO": "UK GDPR/ICO", "UK_DSIT": "UK DSIT", "UK_COPYRIGHT_TDM": "UK copyright/TDM"}
+    fw_label = "EU/UK" if _fw is None else " + ".join(names.get(x, x) for x in sorted(_fw, key=lambda k: (k != "EU_AI_ACT", k)))
+    report.frameworks = ["ALL"] if _fw is None else sorted(_fw)
     report.scope = (f"{len(ix.systems)} AI system(s); code: {ix.code_origin}"
-                    f"{' @' + ix.commit_sha[:10] if ix.commit_sha else ''}; docs: {ix.docs_origin}; "
+                    f"{' @' + ix.commit_sha[:10] if ix.commit_sha else ''}"
+                    f"{f' [diff vs {ix.diff_base}: {len(ix.diff_files or [])} changed file(s)]' if ix.diff_base else ''}; docs: {ix.docs_origin}; "
                     f"{len(run.checklist)} mandatory {fw_label} checks")
     report.rule_library_version = report.law_index_version
     cov, pct = rb.build_input_coverage(ix)
@@ -100,20 +113,18 @@ def finalize_report(report: TriagedAuditReport, run: AgentRun, store, sink: Data
     rules_verified = sum(1 for r in law_store.snapshot().values() if r.linkup_source_url)
     sink = sink or DatabricksGovernanceSink()
     llm = run.llm
-    report.stack_telemetry = {
-        "databricks_endpoint": llm.databricks_endpoint if llm else None,
-        "unity_catalog_table": None,
-        "mlflow_trace_id": run.mlflow_trace_id,
-        "mongodb_database": store.db_name if store.is_atlas else None,
-        "mongodb_checkpoint_id": (run.checkpoint_id if run.checkpointer_kind == "mongodb" else
-                                  f"local-memory:{run.checkpoint_id}" if run.checkpoint_id else None),
-        "linkup_sources_verified_count": len(linkup_urls) if linkup_urls else rules_verified,
-        "engines": {"databricks_model_serving": "live" if llm and llm.databricks_endpoint else "offline-fallback",
-                    "mlflow_tracing": "live" if run.mlflow_trace_id else "no-op",
-                    "unity_catalog": "live" if sink.enabled else "disabled",
-                    "mongodb": "atlas" if store.is_atlas else "in-memory-fallback",
-                    "linkup": "live" if (get_scout().enabled or run.linkup_calls) else "disabled"},
-    }
+    report.stack_telemetry = StackTelemetry.build(
+        databricks_endpoint=llm.databricks_endpoint if llm else None,
+        mlflow_trace_id=run.mlflow_trace_id,
+        mongodb_database=store.db_name if store.is_atlas else None,
+        mongodb_checkpoint_id=(run.checkpoint_id if run.checkpointer_kind == "mongodb" else
+                               f"local-memory:{run.checkpoint_id}" if run.checkpoint_id else None),
+        linkup_sources_verified_count=len(linkup_urls) if linkup_urls else rules_verified,
+        engines={"databricks_model_serving": "live" if llm and llm.databricks_endpoint else "offline-fallback",
+                 "mlflow_tracing": "live" if run.mlflow_trace_id else "no-op",
+                 "unity_catalog": "live" if sink.enabled else "disabled",
+                 "mongodb": "atlas" if store.is_atlas else "in-memory-fallback",
+                 "linkup": "live" if (get_scout().enabled or run.linkup_calls) else "disabled"})
     table = sink.persist(report)
     report.stack_telemetry["unity_catalog_table"] = table
     if sink.enabled:
@@ -125,8 +136,8 @@ def finalize_report(report: TriagedAuditReport, run: AgentRun, store, sink: Data
 
 def run_audit(company_dir: Path | str | None = None, tenant_id: str | None = None, llm: LLMClient | None = None,
               tamper=None, known_tenants: set[str] | None = None, *, github_source=None, confluence_source=None,
-              space_key: str | None = None, linkup=None, compliance_store=None, sink: DatabricksGovernanceSink | None = None
-              ) -> TriagedAuditReport:
+              space_key: str | None = None, linkup=None, compliance_store=None, sink: DatabricksGovernanceSink | None = None,
+              diff_base: str | None = None) -> TriagedAuditReport:
     """Tri-modal index -> supervisor/micro-agents -> 4-gate guardrails -> history/telemetry/Unity Catalog.
 
     `tamper(findings)` (optional) mutates raw findings before guardrails, e.g. to inject a fake citation hash.
@@ -135,7 +146,7 @@ def run_audit(company_dir: Path | str | None = None, tenant_id: str | None = Non
 
     store = compliance_store or get_compliance_store()
     run = run_agents(company_dir, tenant_id, llm, github_source=github_source, confluence_source=confluence_source,
-                     space_key=space_key, linkup=linkup, compliance_store=store)
+                     space_key=space_key, linkup=linkup, compliance_store=store, diff_base=diff_base)
     if tamper is not None:
         tamper(run.findings)
     report = apply_guardrails(run.findings, run.index, run.trace, known_tenants)

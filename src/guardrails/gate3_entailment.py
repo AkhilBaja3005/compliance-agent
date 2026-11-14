@@ -6,7 +6,7 @@ import re
 from src.edge_extractors.code_scanner import classify_endpoint, URL_RE
 from src.schemas.findings import ComplianceFinding
 
-from .common import GateContext, quarantine
+from .common import GateContext, quarantine, quarantine_error
 
 GATE = "gate3_entailment"
 DPA_RX = {
@@ -80,33 +80,47 @@ def _supports(check_id: str, status: str, arts: list) -> bool:
     return _base_rules(check_id, arts, want)
 
 
+def _entailment_reasons(f: ComplianceFinding, lookup: dict, texts: dict) -> list[str]:
+    reasons = []
+    if f.status == "CONFIRMED_VIOLATION" and not f.evidence:
+        reasons.append("confirmed violation cites no evidence")
+    arts = []
+    for e in f.evidence:
+        if e.artifact_id not in lookup:
+            continue  # gate 1 already handled unknown artifacts
+        arts.append(lookup[e.artifact_id])
+        kind = lookup[e.artifact_id][0]
+        if kind != "card":
+            norm_art = " ".join(texts.get(e.artifact_id, "").split())
+            snip = e.snippet.rstrip("…").strip()
+            if snip and snip not in norm_art and "[REDACTED" not in snip:
+                reasons.append(f"snippet for '{e.artifact_id}' is not contained in the cited artifact")
+    if f.evidence and f.check_id and not _supports(f.check_id, f.status, arts):
+        reasons.append(f"cited evidence does not logically support {f.status} for {f.check_id}")
+    return reasons
+
+
 def apply(findings: list[ComplianceFinding], ctx: GateContext) -> list[ComplianceFinding]:
-    lookup = _lookup(ctx)
-    texts = ctx.index.artifact_text()
     out, n = [], 0
+    try:
+        lookup, texts = _lookup(ctx), ctx.index.artifact_text()
+        setup_error = None
+    except Exception as exc:
+        lookup, texts, setup_error = {}, {}, exc
     for f in findings:
         if f.status not in {"CONFIRMED_VIOLATION", "PASS"}:
             out.append(f)
             continue
-        reasons = []
-        if f.status == "CONFIRMED_VIOLATION" and not f.evidence:
-            reasons.append("confirmed violation cites no evidence")
-        arts = []
-        for e in f.evidence:
-            if e.artifact_id not in lookup:
-                continue  # gate 1 already handled unknown artifacts
-            arts.append(lookup[e.artifact_id])
-            kind = lookup[e.artifact_id][0]
-            if kind != "card":
-                norm_art = " ".join(texts.get(e.artifact_id, "").split())
-                snip = e.snippet.rstrip("…").strip()
-                if snip and snip not in norm_art and "[REDACTED" not in snip:
-                    reasons.append(f"snippet for '{e.artifact_id}' is not contained in the cited artifact")
-        if f.evidence and f.check_id and not _supports(f.check_id, f.status, arts):
-            reasons.append(f"cited evidence does not logically support {f.status} for {f.check_id}")
-        if reasons:
+        try:
+            if setup_error is not None:
+                raise setup_error
+            reasons = _entailment_reasons(f, lookup, texts)
+            if reasons:
+                n += 1
+                f = quarantine(f, "; ".join(reasons), GATE)
+        except Exception as exc:  # a crashing entailment check routes the finding to human review, never drops or passes it
             n += 1
-            f = quarantine(f, "; ".join(reasons), GATE)
+            f = quarantine_error(f, exc, GATE)
         out.append(f)
     ctx.trace.append(f"guardrail gate3_entailment: {n} quarantined")
     return out

@@ -21,6 +21,10 @@ from src.schemas.findings import ComplianceFinding
 log = logging.getLogger(__name__)
 RULES, ARTIFACTS, HISTORY = "regulatory_rules", "tenant_artifacts", "audit_history"
 RULES_INDEX, ARTIFACTS_INDEX = "regulatory_rules_vector", "tenant_artifacts_vector"
+# Ingested regulatory PDFs share the `tenant_artifacts` collection under tenant "global_regulations" (its vector index has a tenant_id filter),
+# so ~1000 passages never crowd the ~30 statutory rules out of top-k and no extra Atlas search index is needed (free tiers cap the count).
+GLOBAL_TENANT = "global_regulations"
+PDF_CHUNKS = "regulatory_pdf_chunks"  # legacy interim collection, only read by the migration
 EMBED_DIM = 384
 
 
@@ -78,6 +82,12 @@ class _MemCollection:
             self.docs.append({**flt, **update.get("$set", {})})
             self._save()
 
+    def bulk_write(self, ops, ordered=True):
+        """pymongo-compatible `UpdateOne` / `ReplaceOne` batch (used by the in-memory fake and by tests)."""
+        for op in ops:
+            doc = getattr(op, "_doc", {})
+            self.update_one(op._filter, doc if "$set" in doc else {"$set": doc}, upsert=getattr(op, "_upsert", False))
+
     def insert_many(self, docs):
         self.docs.extend(dict(d) for d in docs)
         self._save()
@@ -133,8 +143,29 @@ class MongoComplianceStore:
                 self._mem[name] = _MemCollection(path)
             return self._mem[name]
 
+    def embed_texts_batch(self, texts: list[str], batch_size: int = 64) -> list[list[float]]:
+        """Embed in batches of `batch_size` (one encoder call per batch), preserving order."""
+        from src.regulatory_rag.tier_b_index import embed_texts_batch
+
+        return embed_texts_batch(texts, batch_size, embedder=self.embedder)
+
     def embed(self, texts: list[str]) -> list[list[float]]:
-        return [[float(x) for x in row] for row in self.embedder.encode(texts)]
+        return self.embed_texts_batch(texts)
+
+    def _bulk_upsert(self, col_name: str, rows: list[tuple[dict, dict]], batch_size: int = 100) -> int:
+        """Upsert (filter, document) pairs. Atlas: `bulk_write` of `UpdateOne` in batches of `batch_size`; in-memory fallback: update_one."""
+        if not rows:
+            return 0
+        col = self._col(col_name)
+        if self.is_atlas:
+            from pymongo import UpdateOne
+
+            for i in range(0, len(rows), batch_size):
+                col.bulk_write([UpdateOne(f, {"$set": d}, upsert=True) for f, d in rows[i:i + batch_size]], ordered=False)
+        else:
+            for f, d in rows:
+                col.update_one(f, {"$set": d}, upsert=True)
+        return len(rows)
 
     def ensure_indexes(self) -> None:
         if not self.is_atlas:
@@ -160,29 +191,69 @@ class MongoComplianceStore:
         items = list(rules.values())
         if not items:
             return
-        embs = self.embed([f"{r.reference}. {r.title}. {r.text}" for r in items])
-        col = self._col(RULES)
-        for r, e in zip(items, embs):
-            col.update_one({"rule_id": r.rule_id}, {"$set": {
-                "rule_id": r.rule_id, "jurisdiction": r.jurisdiction, "reference": r.reference, "title": r.title,
-                "text": r.text, "sha256_hash": r.sha256_hash, "linkup_source_url": r.linkup_source_url, "embedding": e}}, upsert=True)
+        embs = self.embed_texts_batch([f"{r.reference}. {r.title}. {r.text}" for r in items])
+        self._bulk_upsert(RULES, [({"rule_id": r.rule_id}, {
+            "rule_id": r.rule_id, "jurisdiction": r.jurisdiction, "reference": r.reference, "title": r.title,
+            "text": r.text, "sha256_hash": r.sha256_hash, "linkup_source_url": r.linkup_source_url, "embedding": e}) for r, e in zip(items, embs)])
 
-    def index_pdf_chunks(self, chunks: list[Any]) -> int:
+    SOURCES = "sync_sources"
+
+    def source_get(self, key: str) -> dict | None:
+        return self._col(self.SOURCES).find_one({"source_key": key})
+
+    def source_put(self, key: str, sha256: str, **meta) -> None:
+        self._col(self.SOURCES).update_one({"source_key": key}, {"$set": {"source_key": key, "sha256": sha256, "synced_at": _utcnow(), **meta}}, upsert=True)
+
+    def source_keys(self, prefix: str) -> list[str]:
+        return [d["source_key"] for d in self._col(self.SOURCES).find({}) if str(d.get("source_key", "")).startswith(prefix)]
+
+    def source_drop(self, key: str) -> int:
+        """Remove a source's chunks and its registry entry (a file that disappeared, or a page that changed and is about to be re-indexed)."""
+        self._col(ARTIFACTS).delete_many({"tenant_id": GLOBAL_TENANT, "source_key": key})
+        self._col(self.SOURCES).delete_many({"source_key": key})
+        return 1
+
+    def index_document_chunks(self, chunks: list[dict], source_key: str | None = None) -> int:
+        """Index regulatory knowledge chunks (PDF passages, web pages, office documents) under tenant `global_regulations`."""
+        return self.index_pdf_chunks([{**c, "tenant_id": GLOBAL_TENANT} for c in chunks], source_key=source_key)
+
+    def index_pdf_chunks(self, chunks: list[Any], source_key: str | None = None) -> int:
         """Indexes parsed PDF chunks into MongoDB Atlas and local collection."""
         if not chunks:
             return 0
         texts = [c.text if hasattr(c, "text") else c.get("text", "") for c in chunks]
-        embs = self.embed(texts)
-        count = 0
+        embs = self.embed_texts_batch(texts)
+        rows = []
         for chunk, emb in zip(chunks, embs):
             d = chunk.to_dict() if hasattr(chunk, "to_dict") else dict(chunk)
             d["embedding"] = emb
-            tenant_id = d.get("tenant_id", "global_regulations")
-            target_col = self._col(RULES) if tenant_id == "global_regulations" else self._col(ARTIFACTS)
-            flt = {"chunk_id": d["chunk_id"]} if "chunk_id" in d else {"sha256_hash": d["sha256_hash"]}
-            target_col.update_one(flt, {"$set": d}, upsert=True)
-            count += 1
-        return count
+            d.setdefault("tenant_id", GLOBAL_TENANT)
+            if source_key:
+                d["source_key"] = source_key
+            rows.append(({"chunk_id": d["chunk_id"]} if "chunk_id" in d else {"sha256_hash": d["sha256_hash"]}, d))
+        return self._bulk_upsert(ARTIFACTS, rows)
+
+    def migrate_legacy_pdf_chunks(self) -> int:
+        """Move PDF chunks stored by earlier versions (in `regulatory_rules` without a rule_id, or in the interim `regulatory_pdf_chunks`)
+        into `tenant_artifacts` under tenant "global_regulations". Copy, verify, then delete the originals; idempotent."""
+        if not self.is_atlas:
+            return 0
+        from pymongo import ReplaceOne
+
+        dst, total = self.db[ARTIFACTS], 0
+        key = lambda d: {"chunk_id": d["chunk_id"]} if "chunk_id" in d else {"sha256_hash": d["sha256_hash"]}
+        for src_name, flt in ((RULES, {"rule_id": {"$exists": False}}), (PDF_CHUNKS, {})):
+            src = self.db[src_name]
+            legacy = list(src.find(flt))
+            if not legacy:
+                continue
+            ops = [ReplaceOne(key(d), {**{k: v for k, v in d.items() if k != "_id"}, "tenant_id": GLOBAL_TENANT}, upsert=True) for d in legacy]
+            dst.bulk_write(ops, ordered=False)
+            if dst.count_documents({"$or": [key(d) for d in legacy[:50]], "tenant_id": GLOBAL_TENANT}) < min(50, len(legacy)):
+                continue  # verification failed: keep the originals
+            src.delete_many({"_id": {"$in": [d["_id"] for d in legacy]}})
+            total += len(legacy)
+        return total
 
     def search_regulatory_knowledge(
         self, query: str, jurisdiction: str | None = None, top_k: int = 5
@@ -193,19 +264,21 @@ class MongoComplianceStore:
         # 1. Try Atlas Vector Search if connected
         if self.is_atlas:
             try:
-                pipe: list[dict[str, Any]] = [
-                    {
-                        "$vectorSearch": {
-                            "index": RULES_INDEX,
-                            "path": "embedding",
-                            "queryVector": query_emb,
-                            "numCandidates": max(50, top_k * 10),
-                            "limit": top_k * 2,
-                        }
-                    },
-                    {"$project": {"embedding": 0, "score": {"$meta": "vectorSearchScore"}}},
-                ]
-                docs = list(self.db[RULES].aggregate(pipe))
+                merged: list[dict[str, Any]] = []
+                for coll, index, flt in ((RULES, RULES_INDEX, None), (ARTIFACTS, ARTIFACTS_INDEX, {"tenant_id": GLOBAL_TENANT})):
+                    vs: dict[str, Any] = {"index": index, "path": "embedding", "queryVector": query_emb,
+                                          "numCandidates": max(50, top_k * 10), "limit": top_k * 2}
+                    if flt:
+                        vs["filter"] = flt
+                    pipe: list[dict[str, Any]] = [
+                        {"$vectorSearch": vs},
+                        {"$project": {"embedding": 0, "score": {"$meta": "vectorSearchScore"}}},
+                    ]
+                    try:
+                        merged += list(self.db[coll].aggregate(pipe))
+                    except Exception as exc:  # a missing/building index on one collection must not hide the other
+                        log.warning("$vectorSearch(%s) failed: %s", coll, exc)
+                docs = sorted(merged, key=lambda d: -float(d.get("score", 0)))
                 if jurisdiction:
                     docs = [d for d in docs if not d.get("jurisdiction") or d.get("jurisdiction") == jurisdiction]
                 if docs:
@@ -214,7 +287,7 @@ class MongoComplianceStore:
                 log.warning("$vectorSearch(search_regulatory_knowledge) failed: %s; using local fallback", exc)
 
         # 2. Local BM25 + cosine fallback
-        docs = [d for d in self._col(RULES).find({}) if d.get("embedding") or d.get("text")]
+        docs = [d for c, flt in ((RULES, {}), (ARTIFACTS, {"tenant_id": GLOBAL_TENANT})) for d in self._col(c).find(flt) if d.get("embedding") or d.get("text")]
         if jurisdiction:
             docs = [d for d in docs if not d.get("jurisdiction") or d.get("jurisdiction") == jurisdiction]
         if not docs:
@@ -246,13 +319,13 @@ class MongoComplianceStore:
                 + [("card", c.module_id, c.exact_locator, c.sha256_hash, c.system_prompt + " " + " ".join(c.capability_tags)) for c in ix.cards]
                 + [("chunk", d.chunk_id, d.locator, d.sha256_hash, d.text) for d in ix.chunks])
         if rows:
-            embs = self.embed([r[4][:2000] for r in rows])
+            embs = self.embed_texts_batch([r[4][:2000] for r in rows])
             docs = [{"tenant_id": ix.tenant_id, "artifact_id": a, "kind": k, "locator": loc, "sha256_hash": h,
                      "text": t[:2000], "embedding": e} for (k, a, loc, h, t), e in zip(rows, embs)]
         col = self._col(ARTIFACTS)
         col.delete_many({"tenant_id": ix.tenant_id})
-        if docs:
-            col.insert_many(docs)
+        for i in range(0, len(docs), 100):  # bulk insert in batches of 100
+            col.insert_many(docs[i:i + 100])
         return len(docs)
 
     def search_rules(self, query: str, k: int = 3) -> list[tuple[str, float]] | None:
@@ -261,9 +334,10 @@ class MongoComplianceStore:
             return None
         try:
             pipe = [{"$vectorSearch": {"index": RULES_INDEX, "path": "embedding", "queryVector": self.embed([query])[0],
-                                       "numCandidates": max(50, k * 10), "limit": k}},
+                                       "numCandidates": max(100, k * 20), "limit": max(k * 5, 15)}},
                     {"$project": {"_id": 0, "rule_id": 1, "score": {"$meta": "vectorSearchScore"}}}]
-            return [(d["rule_id"], float(d["score"])) for d in self.db[RULES].aggregate(pipe)]
+            # the collection also holds ingested PDF chunks (no rule_id): keep only statutory rules here, PDF passages come via search_regulatory_knowledge
+            return [(d["rule_id"], float(d["score"])) for d in self.db[RULES].aggregate(pipe) if d.get("rule_id")][:k]
         except Exception as exc:
             log.warning("$vectorSearch(regulatory_rules) failed: %s", exc)
             return None

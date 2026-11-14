@@ -5,3 +5,7 @@ __pycache__/
 .DS_Store
 *.egg-info/
 .aegis/
+
+/demo_output/
+/data/
+.aegis_cache/

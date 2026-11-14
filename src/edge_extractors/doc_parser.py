@@ -8,7 +8,9 @@ from src.schemas.artifacts import ComplianceAssertion, DocumentChunk, sha256_tex
 
 from .code_scanner import SKIP_DIRS
 
-DOC_SUFFIXES = {".md", ".txt", ".pdf"}
+from .doc_formats import OFFICE_SUFFIXES, read_document
+
+DOC_SUFFIXES = {".md", ".txt", ".pdf"} | OFFICE_SUFFIXES
 _MD_HEADER = re.compile(r"^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$")
 _NUM_HEADER = re.compile(r"^\d+(\.\d+)*[.)]?\s+[A-Z][^.!?]{2,80}$")
 _UNDERLINE = re.compile(r"^\s*(=|-){3,}\s*$")
@@ -37,7 +39,20 @@ def _is_plain_header(line: str, nxt: str | None) -> bool:
     return s.isupper() and len(s) > 3 and not s.endswith(".")
 
 
+def _marker_chunk(rel: str, tenant_id: str, header: str, text: str) -> list[DocumentChunk]:
+    """A visible placeholder chunk for a document that could not be read, so the audit never silently ignores it."""
+    sha = sha256_text(text + rel)
+    return [DocumentChunk(chunk_id=f"chunk-{sha256_text(f'{tenant_id}:{rel}:marker')[:12]}", tenant_id=tenant_id, doc_name=rel,
+                          section_header=header, line_range=(1, 1), text=text, sha256_hash=sha)]
+
+
 def parse_document(path: Path, rel: str, tenant_id: str) -> list[DocumentChunk]:
+    if path.suffix.lower() in OFFICE_SUFFIXES:
+        text = read_document(path)
+        if text is None or not text.strip():
+            return _marker_chunk(rel, tenant_id, "UNPARSED_DOCUMENT",
+                                 f"Document {rel} could not be parsed or is empty; its content is unverified (closed-world).")
+        return parse_text(text, rel, tenant_id, is_md=True)
     if path.suffix.lower() == ".pdf":
         try:
             from .pdf_ingestor import ingest_pdf_file
@@ -47,6 +62,8 @@ def parse_document(path: Path, rel: str, tenant_id: str) -> list[DocumentChunk]:
                 tenant_id=tenant_id,
                 doc_category="COMPANY_DOC",
             )
+            if not pdf_chunks or sum(len(c.text) for c in pdf_chunks) < 40:
+                return _ocr_or_marker(path, rel, tenant_id)
             return [c.to_document_chunk() for c in pdf_chunks]
         except Exception:
             text = _read_pdf(path)
@@ -54,6 +71,31 @@ def parse_document(path: Path, rel: str, tenant_id: str) -> list[DocumentChunk]:
     else:
         text = path.read_text(encoding="utf-8", errors="replace")
         return parse_text(text, rel, tenant_id, is_md=path.suffix.lower() == ".md")
+
+
+def _ocr_or_marker(path: Path, rel: str, tenant_id: str) -> list[DocumentChunk]:
+    """Scanned PDF: OCR when pytesseract + pypdfium2 are present (low confidence -> human review), else a marker chunk."""
+    try:
+        import pypdfium2 as pdfium
+        import pytesseract
+
+        pdf = pdfium.PdfDocument(str(path))
+        pages, confs = [], []
+        for i in range(len(pdf)):
+            img = pdf[i].render(scale=2).to_pil()
+            data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+            words = [(w, float(c)) for w, c in zip(data["text"], data["conf"]) if w.strip() and float(c) >= 0]
+            pages.append(f"## Page {i + 1}\n" + " ".join(w for w, _ in words))
+            confs += [c for _, c in words]
+        mean = sum(confs) / len(confs) if confs else 0.0
+        chunks = parse_text("\n".join(pages), rel, tenant_id, is_md=True)
+        if mean < 70:
+            chunks += _marker_chunk(rel, tenant_id, "LOW_OCR_CONFIDENCE",
+                                    f"OCR of {rel} had mean confidence {mean:.0f}/100; extracted text needs human review.")
+        return chunks
+    except Exception:
+        return _marker_chunk(rel, tenant_id, "OCR_REQUIRED",
+                             f"{rel} is a scanned or image-only PDF and OCR is unavailable; its content is unverified (closed-world).")
 
 
 def parse_text(text: str, rel: str, tenant_id: str, is_md: bool = False) -> list[DocumentChunk]:
@@ -149,4 +191,55 @@ def extract_assertions(chunks: list[DocumentChunk]) -> list[ComplianceAssertion]
                         tenant_id=ch.tenant_id, source_chunk_id=ch.chunk_id, claim_type=claim_type,
                         claim_text=s[:400], expected_control=control,
                     ))
+    return out
+
+
+# ----------------------------------------------------------------------------- LLM claim extraction (additive to the regex floor)
+def extract_assertions_llm(chunks: list[DocumentChunk], llm, max_chunks: int = 60) -> list[ComplianceAssertion]:
+    """Paraphrase-tolerant claim extraction via the model; a claim is kept only if its quote appears verbatim in the chunk.
+
+    Negated statements ("we do not redact") describe the absence of a control, not a promise, and are dropped.
+    Returns [] when no model is reachable, so the regex extractor stays the deterministic floor.
+    """
+    import json as _json
+    from typing import Literal
+
+    from pydantic import BaseModel, Field
+
+    if llm is None or not getattr(llm, "available", lambda: False)():
+        return []
+
+    class _Claim(BaseModel):
+        claim_type: Literal["PRIVACY", "HOSTING", "HITL", "SAFETY_MODERATION", "WATERMARK", "IP_LICENSE"]
+        quote: str
+        negated: bool = False
+
+    class _Claims(BaseModel):
+        claims: list[_Claim] = Field(default_factory=list)
+
+    system = ("You extract compliance PROMISES made by a company document. Types: PRIVACY (personal data is masked/redacted before external "
+              "calls), HOSTING (data stays in EU/UK regions), HITL (a human reviews/approves decisions), SAFETY_MODERATION (harmful content is "
+              "filtered), WATERMARK (AI outputs are marked/labelled), IP_LICENSE (commercial rights to models/dependencies). Copy `quote` "
+              "EXACTLY from the text. Set negated=true if the sentence says the control is NOT done.")
+    norm = lambda t: re.sub(r"\s+", " ", t).strip().lower()
+    out: list[ComplianceAssertion] = []
+    failures = {"n": 0}
+
+    def _fallback():
+        failures["n"] += 1
+        return _Claims()
+
+    for ch in chunks[:max_chunks]:
+        if failures["n"] >= 2:  # model unreachable/misconfigured: stop early, the regex floor already ran
+            break
+        if len(ch.text) < 30 or ch.section_header in {"UNPARSED_DOCUMENT", "OCR_REQUIRED", "LOW_OCR_CONFIDENCE"}:
+            continue
+        res = llm.structured(system, ch.text[:6000], _Claims, _fallback)
+        for c in res.claims:
+            if c.negated or not c.quote or norm(c.quote) not in norm(ch.text):
+                continue  # hallucinated or negated: never becomes an assertion
+            out.append(ComplianceAssertion(
+                assertion_id=f"asrt-{sha256_text(f'{ch.chunk_id}:{c.claim_type}:{c.quote}')[:12]}", tenant_id=ch.tenant_id,
+                source_chunk_id=ch.chunk_id, claim_type=c.claim_type, claim_text=c.quote[:400],
+                expected_control=next(ctl for t, ctl, _, _ in _CLAIMS if t == c.claim_type)))
     return out

@@ -25,6 +25,7 @@ class CompanyProfile:
     automated_decisions: bool
     uses_local_model: bool
     processes_pii: bool
+    has_data: bool = False
     capabilities: set[str] = field(default_factory=set)
 
     @property
@@ -56,7 +57,7 @@ def build_profile(ix: TriModalIndex) -> CompanyProfile:
     return CompanyProfile(
         tenant_id=ix.tenant_id, company_name=ix.company_name, sector=ix.sector, commercial=ix.commercial,
         has_code=ix.has_code, has_docs=ix.has_docs, uses_ai_sdk=uses_ai, uses_external_calls=ext, generative=gen,
-        automated_decisions=dec, uses_local_model=ix.uses_local_model, processes_pii=pii, capabilities=caps,
+        automated_decisions=dec, uses_local_model=ix.uses_local_model, processes_pii=pii, has_data=bool(ix.data_assets), capabilities=caps,
     )
 
 
@@ -76,6 +77,12 @@ CHECKS: list[MandatoryCheck] = [
                    "UK_GDPR_ICO", "UK_GDPR_ICO:Art.22", "HIGH_RISK", lambda p: p.automated_decisions or p.high_risk_sector or _unknown(p)),
     MandatoryCheck("SAFE-01", "safety_watermark", "Do all text/audio generation endpoints have a moderation / harmful-content control?",
                    "EU_AI_ACT", "EU_AI_ACT:Art.5", "HIGH_RISK", lambda p: p.generative or _unknown(p)),
+    MandatoryCheck("SAFE-03", "safety_watermark", "Do conversational AI endpoints tell users they are interacting with an AI system (Art. 50(1))?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.50", "LIMITED_RISK", lambda p: p.generative or _unknown(p)),
+    MandatoryCheck("SAFE-04", "safety_watermark", "Are face/likeness, intimate-content and safety filters enforced on every tier, with no bypass (Art. 5 / Art. 50(4))?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.5", "HIGH_RISK", lambda p: True),
+    MandatoryCheck("BIO-01", "safety_watermark", "Does the system create or expand a facial-recognition database through untargeted scraping of internet or CCTV images (Art. 5(1)(e))?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.5", "PROHIBITED", lambda p: True),
     MandatoryCheck("SAFE-02", "safety_watermark", "Are generated outputs marked machine-readably (watermark / C2PA / AI-generated header)?",
                    "EU_AI_ACT", "EU_AI_ACT:Art.50", "LIMITED_RISK", lambda p: p.generative or _unknown(p)),
     MandatoryCheck("OSS-01", "oss_license", "Are all dependencies free of copyleft (GPL/AGPL) terms that conflict with commercial distribution?",
@@ -90,6 +97,30 @@ CHECKS: list[MandatoryCheck] = [
                    "EU_AI_ACT", "EU_AI_ACT:Art.11", "HIGH_RISK", lambda p: p.high_risk_sector or p.automated_decisions or _unknown(p)),
     MandatoryCheck("DPA-04", "dpa_provenance", "Has a DPIA been completed for the AI processing?",
                    "UK_GDPR_ICO", "UK_GDPR_ICO:Art.35", "HIGH_RISK", lambda p: p.processes_pii or _unknown(p)),
+    MandatoryCheck("DATA-01", "dpa_provenance", "Is data governance and bias examination documented for datasets holding personal or protected-attribute data (Art. 10)?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.10", "HIGH_RISK", lambda p: p.has_data),
+    MandatoryCheck("DATA-02", "dpa_provenance", "Are special-category data columns covered by documented safeguards (explicit basis, pseudonymisation, access control)?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.10", "HIGH_RISK", lambda p: p.has_data),
+    MandatoryCheck("DATA-03", "dpa_provenance", "Do datasets declare source, licence and lineage, and honour TDM opt-outs (Art. 53 / CDSM)?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.53", "HIGH_RISK", lambda p: p.has_data),
+    MandatoryCheck("DATA-04", "dpa_provenance", "Are retention and deletion rules documented for datasets holding personal data?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.10", "HIGH_RISK", lambda p: p.has_data),
+    MandatoryCheck("DATA-05", "dpa_provenance", "Is facial/biometric data collected with a lawful basis and not through untargeted scraping (Art. 5(1)(e))?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.5", "PROHIBITED", lambda p: p.has_data),
+    MandatoryCheck("GDPR-01", "pii_flow", "Are transfers of personal data to non-EU recipients covered by a documented Chapter V mechanism (adequacy, SCCs, BCRs)?",
+                   "EU_GDPR", "EU_GDPR:Art.44", "HIGH_RISK", lambda p: p.uses_external_calls or p.processes_pii or _unknown(p)),
+    MandatoryCheck("GDPR-02", "hitl_oversight", "Do solely automated decisions with significant effects offer human intervention and a way to contest (Art. 22)?",
+                   "EU_GDPR", "EU_GDPR:Art.22", "HIGH_RISK", lambda p: p.automated_decisions or p.high_risk_sector or _unknown(p)),
+    MandatoryCheck("GDPR-03", "dpa_provenance", "Does the processor agreement with external AI/data providers contain the Art. 28(3) terms?",
+                   "EU_GDPR", "EU_GDPR:Art.28", "HIGH_RISK", lambda p: p.uses_external_calls or p.uses_ai_sdk or _unknown(p)),
+    MandatoryCheck("GDPR-04", "dpa_provenance", "Has a DPIA been completed for high-risk processing (Art. 35)?",
+                   "EU_GDPR", "EU_GDPR:Art.35", "HIGH_RISK", lambda p: p.processes_pii or p.automated_decisions or p.high_risk_sector or _unknown(p)),
+    MandatoryCheck("GDPR-05", "dpa_provenance", "Is there a documented Art. 9(2) condition for special-category data used by the system?",
+                   "EU_GDPR", "EU_GDPR:Art.9", "HIGH_RISK", lambda p: p.processes_pii or p.has_data or p.high_risk_sector or _unknown(p)),
+    MandatoryCheck("GDPR-06", "pii_flow", "Is personal data protected by appropriate security measures (no hard-coded credentials, no plaintext external transport) (Art. 32)?",
+                   "EU_GDPR", "EU_GDPR:Art.32", "HIGH_RISK", lambda p: True),
+    MandatoryCheck("COV-01", "code_doc_drift", "Is every source file in the repository in a language the scanner can inspect?",
+                   "EU_AI_ACT", "EU_AI_ACT:Art.11", "HIGH_RISK", lambda p: True),
     MandatoryCheck("DRIFT-PRIVACY", "code_doc_drift", "Does code match the documented PII-masking promise?",
                    "EU_AI_ACT", "EU_AI_ACT:Art.10", "HIGH_RISK"),
     MandatoryCheck("DRIFT-HOSTING", "code_doc_drift", "Does code match the documented EU/UK hosting promise?",
@@ -105,10 +136,13 @@ CHECKS: list[MandatoryCheck] = [
 ]
 
 
+DEFAULT_FRAMEWORKS = "EU_AI_ACT,EU_GDPR"
+
+
 def active_frameworks() -> set[str] | None:
     """Jurisdictions in scope. Env AEGIS_FRAMEWORKS (comma list or ALL); default EU_AI_ACT only. None = all."""
     import os
-    raw = os.getenv("AEGIS_FRAMEWORKS", "EU_AI_ACT").strip()
+    raw = os.getenv("AEGIS_FRAMEWORKS", DEFAULT_FRAMEWORKS).strip()
     if not raw or raw.upper() == "ALL":
         return None
     return {x.strip().upper() for x in raw.split(",") if x.strip()}
@@ -119,6 +153,7 @@ def build_checklist(profile: CompanyProfile, frameworks: set[str] | None = ...) 
     fw = active_frameworks() if frameworks is ... else frameworks
     app, na = [], []
     for c in CHECKS:
-        in_scope = fw is None or c.jurisdiction in fw
+        # licence compliance (GPL / non-commercial weights) is contractual and regime-independent: always in scope
+        in_scope = fw is None or c.jurisdiction in fw or c.agent == "oss_license"
         (app if in_scope and c.applies(profile) else na).append(c)
     return app, na

@@ -25,6 +25,14 @@ class DPAProvenanceAgent(MicroAgent):
     @traced("dpa_provenance_agent.evaluate")
     def evaluate(self, check, ctx) -> Verdict:
         ix = ctx.index
+        if check.check_id.startswith("GDPR-"):
+            from .gdpr_checks import evaluate_gdpr
+
+            return evaluate_gdpr(check.check_id, ix)
+        if check.check_id.startswith("DATA-"):
+            from .data_governance import evaluate_data
+
+            return evaluate_data(check.check_id, ix)
         label = TITLES[check.check_id]
         if not ix.chunks:
             return Verdict("SUSPECTED_GAP", 0.6, f"No documents to evidence {label}",

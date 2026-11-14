@@ -1,0 +1,13 @@
+{
+  "note": "Gold labels per audited folder. `confirmed` = checks that MUST be CONFIRMED_VIOLATION; `not_confirmed` = checks that must NOT be confirmed (false-positive guard); `expect_none` = no check may be confirmed. `known_missed` documents planted defects the tool has no check for: they count as false negatives so recall is not flattering. `frameworks` overrides the scope per case: company_a needs ALL because US-hosting/data-residency checks are UK/GDPR-regime and are out of scope under EU_AI_ACT only. Sources: synthetic_companies/*/reviewer answer keys, fixture READMEs, planted VIOLATION comments.",
+  "cases": [
+    {"name": "company_a_finscore", "path": "tests/fixtures/companies/company_a_finscore", "frameworks": "ALL", "confirmed": ["PII-02", "HITL-01", "DRIFT-HOSTING", "DRIFT-HITL", "GDPR-02"], "not_confirmed": ["SAFE-01", "SAFE-02", "OSS-01", "OSS-02", "GDPR-01"]},
+    {"name": "company_b_voxgen", "path": "tests/fixtures/companies/company_b_voxgen", "confirmed": ["SAFE-01", "SAFE-02", "OSS-01", "OSS-02"], "not_confirmed": ["HITL-01"]},
+    {"name": "company_c_medassist", "path": "tests/fixtures/companies/company_c_medassist", "expect_none": true},
+    {"name": "veylan_face_identity", "path": "synthetic_companies/veylan_analytics_face_identity", "confirmed": ["BIO-01"], "not_confirmed": ["SAFE-01", "SAFE-02", "OSS-01"]},
+    {"name": "merriton_text_verify", "path": "synthetic_companies/merriton_labs_text_verify", "expect_none": true},
+    {"name": "meridian_omni_ai", "path": "sample_connectors/enterprise/meridian_omni_ai", "confirmed": ["SAFE-02", "SAFE-03", "SAFE-04", "HITL-01", "PII-01", "OSS-01"]},
+    {"name": "data_bad", "path": "tests/fixtures/data/bad", "confirmed": ["DATA-03", "DATA-05"], "not_confirmed": ["DATA-04"]},
+    {"name": "data_clean", "path": "tests/fixtures/data/clean", "expect_none": true}
+  ]
+}

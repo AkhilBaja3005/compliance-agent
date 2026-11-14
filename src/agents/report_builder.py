@@ -44,6 +44,13 @@ def build_fairness(ix, profile) -> dict:
         status = "NOT_APPLICABLE"
     else:
         status = "DOCUMENTED" if docs else "SUSPECTED_GAP"  # closed-world: no evidence of bias testing -> gap
+    out = getattr(ix, "fairness_outcomes", None)
+    if out:  # real selection-rate ratios from a labelled outcomes file
+        flagged = [m for m in out["metrics"] if m.get("flag")]
+        status = "FLAGGED" if flagged else "COMPUTED"
+        return {"status": status, "protected_attributes_in_code": prot, "bias_testing_documented": bool(docs), "evidence_chunk_ids": [c.chunk_id for c in docs[:3]],
+                "automated_decisions": profile.automated_decisions, "metrics": out["metrics"], "metrics_source": out["source"],
+                "note": out["caveat"]}
     return {"status": status, "protected_attributes_in_code": prot, "bias_testing_documented": bool(docs),
             "evidence_chunk_ids": [c.chunk_id for c in docs[:3]], "automated_decisions": profile.automated_decisions,
             "note": "Deterministic screen only; no statistical fairness metrics were computed (no model outputs supplied)."}
@@ -77,6 +84,11 @@ def build_input_coverage(ix) -> tuple[dict, float]:
                  "commit_sha": ix.commit_sha, "origin": ix.code_origin},
         "documents": {"sections": len(ix.chunks), "documents": len({c.doc_name for c in ix.chunks}),
                       "assertions": len(ix.assertions), "confluence_pages": ix.doc_pages, "origin": ix.docs_origin},
+        "doc_sources": list(ix.source_statuses),
+        "languages": {"parsed": dict(ix.lang_files), "unscanned": dict(ix.unscanned)},
+        "data": {"assets": len(ix.data_assets), "by_kind": {k: sum(a["kind"] == k for a in ix.data_assets) for k in sorted({a["kind"] for a in ix.data_assets})},
+                 "personal_columns": sum(len([c for c in a["columns"] if c["classes"]]) for a in ix.data_assets),
+                 "outcomes_file": (ix.fairness_outcomes or {}).get("source")},
         "dependencies": {"packages": len(deps), "model_licences": sum(d.kind == "model_weights" for d in ix.dependencies)},
         "systems": {"inventory": len(ix.systems), "declared_in_docs": sum(s.declared_in_docs for s in ix.systems),
                     "detected_in_code": sum(s.detected_in_code for s in ix.systems)},

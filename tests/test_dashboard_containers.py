@@ -23,7 +23,7 @@ def test_container_health_audit_and_persistence(runtime):
     project = "aegis-dashboard-test-" + uuid.uuid4().hex[:10]
     compose = [runtime, "compose", "-p", project, "-f", str(ROOT / "compose.yaml")]
     env = {**os.environ, "AEGIS_PORT": str(port), "AEGIS_BIND_ADDRESS": "127.0.0.1",
-           "BYOM_OFFLINE": "true", "AUTO_SYNC": "false", "COMPANIES_DIR": "/app/tests/fixtures/companies"}
+           "BYOM_OFFLINE": "true", "AEGIS_AUTH_DISABLED": "true", "AUTO_SYNC": "false", "COMPANIES_DIR": "/app/tests/fixtures/companies"}
     for key in ("MONGODB_URI", "LINKUP_API_KEY", "DATABRICKS_HOST", "DATABRICKS_TOKEN", "DATABRICKS_WAREHOUSE_ID",
                 "MLFLOW_TRACKING_URI", "GITHUB_TOKEN", "CONFLUENCE_URL", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
         env[key] = ""

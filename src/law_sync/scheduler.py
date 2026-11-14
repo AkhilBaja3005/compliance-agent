@@ -5,11 +5,27 @@ from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from .fetcher import sync_now
+import logging
+
 from .store import get_store
+
+log = logging.getLogger("aegis.sync")
 
 JOB_ID = "daily-law-sync"
 _scheduler: BackgroundScheduler | None = None
+
+
+def scheduled_full_sync() -> None:
+    """The scheduled job: statutory rules + configured folders/urls. Failures are logged, never raised (the scheduler keeps running)."""
+    try:
+        from .ingest import run_full_sync
+
+        rep = run_full_sync()
+        log.info("scheduled sync finished", extra={"event": "sync_done"})
+        for r in rep.errors:
+            log.warning("scheduled sync source failed: %s: %s", r.source, r.detail)
+    except Exception:
+        log.exception("scheduled sync crashed")
 
 
 def start_scheduler(interval_hours: float = 24, run_immediately: bool = False) -> BackgroundScheduler:
@@ -18,7 +34,7 @@ def start_scheduler(interval_hours: float = 24, run_immediately: bool = False) -
         return _scheduler
     _scheduler = BackgroundScheduler(daemon=True)
     kwargs = {"next_run_time": datetime.now().astimezone()} if run_immediately else {}  # None would pause the job
-    _scheduler.add_job(sync_now, "interval", hours=interval_hours, id=JOB_ID, replace_existing=True, **kwargs)
+    _scheduler.add_job(scheduled_full_sync, "interval", hours=interval_hours, id=JOB_ID, replace_existing=True, **kwargs)
     _scheduler.start()
     return _scheduler
 

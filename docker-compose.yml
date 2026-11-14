@@ -1,0 +1,23 @@
+services:
+  aegis:
+    build: .
+    ports: ["8000:8000"]
+    env_file: [.env]
+    environment:
+      AEGIS_DATA_DIR: /var/lib/aegis
+      AEGIS_DASHBOARD_DB: /var/lib/aegis/dashboard.sqlite3
+      AEGIS_HISTORY_FILE: /var/lib/aegis/finding-history.json
+    volumes:
+      - aegis-data:/var/lib/aegis
+      - ./synthetic_companies:/app/companies:ro
+    restart: unless-stopped
+  sync:
+    build: .
+    command: ["aegis", "sync-daemon", "--interval-hours", "24", "--config", "/app/sync_sources.yaml"]
+    env_file: [.env]
+    volumes:
+      - ./sync_sources.yaml:/app/sync_sources.yaml:ro
+      - ./regulatory_pdfs:/app/regulatory_pdfs:ro
+    restart: unless-stopped
+volumes:
+  aegis-data:

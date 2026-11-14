@@ -19,13 +19,22 @@ def _privacy(ix):
 
 
 def _hosting(ix):
-    if not ix.has_code:
+    if not ix.has_code and not ix.data_assets:
         return "UNVERIFIABLE", [], "no code available"
     ext = external_entries(ix)
     us = [s for s in ext if "US" in slice_regions(s)]
     if us:
         urls = sorted({u for s in us for u, r in s.endpoint_regions.items() if r == "US"})
         return "CONTRADICTS", [ev_slice(s) for s in us[:3]], f"code calls US-region endpoint(s): {', '.join(urls)}"
+    infra_us = [c for c in ix.cards if "infra_region_us" in c.capability_tags]
+    if infra_us:
+        return "CONTRADICTS", [ev_card(c) for c in infra_us[:3]], "infrastructure/config deploys to US region(s): " + ", ".join(
+            sorted({c.system_prompt.strip()[:60] for c in infra_us[:3]}))
+    from src.edge_extractors.manifest_scanner import classify_region
+    from src.agents.base import ev_data
+    data_us = [a for a in ix.data_assets if a.get("region") and classify_region(a["region"]) == "US"]
+    if data_us:
+        return "CONTRADICTS", [ev_data(a, f"region={a['region']}") for a in data_us[:3]], "data stores are located in US region(s): " + ", ".join(sorted({a["region"] for a in data_us}))
     unk = [s for s in ext if "UNKNOWN" in slice_regions(s)]
     if unk:
         return "UNVERIFIABLE", [ev_slice(s) for s in unk[:3]], "endpoint region could not be determined"
@@ -93,6 +102,14 @@ class CodeDocDriftAgent(MicroAgent):
     @traced("code_doc_drift_agent.evaluate")
     def evaluate(self, check, ctx) -> Verdict:
         ix = ctx.index
+        if check.check_id == "COV-01":
+            if ix.unscanned:
+                exts = ", ".join(f"{e} ({n})" for e, n in sorted(ix.unscanned.items()))
+                return Verdict("SUSPECTED_GAP", 0.9, "Code present in languages the scanner cannot inspect",
+                               f"Source files in unsupported languages were found: {exts}. Their behaviour is unverified, so this audit "
+                               "cannot rule out violations in them (closed-world: no evidence is not a pass).")
+            langs = ", ".join(f"{l} ({n})" for l, n in sorted(ix.lang_files.items())) or "python"
+            return Verdict("PASS", 0.85, "All source files were parsed", f"Parsed languages: {langs}.", scan_basis=True)
         claim_type = check.check_id.split("-", 1)[1]
         if not ix.has_docs:
             return Verdict("SUSPECTED_GAP", 0.6, f"No documentation to triangulate {claim_type} promise",
@@ -105,14 +122,19 @@ class CodeDocDriftAgent(MicroAgent):
         a0 = asserts[0]
         doc_ev = [ev_chunk(chunk_by_id[a.source_chunk_id], a.claim_text) for a in asserts[:2] if a.source_chunk_id in chunk_by_id]
         state, code_ev, detail = ASSESSORS[claim_type](ix)
+        from src.agents.llm_client import build_focused_context
+
+        sl = next((x for x in ix.slices if any(e.artifact_id == x.slice_id for e in code_ev)), None)
+        card = next((c for c in ix.cards if any(e.artifact_id == c.module_id for e in code_ev)), None)
+        focus = build_focused_context(a0, sl, card)
         claim = f'Docs promise: "{a0.claim_text}"'
         if state == "CONTRADICTS":
             return Verdict("CONFIRMED_VIOLATION", 0.92, f"Code-vs-doc drift: {claim_type} promise contradicted by code",
                            f"Documentary promise is contradicted by implementation ({detail}).", doc_ev + code_ev,
-                           drift=f"{claim} | Code shows: {detail}.")
+                           drift=f"{claim} | Code shows: {detail}.", context=focus)
         if state == "SUPPORTS":
             return Verdict("PASS", 0.88, f"{claim_type} promise consistent with code", f"Implementation matches the documented promise ({detail}).",
-                           doc_ev + code_ev, drift=None)
+                           doc_ev + code_ev, drift=None, context=focus)
         return Verdict("SUSPECTED_GAP", 0.6, f"{claim_type} promise could not be verified in code",
                        f"Promise exists in docs but code evidence is insufficient ({detail}).", doc_ev + code_ev,
-                       drift=f"{claim} | Code evidence: {detail}.")
+                       drift=f"{claim} | Code evidence: {detail}.", context=focus)

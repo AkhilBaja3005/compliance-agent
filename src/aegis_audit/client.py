@@ -13,7 +13,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from aegis_audit.remediator import generate_remediation_patches
 from aegis_audit.report_pdf import render_audit_pdf
+from aegis_audit.sarif import render_audit_sarif
 
 
 @dataclass
@@ -37,6 +39,11 @@ class AuditSession:
     quarantined_for_human_review: List[Dict[str, Any]] = field(default_factory=list)
     passed_checks: List[Dict[str, Any]] = field(default_factory=list)
     agent_execution_trace: List[Dict[str, Any]] = field(default_factory=list)
+    eval_results: Dict[str, Any] = field(default_factory=dict)
+    fairness_metrics: Dict[str, Any] = field(default_factory=dict)
+    roadmap: List[Dict[str, Any]] = field(default_factory=list)
+    input_coverage: Dict[str, Any] = field(default_factory=dict)
+    frameworks: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -57,14 +64,28 @@ class AuditSession:
             "quarantined_for_human_review": self.quarantined_for_human_review,
             "passed_checks": self.passed_checks,
             "agent_execution_trace": self.agent_execution_trace,
+            "eval_results": self.eval_results,
+            "fairness_metrics": self.fairness_metrics,
+            "roadmap": self.roadmap,
+            "input_coverage": self.input_coverage,
+            "frameworks": self.frameworks,
         }
 
     def to_json(self, indent: int = 2) -> str:
-        return json.dumps(self.to_dict(), indent=indent)
+        return json.dumps(self.to_dict(), indent=indent, default=str)
 
     def save_pdf(self, output_path: str = "aegis_compliance_report.pdf") -> str:
         """Renders the exact 6-section executive A4 PDF report using WeasyPrint."""
         return render_audit_pdf(self.to_dict(), output_path=output_path)
+
+    def save_sarif(self, output_path: str = "aegis_compliance_report.sarif") -> Dict[str, Any]:
+        """Renders the OASIS SARIF v2.1.0 code scanning JSON output."""
+        return render_audit_sarif(self.to_dict(), output_path=output_path)
+
+    def generate_patches(self, repo_paths: Optional[List[str | Path]] = None, apply: bool = False, patch_out: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Generates unified git patches to automatically remediate statutory violations."""
+        paths = repo_paths or [Path.cwd()]
+        return generate_remediation_patches(self.to_dict(), paths, apply=apply, patch_out=patch_out)
 
     def print_rich_summary(self) -> None:
         """Prints an executive terminal dashboard using Rich."""
@@ -76,7 +97,7 @@ class AuditSession:
                 f"[bold white]{self.company_name}[/bold white] — [bold red]{self.overall_readiness}[/bold red]\n"
                 f"[dim]Scope: {self.scope} | Report ID: {self.report_id} | Coverage: {self.input_coverage_pct}%[/dim]\n"
                 f"[yellow]{self.readiness_summary}[/yellow]",
-                title="[bold blue]⚖️ AEGIS AI SAFETY & REGULATORY COMPLIANCE AUDITOR[/bold blue]",
+                title="[bold #70C5FF]⚖️ GRAPHITE AI SAFETY & REGULATORY COMPLIANCE AUDITOR[/bold #70C5FF]",
                 border_style="red" if "NOT" in self.overall_readiness else "green",
             )
         )
@@ -162,79 +183,45 @@ class ComplianceAuditor:
         github_repos: Optional[List[str]] = None,
         confluence_space: Optional[str] = None,
         target_dir: Optional[str] = None,
+        github_url: Optional[str] = None,
+        confluence_path: Optional[str] = None,
+        diff_base: Optional[str] = None,
     ) -> AuditSession:
         """Runs a complete multi-agent compliance audit across GitHub and Confluence assets."""
-        target_path = Path(target_dir or "./sample_connectors").resolve()
+        from src.connectors.github_connector import is_github_url
+
+        target_str = str(github_url or target_dir or "./sample_connectors")
         now_str = datetime.now(timezone.utc).strftime("%d %B %Y")
 
+        if is_github_url(target_str) or (target_dir and is_github_url(target_dir)):
+            from src.agents import run_audit
+            url = target_str if is_github_url(target_str) else str(target_dir)
+            repo_name = url.rstrip("/").split("/")[-1].replace(".git", "")
+            tenant_id = f"gh_{repo_name}"
+            real_report = run_audit(
+                None,
+                tenant_id,
+                github_source=url,
+                confluence_source=confluence_path,
+                diff_base=diff_base,
+            )
+            return self._build_session(real_report, company_name or repo_name, now_str, self._scope_label(f"Live GitHub Repo ({url})", real_report))
+
+        target_path = Path(target_dir or "./sample_connectors").resolve()
+
         # If pointing to an actual company directory, invoke the multi-agent pipeline
+        # Any folder with files is a real company to audit; only the bundled sample root (which holds `enterprise/`) uses the demo data.
         is_company_dir = (
             target_path.is_dir()
-            and (
-                any(p.name.startswith("company_") for p in [target_path])
-                or (target_path / "code").is_dir()
-                or (target_path / "docs").is_dir()
-                or ((target_path / "github").is_dir() and (target_path / "confluence").is_dir())
-                or any(target_path.glob("*.py"))
-            )
             and not (target_path / "enterprise").is_dir()
+            and any(p.is_file() for p in target_path.rglob("*"))
         )
 
         if is_company_dir:
             from src.agents import run_audit
             tenant_id = target_path.name
-            real_report = run_audit(target_path, tenant_id)
-
-            def _f_to_dict(f):
-                return {
-                    "finding_id": f.finding_id,
-                    "severity": f.severity,
-                    "status": f.status,
-                    "due_date": f.due_date,
-                    "days_remaining": f.days_remaining,
-                    "confidence": f.confidence,
-                    "title": f.title,
-                    "system_id": f.system_id,
-                    "system_name": f.system_name,
-                    "primary_rule": f.primary_rule,
-                    "also_engages": f.also_engages,
-                    "summary": f.summary,
-                    "code_vs_doc_drift": f.code_vs_doc_drift,
-                    "evidence": [e.model_dump() if hasattr(e, "model_dump") else e for e in f.evidence],
-                    "exposure_text": f.exposure_text,
-                    "owner": f.owner,
-                    "effort_days": f.effort_days,
-                    "human_review_required": f.human_review_required,
-                    "remediation_steps": f.remediation_steps,
-                    "history_status": f.history_status,
-                    "linkup_citation_urls": f.linkup_citation_urls,
-                }
-
-            confirmed_dicts = [_f_to_dict(f) for f in real_report.confirmed_findings]
-            gaps_dicts = [_f_to_dict(f) for f in real_report.suspected_gaps]
-            quarantined_dicts = [_f_to_dict(f) for f in real_report.quarantined_for_human_review]
-            passed_dicts = [p.model_dump() if hasattr(p, "model_dump") else p for p in real_report.passed_checks]
-            systems_dicts = [s.model_dump() if hasattr(s, "model_dump") else s for s in real_report.system_inventory]
-
-            return AuditSession(
-                report_id=real_report.report_id,
-                company_name=company_name or real_report.company_name,
-                assessed_at=now_str,
-                scope=f"Scanned Repository ({target_path.name})",
-                rule_library_version=real_report.rule_library_version,
-                input_coverage_pct=int(real_report.input_coverage_pct),
-                overall_readiness=real_report.overall_readiness,
-                readiness_summary=real_report.readiness_summary,
-                bundle_sha256=real_report.bundle_sha256,
-                stack_telemetry=real_report.stack_telemetry,
-                system_inventory=systems_dicts,
-                compliance_matrix=[m.model_dump() if hasattr(m, "model_dump") else m for m in real_report.compliance_matrix],
-                confirmed_findings=confirmed_dicts,
-                suspected_gaps=gaps_dicts,
-                quarantined_for_human_review=quarantined_dicts,
-                passed_checks=passed_dicts,
-                agent_execution_trace=[{"step": t} for t in real_report.agent_execution_trace],
-            )
+            real_report = run_audit(target_path, tenant_id, diff_base=diff_base)
+            return self._build_session(real_report, company_name, now_str, self._scope_label(f"Scanned Repository ({target_path.name})", real_report))
 
         # 7 Systems modeled on Northwind Labs Ltd (sample_connectors default)
         systems = [
@@ -609,3 +596,38 @@ class ComplianceAuditor:
             passed_checks=passed,
         )
         return session
+
+    @staticmethod
+    def _scope_label(label: str, real_report) -> str:
+        """Append the incremental-scan marker (`[diff vs <base>: N changed file(s)]`) so a PR-gate report says what it covered."""
+        import re as _re
+
+        m = _re.search(r"\[diff vs [^\]]+\]", getattr(real_report, "scope", "") or "")
+        return f"{label} {m.group(0)}" if m else label
+
+    def _build_session(self, real_report, company_name: str, assessed_at: str, scope: str) -> AuditSession:
+        export_data = real_report.to_export_dict()
+        return AuditSession(
+            report_id=export_data["report_id"],
+            company_name=company_name or export_data["company_name"],
+            assessed_at=assessed_at or export_data["assessed_at"],
+            scope=scope or export_data["scope"],
+            rule_library_version=export_data["rule_library_version"],
+            input_coverage_pct=export_data["input_coverage_pct"],
+            overall_readiness=export_data["overall_readiness"],
+            readiness_summary=export_data["readiness_summary"],
+            bundle_sha256=export_data["bundle_sha256"],
+            stack_telemetry=export_data["stack_telemetry"],
+            system_inventory=export_data["system_inventory"],
+            compliance_matrix=export_data["compliance_matrix"],
+            confirmed_findings=export_data["confirmed_findings"],
+            suspected_gaps=export_data["suspected_gaps"],
+            quarantined_for_human_review=export_data["quarantined_for_human_review"],
+            passed_checks=export_data["passed_checks"],
+            agent_execution_trace=export_data["agent_execution_trace"],
+            eval_results=export_data["eval_results"],
+            fairness_metrics=export_data["fairness_metrics"],
+            roadmap=export_data["roadmap"],
+            input_coverage=export_data["input_coverage"],
+            frameworks=export_data["frameworks"],
+        )

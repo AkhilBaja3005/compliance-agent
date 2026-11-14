@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Jurisdiction = Literal["EU_AI_ACT", "UK_GDPR_ICO", "UK_DSIT", "UK_COPYRIGHT_TDM"]
+Jurisdiction = Literal["EU_AI_ACT", "EU_GDPR", "UK_GDPR_ICO", "UK_DSIT", "UK_COPYRIGHT_TDM"]
 
 
 class RegulatoryRule(BaseModel):

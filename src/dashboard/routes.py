@@ -4,7 +4,8 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import FileResponse, RedirectResponse
 
-from src.dashboard.models import Job, Settings, Snapshot
+from src import security as sec
+from src.dashboard.models import Job, Settings, Snapshot, Sources
 from src.dashboard.service import DashboardService
 from src.schemas.findings import TriagedAuditReport
 
@@ -12,15 +13,29 @@ router = APIRouter()
 STATIC = Path(__file__).parent / "static"
 
 
-def service(request: Request, company_id: str) -> DashboardService:
+def service(request: Request, company_id: str, p: sec.Principal = Depends(sec.require("viewer")),
+            _rl: None = Depends(sec.rate_limit())) -> DashboardService:
     from src.api import list_company_ids
 
+    sec.require_tenant(p, company_id)
     if company_id not in list_company_ids():
         raise HTTPException(404, "Unknown company")
     instance = getattr(request.app.state, "dashboard", None)
     if instance is None:
         raise HTTPException(503, "Dashboard storage unavailable; check server logs")
     return instance
+
+
+def validate_sources(sources: Sources, p: sec.Principal) -> None:
+    if sec.auth_disabled():
+        return  # local development supports explicitly mounted source directories
+    from src.api import companies_root
+
+    root = companies_root()
+    if sources.github_url:
+        sec.validate_repo_source(sources.github_url, p, root)
+    if sources.confluence_path:
+        sec.validate_local_path(sources.confluence_path, [root], p)
 
 
 @router.get("/", include_in_schema=False)
@@ -55,7 +70,9 @@ def report(company_id: str, report_id: str, response: Response, dashboard: Dashb
 
 
 @router.post("/dashboard/api/companies/{company_id}/runs", response_model=Job, status_code=202)
-def run(company_id: str, dashboard: DashboardService = Depends(service)):
+def run(company_id: str, dashboard: DashboardService = Depends(service), p: sec.Principal = Depends(sec.require("auditor")),
+        _rl: None = Depends(sec.rate_limit(heavy=True))):
+    validate_sources(dashboard.repository.get_settings(company_id).sources, p)
     return dashboard.enqueue(company_id)
 
 
@@ -69,5 +86,6 @@ def job(company_id: str, job_id: str, response: Response, dashboard: DashboardSe
 
 
 @router.put("/dashboard/api/companies/{company_id}/settings", response_model=Settings)
-def settings(company_id: str, value: Settings, dashboard: DashboardService = Depends(service)):
+def settings(company_id: str, value: Settings, dashboard: DashboardService = Depends(service), p: sec.Principal = Depends(sec.require("auditor"))):
+    validate_sources(value.sources, p)
     return dashboard.save_settings(company_id, value)

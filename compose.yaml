@@ -6,8 +6,11 @@ services:
     ports:
       - "${AEGIS_BIND_ADDRESS:-127.0.0.1}:${AEGIS_PORT:-8000}:8000"
     environment:
+      AEGIS_DATA_DIR: /var/lib/aegis
       AEGIS_DASHBOARD_DB: /var/lib/aegis/dashboard.sqlite3
       AEGIS_HISTORY_FILE: /var/lib/aegis/finding-history.json
+      AEGIS_AUTH_DISABLED: ${AEGIS_AUTH_DISABLED:-false}
+      AEGIS_API_KEYS: ${AEGIS_API_KEYS:-}
       BYOM_OFFLINE: ${BYOM_OFFLINE:-true}
       AUTO_SYNC: ${AUTO_SYNC:-false}
       COMPANIES_DIR: ${COMPANIES_DIR:-/app/tests/fixtures/companies}
