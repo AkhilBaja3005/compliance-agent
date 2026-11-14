@@ -1,14 +1,14 @@
 services:
-  aegis:
+  graphite:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "${GRAPHITE_BIND_ADDRESS:-127.0.0.1}:${GRAPHITE_PORT:-8000}:8000"
     environment:
-      GRAPHITE_DATA_DIR: /var/lib/aegis
-      GRAPHITE_DASHBOARD_DB: /var/lib/aegis/dashboard.sqlite3
-      GRAPHITE_HISTORY_FILE: /var/lib/aegis/finding-history.json
+      GRAPHITE_DATA_DIR: /var/lib/graphite
+      GRAPHITE_DASHBOARD_DB: /var/lib/graphite/dashboard.sqlite3
+      GRAPHITE_HISTORY_FILE: /var/lib/graphite/finding-history.json
       GRAPHITE_AUTH_DISABLED: ${GRAPHITE_AUTH_DISABLED:-false}
       GRAPHITE_API_KEYS: ${GRAPHITE_API_KEYS:-}
       BYOM_OFFLINE: ${BYOM_OFFLINE:-true}
@@ -35,7 +35,7 @@ services:
       CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
       CONFLUENCE_SPACE_KEY: ${CONFLUENCE_SPACE_KEY:-}
     volumes:
-      - aegis-state:/var/lib/aegis
+      - graphite-state:/var/lib/graphite
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
@@ -56,12 +56,12 @@ services:
       - git-repositories:/srv/git
       - git-state:/var/lib/aegis
       - ./deploy/git-server/policy.toml:/etc/aegis/policy.toml:ro,Z
-      - "${GRAPHITE_AUTHORIZED_KEYS:-./.aegis/authorized_keys}:/keys/authorized_keys:ro,Z"
+      - "${GRAPHITE_AUTHORIZED_KEYS:-./.graphite/authorized_keys}:/keys/authorized_keys:ro,Z"
     restart: unless-stopped
     pids_limit: 128
     mem_limit: 1g
 
 volumes:
-  aegis-state:
+  graphite-state:
   git-repositories:
   git-state:

@@ -83,7 +83,8 @@ All components have deterministic offline fallbacks. The system operates fully w
 | Platform | Role in Graphite | Offline Fallback |
 |---|---|---|
 | **Linkup** | Live regulatory scraping and OSS license verification via deep search | Embedded seed regulatory rules and standard license taxonomies |
-| **MongoDB Atlas** | `$vectorSearch` over rules/artifacts, LangGraph checkpoints (`MongoDBSaver`), longitudinal drift (`audit_history`) | Local BM25 + embedding store, `MemorySaver`, JSON audit history |
+| **MongoDB Atlas** | `$vectorSearch` over rules/artifacts, LangGraph state checkpoints (`MongoDBSaver`), longitudinal drift (`audit_history`) | Local BM25 + embedding store, `MemorySaver`, JSON audit history |
+| **LangGraph** | Cyclic agent execution graph (`StateGraph`) orchestrating supervisor routing, iterative evaluation loops, and durable state resumption | In-memory cyclic graph with deterministic turn boundaries |
 | **Databricks** | Mosaic AI Model Serving, `@mlflow.trace` execution spans, Unity Catalog Delta sinks | Deterministic offline evaluator, no-op telemetry |
 
 ---
@@ -193,7 +194,7 @@ Authentication is enforced by default via API key headers (`X-API-Key`). Configu
 GRAPHITE_AUTH_DISABLED=true docker compose up --build -d
 
 # View live logs
-docker compose logs -f aegis
+docker compose logs -f graphite
 
 # Shutdown
 docker compose down
@@ -205,8 +206,8 @@ Enable server-side pre-receive Git policy enforcement within the shared stack:
 
 ```bash
 # Set up authorized SSH keys
-mkdir -p .aegis
-cp "$HOME/.ssh/id_ed25519.pub" .aegis/authorized_keys
+mkdir -p .graphite
+cp "$HOME/.ssh/id_ed25519.pub" .graphite/authorized_keys
 
 # Start with git profile enabled
 GRAPHITE_AUTH_DISABLED=true docker compose --profile git up --build -d
