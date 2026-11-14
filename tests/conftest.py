@@ -13,6 +13,7 @@ def _offline_env(monkeypatch):
     monkeypatch.setenv("BYOM_OFFLINE", "true")
     monkeypatch.setenv("COMPANIES_DIR", str(FIXTURES))
     monkeypatch.setenv("USE_DATABRICKS", "false")
+    monkeypatch.setenv("AEGIS_FRAMEWORKS", "ALL")
     monkeypatch.delenv("LAW_FEED_URL", raising=False)
     monkeypatch.delenv("LAW_FEED_FILE", raising=False)
     # engines must run in clean offline-fallback mode regardless of the developer's shell / .env

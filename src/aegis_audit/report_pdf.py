@@ -1,13 +1,13 @@
 """6-Section Executive WeasyPrint PDF Report Generator for Aegis AI Compliance Auditor.
 
 Exact 6-Section Design:
-- Section 1 (Executive Summary): Header ("COMPANY-WIDE ASSESSMENT EU + UK"), Company Name & Date,
+- Section 1 (Executive Summary): Header ("COMPANY-WIDE ASSESSMENT EU AI ACT"), Company Name & Date,
   5-cell Metadata Strip (Scope, Rule Library with Linkup verified tag, Input Coverage %, Report ID, Review Status),
   Readiness Banner + 2 KPI Cards, Top findings table, Counts & Upcoming Deadlines, Watching & How to Read disclaimer.
 - Section 2 (AI System Inventory & Classification): Full inventory table (S1..S7 with purple UNDECLARED badges) +
   2-column Classification Record: Decision Path and Evidence & Confidence callout card.
 - Section 3 (Compliance Matrix): Color-coded status grid (Pass, Partial, Gap + Ref, N/A) grouped into EU AI Act
-  and UK Regime across systems + Company-Level Control table.
+  across systems + Company-Level Control table.
 - Section 4 (Detailed Findings): One structured card per Critical/High finding with severity banner,
   System | Primary Rule | Also Engages strip, narrative summary, Evidence table (GitHub file:line, Confluence section,
   clickable Linkup citation URLs, SHA-256 hashes), MongoDB Atlas NEW/RECURRING history badge, Exposure & Ownership boxes,
@@ -448,12 +448,12 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     report_id = html.escape(str(report_data.get("report_id", "AEGIS-AUDIT-2026-001")))
     assessed_at = html.escape(str(report_data.get("assessed_at", datetime.now(timezone.utc).strftime("%d %B %Y"))))
     scope = html.escape(str(report_data.get("scope", "GitHub Org & Confluence Workspace (S1–S7)")))
-    rule_lib = html.escape(str(report_data.get("rule_library_version", "EU-UK-2026.11-Unified")))
+    rule_lib = html.escape(str(report_data.get("rule_library_version", "EU-AI-ACT-2026.11")))
     coverage_pct = report_data.get("input_coverage_pct", 94)
     overall_readiness = report_data.get("overall_readiness", "NOT READY — HIGH REGULATORY EXPOSURE")
     readiness_summary = report_data.get(
         "readiness_summary",
-        "Multiple high-risk regulatory gaps detected across EU AI Act Annex III, Article 50 transparency, and UK DUAA 2025 automated decision-making rules."
+        "Multiple high-risk regulatory gaps detected across EU AI Act Annex III, and Article 50 transparency rules."
     )
     bundle_sha = report_data.get("bundle_sha256", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")[:16]
 
@@ -524,7 +524,7 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
 <!-- SECTION 1: EXECUTIVE SUMMARY -->
 <!-- ======================================================================= -->
 <div class="top-header">
-    <div class="assessment-sub">Aegis Regulatory Engine • Company-Wide Assessment EU + UK</div>
+    <div class="assessment-sub">Aegis Regulatory Engine • Company-Wide Assessment · EU AI Act</div>
     <div class="company-title-row">
         <h1 class="company-name">{company}</h1>
         <div class="report-date">Assessed: <strong>{assessed_at}</strong></div>
@@ -636,7 +636,6 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
             <th style="width:24%;">System Name</th>
             <th style="width:16%;">Repository / Source</th>
             <th style="width:22%;">EU AI Act Tier</th>
-            <th style="width:18%;">UK Regime Status</th>
             <th style="width:12%;">Registry</th>
         </tr>
     </thead>
@@ -650,7 +649,6 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
             <td><strong>{s.get('name')}</strong><br><span style="color:#64748B; font-size:6.8pt;">{s.get('purpose', '')}</span></td>
             <td><code>{s.get('repo', 'N/A')}</code></td>
             <td><span class="badge badge-high">{s.get('eu_tier', 'Annex III High Risk')}</span></td>
-            <td>{s.get('uk_regime', 'UK DUAA 2025 ADM')}</td>
             <td>{declared_badge}</td>
         </tr>
 """
@@ -665,8 +663,8 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
         <div class="callout-col">
             <strong style="color:#1E293B;">Decision Path & Trigger Rules:</strong>
             <ul style="margin:4px 0 0 14px; padding:0; color:#475569; font-size:7.2pt; line-height:1.4;">
-                <li><strong>S2 (CV Screener):</strong> Triggered EU AI Act Annex III §4(a) (Employment & candidate evaluation) and UK Equality Act 2010 due to automated candidate ranking impacting livelihood.</li>
-                <li><strong>S3 (Credit Decision Engine):</strong> Classified as High-Risk creditworthiness evaluation under Annex III §5(b) and automated decision-making under UK DUAA 2025 / UK GDPR Art. 22.</li>
+                <li><strong>S2 (CV Screener):</strong> Triggered EU AI Act Annex III §4(a) (Employment & candidate evaluation) due to automated candidate ranking impacting livelihood.</li>
+                <li><strong>S3 (Credit Decision Engine):</strong> Classified as High-Risk creditworthiness evaluation under Annex III §5(b) and Article 14 human-oversight obligations.</li>
                 <li><strong>S4 (Imagery Studio):</strong> Triggered Article 50(2) Generative AI synthetic media transparency obligations and Copyright Directive / GPL copyleft triggers.</li>
             </ul>
         </div>
@@ -688,7 +686,7 @@ Purple badges denote undeclared systems uncovered via automated AST edge extract
 <!-- ======================================================================= -->
 <h2>Section 3: Statutory Compliance Matrix</h2>
 <p style="color:#475569; font-size:7.5pt; margin-bottom:8px;">
-Cross-cutting compliance status mapped across all 7 identified systems against EU AI Act statutory articles and UK Regulatory Regimes.
+Cross-cutting compliance status mapped across all 7 identified systems against EU AI Act statutory articles.
 </p>
 
 <table class="data-table" style="text-align:center;">
@@ -696,25 +694,18 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
         <tr>
             <th style="width:12%; text-align:left;">System</th>
             <th colspan="3" style="text-align:center; background:#1E3A8A;">EU AI Act Framework</th>
-            <th colspan="3" style="text-align:center; background:#065F46;">UK Regulatory Regime</th>
         </tr>
         <tr>
             <th style="text-align:left; background:#334155;">System ID</th>
             <th style="background:#1E40AF;">Art. 9 (Risk)</th>
             <th style="background:#1E40AF;">Art. 14 (HITL)</th>
             <th style="background:#1E40AF;">Art. 50 (Transp)</th>
-            <th style="background:#047857;">UK GDPR Art 22</th>
-            <th style="background:#047857;">UK DUAA 2025</th>
-            <th style="background:#047857;">IP / Copyright</th>
         </tr>
     </thead>
     <tbody>
         <tr>
             <td style="text-align:left;"><strong>S1: Support Assistant</strong></td>
-            <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-na">N/A</span></td>
             <td><span class="badge badge-gap">Gap (Art 50.1)</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
             <td><span class="badge badge-na">N/A</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
         </tr>
@@ -723,34 +714,22 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
             <td><span class="badge badge-gap">Gap (No FRIA)</span></td>
             <td><span class="badge badge-partial">Partial</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-gap">Gap (Art 22)</span></td>
-            <td><span class="badge badge-gap">Gap (Contest)</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
         </tr>
         <tr>
             <td style="text-align:left;"><strong>S3: Credit Decision</strong></td>
             <td><span class="badge badge-gap">Gap (Annex III)</span></td>
             <td><span class="badge badge-gap">Gap (No HITL)</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-gap">Gap (Egress)</span></td>
-            <td><span class="badge badge-gap">Gap (Solely ADM)</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
         </tr>
         <tr>
             <td style="text-align:left;"><strong>S4: Imagery Studio</strong></td>
             <td><span class="badge badge-gap">Gap (AUP Drift)</span></td>
-            <td><span class="badge badge-na">N/A</span></td>
             <td><span class="badge badge-gap">Gap (C2PA Omit)</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
             <td><span class="badge badge-na">N/A</span></td>
-            <td><span class="badge badge-gap">Gap (GPL / NC)</span></td>
         </tr>
         <tr>
             <td style="text-align:left;"><strong>S5: Voice Synthesis</strong></td>
-            <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-na">N/A</span></td>
             <td><span class="badge badge-gap">Gap (Art 50.2)</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
             <td><span class="badge badge-na">N/A</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
         </tr>
@@ -759,15 +738,9 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
             <td><span class="badge badge-pass">Pass</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-partial">Partial (TDM)</span></td>
         </tr>
         <tr>
             <td style="text-align:left;"><strong>S7: Code Copilot</strong></td>
-            <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
-            <td><span class="badge badge-pass">Pass</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
             <td><span class="badge badge-pass">Pass</span></td>
@@ -788,7 +761,7 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
     <tbody>
         <tr>
             <td><strong>Data Sovereignty & DPA</strong></td>
-            <td>EU/UK Resident Inference & Presidio Redaction</td>
+            <td>EU Resident Inference & Presidio Redaction</td>
             <td><span class="badge badge-gap">DRIFT DETECTED</span></td>
             <td><code>sha256:b83ef908124a</code></td>
         </tr>
@@ -961,7 +934,7 @@ Automated red-teaming eval suite results and demographic selection-rate parity a
     <div style="font-size:7pt; color:#475569; margin-top:4px;">
         <em>Figure 5.1:</em> Selection rate ratio across protected demographic cohorts.
         The <strong>0.72 ratio</strong> for applicants aged 50+ violates the <strong>0.80 four-fifths adverse impact rule</strong>,
-        establishing statutory non-compliance under EU AI Act Annex III §4(a) and UK Equality Act 2010.
+        establishing statutory non-compliance under EU AI Act Annex III §4(a).
     </div>
 </div>
 
@@ -988,7 +961,7 @@ Structured, phased execution plan to achieve full statutory compliance before st
         <div class="roadmap-header">Phase 2: Q1 2027<br><span style="font-size:6pt; font-weight:normal;">Data Residency & HITL</span></div>
         <ul style="margin:0 0 0 12px; padding:0; font-size:6.8pt; color:#334155; line-height:1.4;">
             <li><strong>Presidio masking</strong> in <code>credit_scorer.py</code>.</li>
-            <li><strong>UK DUAA Contest Route:</strong> Introduce human loan officer appeal flow.</li>
+            <li><strong>Art. 14 Contest Route:</strong> Introduce human loan officer appeal flow.</li>
             <li><strong>Route credit LLM</strong> to sovereign <code>eu-central-1</code> endpoints.</li>
         </ul>
     </div>

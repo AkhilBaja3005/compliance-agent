@@ -290,3 +290,12 @@ def test_api_endpoints(fixtures_dir, monkeypatch):
         assert st["law_index_version"] == sim["new_version"] and st["rule_count"] == before["rule_count"] + 1
     finally:
         set_scout(None)
+
+
+def test_eu_ai_act_only_scope(fixtures_dir, monkeypatch):
+    monkeypatch.setenv("AEGIS_FRAMEWORKS", "EU_AI_ACT")
+    rep = audit(fixtures_dir, "company_a_finscore")
+    assert "EU AI Act" in rep.scope
+    assert rep.all_findings()
+    for f in rep.all_findings():
+        assert f.primary_rule.startswith("EU_AI_ACT"), f.primary_rule

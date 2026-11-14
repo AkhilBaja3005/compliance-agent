@@ -68,15 +68,15 @@ def scan(
         transient=True,
     ) as progress:
         task1 = progress.add_task("[cyan]Connecting to Databricks Mosaic AI Serving & MLflow...", total=100)
-        time.sleep(0.4)
+        time.sleep(0.2)
         progress.update(task1, advance=25, description="[cyan]Verifying Linkup Regulatory citations & EUR-Lex rules...")
-        time.sleep(0.4)
+        time.sleep(0.2)
         progress.update(task1, advance=25, description="[cyan]Tri-modal AST indexing (GitHub repos & Confluence AIGOV)...")
-        time.sleep(0.5)
+        time.sleep(0.2)
         progress.update(task1, advance=25, description="[cyan]Supervisor cyclic routing across 6 micro-agents...")
-        time.sleep(0.5)
+        time.sleep(0.2)
         progress.update(task1, advance=25, description="[cyan]Executing 4-Gate Guardrails & WeasyPrint 6-Section PDF Engine...")
-        time.sleep(0.4)
+        time.sleep(0.2)
 
     auditor = ComplianceAuditor()
     session = auditor.audit(company_name=company, target_dir=target_dir)
@@ -110,8 +110,13 @@ def sync_laws(
         "--deep-linkup/--no-deep-linkup",
         help="Use Linkup deep web search for active legal amendments",
     ),
+    pdf_dir: str = typer.Option(
+        "regulatory_pdfs",
+        "--pdf-dir",
+        help="Folder of regulatory PDFs to index alongside the statutory rules ('' to skip)",
+    ),
 ):
-    """Synchronizes live statutory rules from EUR-Lex, UK Legislation, and Linkup deep search into MongoDB Atlas."""
+    """Synchronizes live statutory rules (EUR-Lex, UK Legislation, Linkup deep search) and regulatory PDFs into MongoDB Atlas."""
     from src.agents.llm_client import _load_dotenv
     _load_dotenv()
     from src.law_sync import get_store
@@ -146,7 +151,20 @@ def sync_laws(
             rules = scout.enrich(rules)
         progress.update(task, advance=33, description=f"[magenta]Writing {len(rules)} vector embeddings to MongoDB Atlas ({rules_col_name})...")
         compliance_store.index_rules(rules)
-        progress.update(task, advance=34, description="[magenta]Sync complete!")
+        progress.update(task, advance=17, description="[magenta]Indexing regulatory PDFs...")
+        pdf_chunks = 0
+        pdf_count = 0
+        pdf_root = Path(pdf_dir).resolve() if pdf_dir else None
+        if pdf_root is not None and pdf_root.exists():
+            from src.edge_extractors.pdf_ingestor import ingest_pdf_file
+            pdf_juris = {"EU": "EU_AI_ACT", "UK": "UK_GDPR_ICO"}.get(jurisdiction.upper(), "EU_AI_ACT")
+            pdf_files = [pdf_root] if pdf_root.is_file() else sorted(pdf_root.glob("**/*.pdf"))
+            for pdf_f in pdf_files:
+                chunks = ingest_pdf_file(pdf_path=pdf_f, jurisdiction=pdf_juris,
+                                         tenant_id="global_regulations", doc_category="REGULATORY_PDF")
+                pdf_chunks += compliance_store.index_pdf_chunks(chunks)
+                pdf_count += 1
+        progress.update(task, advance=17, description="[magenta]Sync complete!")
         time.sleep(0.2)
 
     t = Table(title="Regulatory RAG Synchronization Status", header_style="bold green")
@@ -169,7 +187,8 @@ def sync_laws(
     t.add_row("IP & Licensing", "EU CDSM / UK TDM & GPL Copyleft", str(len(ip_rules)), str(ip_linkup), "✓ SYNCHRONIZED")
     console.print(t)
 
-    console.print(f"[bold green]✓ Total {len(rules)} statutory rules actively indexed in MongoDB Atlas '{rules_col_name}' collection.[/bold green]\n")
+    console.print(f"[bold green]✓ Total {len(rules)} statutory rules actively indexed in MongoDB Atlas '{rules_col_name}' collection.[/bold green]")
+    console.print(f"[bold green]✓ {pdf_chunks} PDF chunk(s) from {pdf_count} file(s) indexed ({'Atlas' if compliance_store.is_atlas else 'local fallback'}).[/bold green]\n")
 
 
 @app.command("ingest-pdf")

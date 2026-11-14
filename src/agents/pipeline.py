@@ -79,9 +79,12 @@ def finalize_report(report: TriagedAuditReport, run: AgentRun, store, sink: Data
 
     report.report_id = f"AEGIS-{uuid.uuid4().hex[:12].upper()}"
     report.assessed_at = run.assessed_at
+    from src.regulatory_rag.tier_a_rules import active_frameworks
+    _fw = active_frameworks()
+    fw_label = "EU/UK" if _fw is None else "EU AI Act" if _fw == {"EU_AI_ACT"} else "/".join(sorted(_fw))
     report.scope = (f"{len(ix.systems)} AI system(s); code: {ix.code_origin}"
                     f"{' @' + ix.commit_sha[:10] if ix.commit_sha else ''}; docs: {ix.docs_origin}; "
-                    f"{len(run.checklist)} mandatory EU/UK checks")
+                    f"{len(run.checklist)} mandatory {fw_label} checks")
     report.rule_library_version = report.law_index_version
     cov, pct = rb.build_input_coverage(ix)
     report.input_coverage, report.input_coverage_pct = cov, pct

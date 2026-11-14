@@ -112,7 +112,6 @@ class LLMClient:
                 system=sys_text or "You are a regulatory compliance auditor.",
                 messages=chat_msgs,
                 max_tokens=2048,
-                temperature=0.0,
             )
             return res.content[0].text if res.content else ""
 

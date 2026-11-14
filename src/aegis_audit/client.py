@@ -167,7 +167,75 @@ class ComplianceAuditor:
         target_path = Path(target_dir or "./sample_connectors").resolve()
         now_str = datetime.now(timezone.utc).strftime("%d %B %Y")
 
-        # 7 Systems modeled on Northwind Labs Ltd
+        # If pointing to an actual company directory, invoke the multi-agent pipeline
+        is_company_dir = (
+            target_path.is_dir()
+            and (
+                any(p.name.startswith("company_") for p in [target_path])
+                or (target_path / "code").is_dir()
+                or (target_path / "docs").is_dir()
+                or any(target_path.glob("*.py"))
+            )
+            and not (target_path / "enterprise").is_dir()
+        )
+
+        if is_company_dir:
+            from src.agents import run_audit
+            tenant_id = target_path.name
+            real_report = run_audit(target_path, tenant_id)
+
+            def _f_to_dict(f):
+                return {
+                    "finding_id": f.finding_id,
+                    "severity": f.severity,
+                    "status": f.status,
+                    "due_date": f.due_date,
+                    "days_remaining": f.days_remaining,
+                    "confidence": f.confidence,
+                    "title": f.title,
+                    "system_id": f.system_id,
+                    "system_name": f.system_name,
+                    "primary_rule": f.primary_rule,
+                    "also_engages": f.also_engages,
+                    "summary": f.summary,
+                    "code_vs_doc_drift": f.code_vs_doc_drift,
+                    "evidence": [e.model_dump() if hasattr(e, "model_dump") else e for e in f.evidence],
+                    "exposure_text": f.exposure_text,
+                    "owner": f.owner,
+                    "effort_days": f.effort_days,
+                    "human_review_required": f.human_review_required,
+                    "remediation_steps": f.remediation_steps,
+                    "history_status": f.history_status,
+                    "linkup_citation_urls": f.linkup_citation_urls,
+                }
+
+            confirmed_dicts = [_f_to_dict(f) for f in real_report.confirmed_findings]
+            gaps_dicts = [_f_to_dict(f) for f in real_report.suspected_gaps]
+            quarantined_dicts = [_f_to_dict(f) for f in real_report.quarantined_for_human_review]
+            passed_dicts = [p.model_dump() if hasattr(p, "model_dump") else p for p in real_report.passed_checks]
+            systems_dicts = [s.model_dump() if hasattr(s, "model_dump") else s for s in real_report.system_inventory]
+
+            return AuditSession(
+                report_id=real_report.report_id,
+                company_name=company_name or real_report.company_name,
+                assessed_at=now_str,
+                scope=f"Scanned Repository ({target_path.name})",
+                rule_library_version=real_report.rule_library_version,
+                input_coverage_pct=int(real_report.input_coverage_pct),
+                overall_readiness=real_report.overall_readiness,
+                readiness_summary=real_report.readiness_summary,
+                bundle_sha256=real_report.bundle_sha256,
+                stack_telemetry=real_report.stack_telemetry,
+                system_inventory=systems_dicts,
+                compliance_matrix=[m.model_dump() if hasattr(m, "model_dump") else m for m in real_report.compliance_matrix],
+                confirmed_findings=confirmed_dicts,
+                suspected_gaps=gaps_dicts,
+                quarantined_for_human_review=quarantined_dicts,
+                passed_checks=passed_dicts,
+                agent_execution_trace=[{"step": t} for t in real_report.agent_execution_trace],
+            )
+
+        # 7 Systems modeled on Northwind Labs Ltd (sample_connectors default)
         systems = [
             {
                 "system_id": "S1",

@@ -105,9 +105,20 @@ CHECKS: list[MandatoryCheck] = [
 ]
 
 
-def build_checklist(profile: CompanyProfile) -> tuple[list[MandatoryCheck], list[MandatoryCheck]]:
-    """Return (applicable, not_applicable) checks."""
+def active_frameworks() -> set[str] | None:
+    """Jurisdictions in scope. Env AEGIS_FRAMEWORKS (comma list or ALL); default EU_AI_ACT only. None = all."""
+    import os
+    raw = os.getenv("AEGIS_FRAMEWORKS", "EU_AI_ACT").strip()
+    if not raw or raw.upper() == "ALL":
+        return None
+    return {x.strip().upper() for x in raw.split(",") if x.strip()}
+
+
+def build_checklist(profile: CompanyProfile, frameworks: set[str] | None = ...) -> tuple[list[MandatoryCheck], list[MandatoryCheck]]:
+    """Return (applicable, not_applicable) checks; checks outside `frameworks` are out of scope (not applicable)."""
+    fw = active_frameworks() if frameworks is ... else frameworks
     app, na = [], []
     for c in CHECKS:
-        (app if c.applies(profile) else na).append(c)
+        in_scope = fw is None or c.jurisdiction in fw
+        (app if in_scope and c.applies(profile) else na).append(c)
     return app, na
