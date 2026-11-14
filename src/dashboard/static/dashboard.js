@@ -23,7 +23,7 @@
     "Info",
     "Unspecified",
   ];
-  const colors = ["#161F34", "#40668D", "#7E65AE", "#006DDD"];
+  const colors = ["var(--confirmed)", "var(--suspected)", "var(--review)", "var(--passed)"];
   const state = {
     company: "",
     generation: 0,
@@ -363,7 +363,7 @@
     $("severity-chart").innerHTML = severityOrder
       .map(
         (severity, i) =>
-          `<div class="severity-row"><span>${severity}</span><div class="bar-track"><div class="bar-fill" style="width:${(100 * counts[i]) / maximum}%;background:${["#0D1322", "#2F4B68", "#40668D", "#7F97B2", "#7FC8FF", "#B2DEFF"][i]}"></div></div><strong>${counts[i]}</strong></div>`,
+          `<div class="severity-row"><span>${severity}</span><div class="bar-track"><div class="bar-fill" style="width:${(100 * counts[i]) / maximum}%;background:${["var(--critical)", "var(--high)", "var(--medium)", "var(--low)", "#7F97B2", "#7F97B2"][i]}"></div></div><strong>${counts[i]}</strong></div>`,
       )
       .join("");
     const priorities = [...open]
