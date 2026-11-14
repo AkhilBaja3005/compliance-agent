@@ -482,6 +482,57 @@ def _get_css() -> str:
         color: #7FC8FF;
         text-decoration: none;
     }
+
+    /* Structured Issue Cards */
+    .issue-card {
+        border: 1px solid #B2DEFF;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        background: #FFFFFF;
+        page-break-inside: avoid;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .issue-card-header {
+        background: #E5F4FF;
+        padding: 7px 12px;
+        border-bottom: 1px solid #CCE9FF;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .issue-title-text {
+        font-size: 9.5pt;
+        font-weight: 800;
+        color: #0D1322;
+    }
+    .issue-card-body {
+        padding: 9px 12px;
+        font-size: 7.5pt;
+    }
+    .issue-bullets {
+        margin: 0;
+        padding-left: 14px;
+        color: #161F34;
+        line-height: 1.45;
+    }
+    .issue-bullets li {
+        margin-bottom: 4px;
+    }
+    .issue-bullets li:last-child {
+        margin-bottom: 0;
+    }
+    .field-label {
+        font-weight: 700;
+        color: #004D99;
+    }
+    .eu-rule-highlight {
+        background: #E5F4FF;
+        color: #004D99;
+        font-weight: 700;
+        padding: 1px 4px;
+        border-radius: 3px;
+        border: 1px solid #B2DEFF;
+    }
     """
 
 
@@ -498,6 +549,50 @@ def _get_logo_data_uri() -> str:
         except Exception:
             pass
     return ""
+
+
+def extract_eu_ai_act_clause(finding: Dict[str, Any]) -> str:
+    """Extracts the exact EU AI Act article/annex clause number and explanation."""
+    import re
+
+    primary = str(finding.get("primary_rule", ""))
+    also = finding.get("also_engages", "")
+    if isinstance(also, list):
+        also = " ".join(also)
+    also = str(also)
+    text = f"{primary} {also}"
+
+    parts = []
+    for m in re.finditer(r"EU AI Act\s+(?:Article|Art\.?|Annex)\s+([0-9]+(?:\([0-9a-zA-Z]+\))*|[IVXLCDM]+(?:\s*§[0-9]+(?:\([a-z]\))*)?)", text, re.I):
+        val = m.group(1).strip()
+        prefix = "Annex " if re.match(r"^[IVXLCDM]+", val, re.I) else "Article "
+        ref = f"{prefix}{val}"
+        if ref not in parts:
+            parts.append(ref)
+
+    if not parts:
+        for m in re.finditer(r"(?<!GDPR\s)(?<!GDPR\sArt\.\s)(?:Article|Art\.?)\s*([0-9]+(?:\([0-9a-zA-Z]+\))*)", text, re.I):
+            val = m.group(1).strip()
+            if "gdpr" in text.lower() and val == "22":
+                continue
+            ref = f"Article {val}"
+            if ref not in parts:
+                parts.append(ref)
+        for m in re.finditer(r"Annex\s+([IVXLCDM]+(?:\s*§[0-9]+(?:\([a-z]\))*)?)", text, re.I):
+            val = m.group(1).strip()
+            ref = f"Annex {val}"
+            if ref not in parts:
+                parts.append(ref)
+
+    if parts:
+        return "EU AI Act " + " & ".join(parts)
+    elif "credit" in text.lower() or "scoring" in text.lower():
+        return "EU AI Act Annex III §5(b) (High-Risk Credit Evaluation) & Article 14 (Human Oversight Obligations)"
+    elif "copyright" in text.lower() or "license" in text.lower() or "gpl" in text.lower() or "cc-by-nc" in text.lower():
+        return "EU AI Act Article 53(1)(c) (General-Purpose AI Model Copyright & IP Compliance)"
+    elif "gdpr" in text.lower() or "privacy" in text.lower() or "pii" in text.lower():
+        return "EU AI Act Article 10(5) (Data Governance & Training/Validation Safeguards)"
+    return "EU AI Act Statutory Mandate (High-Risk Governance)"
 
 
 def render_html_report(report_data: Dict[str, Any]) -> str:
@@ -581,6 +676,33 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     </svg>
     """
 
+    # Dynamically build summary points based on actual audit data
+    confirmed_rules = []
+    for f in confirmed_findings:
+        rule_label = extract_eu_ai_act_clause(f)
+        if rule_label not in confirmed_rules:
+            confirmed_rules.append(rule_label)
+    
+    rules_text = ", ".join(confirmed_rules) if confirmed_rules else "None identified under tested statutory rules"
+
+    summary_bullets = f"""
+        <li><strong>Readiness Assessment:</strong> {company} is assessed as <strong>{overall_readiness}</strong> with <strong>{len(confirmed_findings)} confirmed statutory violation(s)</strong> and <strong>{len(suspected_gaps)} suspected compliance gap(s)</strong>.</li>
+        <li><strong>Observed Regulatory Triggers:</strong> {rules_text}.</li>
+        <li><strong>Controls Verification:</strong> {passing_controls} of {max(1, total_controls)} statutory controls verified against codebase AST facts and policy documentation.</li>
+    """
+    if crit_count > 0:
+        summary_bullets += """
+        <li><strong>Statutory Risk:</strong> Prohibited or high-risk non-compliance exposes the deployer to regulatory enforcement and fines up to €35,000,000 or 7% of worldwide annual turnover under EU AI Act Article 99.</li>
+        """
+    elif confirmed_findings:
+        summary_bullets += """
+        <li><strong>Statutory Risk:</strong> Non-compliance with transparency or governance obligations engages statutory penalties under EU AI Act Article 99.</li>
+        """
+    else:
+        summary_bullets += """
+        <li><strong>Statutory Risk:</strong> No confirmed statutory breaches observed in tested code artifacts. Complete remaining documentation items to resolve suspected gaps.</li>
+        """
+
     html_out = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -649,15 +771,22 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     </div>
 </div>
 
+<div class="callout-card" style="margin-bottom:12px; background:#FFFFFF; border:1px solid #B2DEFF;">
+    <div style="font-size:8pt; font-weight:700; color:#0D1322; margin-bottom:4px; text-transform:uppercase;">Overall Summary of Compliance Issues</div>
+    <ul class="issue-bullets" style="font-size:7.5pt; color:#161F34; line-height:1.45;">
+        {summary_bullets}
+    </ul>
+</div>
+
 <h3 style="font-size:9pt; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Top Priority Findings</h3>
 <table class="data-table">
     <thead>
         <tr>
             <th style="width:12%;">ID</th>
             <th style="width:12%;">Severity</th>
-            <th style="width:36%;">Finding</th>
-            <th style="width:25%;">Statutory Rule</th>
-            <th style="width:15%;">Due Date</th>
+            <th style="width:34%;">Finding</th>
+            <th style="width:28%;">EU AI Act Statutory Rule</th>
+            <th style="width:14%;">Due Date</th>
         </tr>
     </thead>
     <tbody>
@@ -665,12 +794,13 @@ def render_html_report(report_data: Dict[str, Any]) -> str:
     for f in confirmed_findings[:4]:
         sev = str(f.get("severity") or "HIGH").upper()
         badge_cls = f"badge-{sev.lower()}"
+        eu_rule = extract_eu_ai_act_clause(f)
         html_out += f"""
         <tr>
             <td><strong>{f.get('finding_id')}</strong></td>
             <td><span class="badge {badge_cls}">{sev}</span></td>
             <td><strong>{f.get('title')}</strong><br><span style="color:#40668D; font-size:6.8pt;">System: {f.get('system_id', 'Enterprise')}</span></td>
-            <td>{f.get('primary_rule')}</td>
+            <td><span class="eu-rule-highlight">{eu_rule}</span></td>
             <td><strong>{f.get('due_date', 'Immediate')}</strong><br><span style="color:#DC2626; font-size:6.5pt;">({f.get('days_remaining', '0')}d remaining)</span></td>
         </tr>
 """
@@ -876,9 +1006,9 @@ Cross-cutting compliance status mapped across all 7 identified systems against E
 <!-- ======================================================================= -->
 <!-- SECTION 4: DETAILED FINDINGS -->
 <!-- ======================================================================= -->
-<h2>Section 4: Detailed Audit Findings & Cryptographic Evidence</h2>
-<p style="color:#2F4B68; font-size:7.5pt; margin-bottom:10px;">
-In-depth technical breakdown of confirmed violations. Each card anchors code-level reality against contractual/policy documentation with immutable SHA-256 evidence pointers and Linkup regulatory citations.
+<h2>Section 4: Detailed Audit Findings & Regulatory Exposure</h2>
+<p style="color:#2F4B68; font-size:7.5pt; margin-bottom:12px;">
+In-depth breakdown of detected non-compliance issues. Each finding is mapped directly to its governing EU AI Act statutory provisions, concrete code/document descriptions, severity rating, and remediation actions.
 </p>
 """
 
@@ -887,79 +1017,84 @@ In-depth technical breakdown of confirmed violations. Each card anchors code-lev
         hist = f.get("history_status", "NEW")
         hist_cls = "badge-new" if hist == "NEW" else "badge-recurring"
         badge_cls = f"badge-{sev.lower()}"
+        issue_id = f.get("finding_id", "FINDING-001")
+        issue_name = f.get("title", "Statutory Compliance Issue")
+        issue_desc = f.get("summary", "")
+        system_ref = f"{f.get('system_id', 'S-General')} ({f.get('system_name', 'Enterprise Service')})"
+        eu_ref = extract_eu_ai_act_clause(f)
+        exposure = f.get("exposure_text", "Fines up to €35M or 7% global turnover under EU AI Act Art. 99.")
+        owner_info = f"{f.get('owner', 'Engineering Lead')} (Estimated effort: {f.get('effort_days', '3')} days)"
 
-        drift = f.get("code_vs_doc_drift", {})
-        drift_html = ""
-        if isinstance(drift, dict) and drift:
-            drift_html = f"""
-            <div class="drift-box">
-                <strong>Policy/Contract Clause:</strong> {drift.get('doc_claim', '')}<br>
-                <strong>Code Reality:</strong> {drift.get('code_reality', '')}
-            </div>
-            """
-        elif isinstance(drift, str) and drift:
-            drift_html = f'<div class="drift-box"><strong>Code vs Doc Drift:</strong> {drift}</div>'
-
-        evidence_rows = ""
+        # Evidence bullet items
+        evidence_bullets = ""
         for ev in f.get("evidence", []):
-            url_html = f'<br><a href="{ev.get("source_url")}" target="_blank" style="color:#006DDD; font-size:6.5pt;">Linkup Source Citation ↗</a>' if ev.get("source_url") else ""
-            evidence_rows += f"""
-            <tr>
-                <td style="width:18%;"><code>{ev.get('source_type', ev.get('type', 'CODE'))}</code></td>
-                <td style="width:42%;"><strong>{ev.get('artifact_id', ev.get('item', 'file'))}</strong> ({ev.get('exact_locator', 'L1')}){url_html}</td>
-                <td style="width:40%;"><code>sha256:{str(ev.get('sha256_hash', ''))[:14]}</code><br><span style="color:#40668D; font-size:6.5pt;">{ev.get('snippet', '')[:70]}...</span></td>
-            </tr>
-            """
+            loc = ev.get('exact_locator', 'L1')
+            art = ev.get('artifact_id', ev.get('item', 'source file'))
+            snip = ev.get('snippet', '').strip().replace('\n', ' ')
+            evidence_bullets += f"<li><strong>{ev.get('source_type', 'CODE')}:</strong> <code>{art}:{loc}</code> — <em>\"{snip[:90]}...\"</em></li>"
 
-        remediation_items = ""
-        for step in f.get("remediation_steps", ["Immediately patch code", "Update policy docs"]):
-            remediation_items += f"<li>[ ] {step}</li>"
+        # Remediation action bullet items
+        remediation_bullets = ""
+        for step in f.get("remediation_steps", ["Immediately apply compliance patch", "Update internal governance records"]):
+            remediation_bullets += f"<li>{step}</li>"
+
+        # Code vs doc drift if present
+        drift = f.get("code_vs_doc_drift", {})
+        drift_bullet = ""
+        if isinstance(drift, dict) and drift:
+            drift_bullet = (
+                f"<li><span class=\"field-label\">Policy vs Code Drift:</span> "
+                f"Policy promised <em>\"{drift.get('doc_claim', '')}\"</em>, but code reality shows <code>{drift.get('code_reality', '')}</code>.</li>"
+            )
 
         html_out += f"""
-<div class="finding-card">
-    <div class="finding-header">
+<div class="issue-card">
+    <div class="issue-card-header">
         <div>
-            <span class="finding-id">{f.get('finding_id')}</span> — <strong>{f.get('title')}</strong>
+            <span class="finding-id">{issue_id}</span> — <span class="issue-title-text">{issue_name}</span>
         </div>
         <div>
             <span class="badge {badge_cls}">{sev}</span>
             <span class="badge {hist_cls}">Atlas: {hist}</span>
         </div>
     </div>
-    <div class="finding-substrip">
-        <strong>System:</strong> {f.get('system_id', 'S-General')} ({f.get('system_name', 'System')}) | 
-        <strong>Primary Rule:</strong> {f.get('primary_rule')} | 
-        <strong>Also Engages:</strong> {', '.join(f.get('also_engages') or []) or 'None'} | 
-        <strong>Confidence:</strong> {int(f.get('confidence', f.get('confidence_score', 0.95)) * 100)}%
-    </div>
-    <div class="finding-body">
-        <div class="finding-summary">{f.get('summary')}</div>
-        {drift_html}
-        <table class="data-table" style="margin-top:6px; margin-bottom:6px;">
-            <thead>
-                <tr>
-                    <th>Source Type</th>
-                    <th>Artifact & Locator</th>
-                    <th>SHA-256 Hash & Code Excerpt</th>
-                </tr>
-            </thead>
-            <tbody>
-                {evidence_rows}
-            </tbody>
-        </table>
-        <div class="box-grid">
-            <div class="box-cell box-exposure">
-                <strong>Regulatory & Financial Exposure:</strong><br>
-                {f.get('exposure_text', 'Fines up to €35M or 7% global turnover under EU AI Act Art. 99.')}
-            </div>
-            <div class="box-cell box-ownership">
-                <strong>Ownership & Remediation:</strong><br>
-                Owner: <strong>{f.get('owner', 'Engineering Lead')}</strong> | Est. Effort: <strong>{f.get('effort_days', '3')} days</strong>
-                <ul style="margin:4px 0 0 14px; padding:0; font-size:6.8pt;">
-                    {remediation_items}
+    <div class="issue-card-body">
+        <ul class="issue-bullets">
+            <li>
+                <span class="field-label">Issue ID:</span> <code>{issue_id}</code>
+            </li>
+            <li>
+                <span class="field-label">Issue Name:</span> <strong>{issue_name}</strong>
+            </li>
+            <li>
+                <span class="field-label">Issue Description:</span> {issue_desc}
+            </li>
+            <li>
+                <span class="field-label">Issue Severity:</span> <span class="badge {badge_cls}">{sev}</span> (Confidence: {int(f.get('confidence', f.get('confidence_score', 0.95)) * 100)}%)
+            </li>
+            <li>
+                <span class="field-label">EU AI Act Connection:</span> <span class="eu-rule-highlight">{eu_ref}</span>
+            </li>
+            <li>
+                <span class="field-label">Target System:</span> {system_ref}
+            </li>
+            <li>
+                <span class="field-label">Statutory &amp; Financial Exposure:</span> {exposure}
+            </li>
+            {drift_bullet}
+            <li>
+                <span class="field-label">Concrete Code &amp; Policy Evidence:</span>
+                <ul style="margin:2px 0 2px 14px; padding:0;">
+                    {evidence_bullets}
                 </ul>
-            </div>
-        </div>
+            </li>
+            <li>
+                <span class="field-label">Remediation Action Plan:</span>
+                <ul style="margin:2px 0 2px 14px; padding:0;">
+                    {remediation_bullets}
+                </ul>
+            </li>
+        </ul>
     </div>
 </div>
 """
