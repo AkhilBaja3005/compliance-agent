@@ -1,18 +1,19 @@
 """FastAPI surface: companies, audits (sync + async jobs), reports and sign-off, law sync, admin, health and metrics.
 
-All routes except /healthz and /readyz require an API key (see src/security.py)."""
+Data and audit routes require an API key (see src/security.py); health checks and dashboard assets are public."""
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-
-import logging
-import time
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src import security as sec
@@ -21,6 +22,7 @@ from src.observability import configure_logging, metrics, new_request_id, reques
 from src.signoff import SignoffLog
 
 from src.agents import LLMClient, run_audit
+from src.dashboard.routes import STATIC, router as dashboard_router
 from src.edge_extractors import build_index
 from src.law_sync import get_store, simulate_law_amendment, sync_now
 from src.law_sync.scheduler import law_status, start_scheduler, stop_scheduler
@@ -82,12 +84,27 @@ def init_state(force: bool = False) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from src.dashboard.service import DashboardService
+    from src.storage.dashboard import get_dashboard_repository
+
     configure_logging(os.getenv("AEGIS_LOG_LEVEL", "INFO"))
     init_state()
+    app.state.dashboard = None
+    try:
+        dashboard = DashboardService(get_dashboard_repository(), list_company_ids, companies_root)
+        dashboard.start()
+        app.state.dashboard = dashboard
+    except Exception as exc:
+        logging.getLogger(__name__).error("Dashboard startup failed: %s", type(exc).__name__)
     if os.getenv("AUTO_SYNC", "false").lower() == "true":
         start_scheduler(float(os.getenv("AEGIS_SYNC_INTERVAL_HOURS", "24")))
-    yield
-    stop_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler()
+        if app.state.dashboard is not None:
+            await asyncio.to_thread(app.state.dashboard.stop)
+            app.state.dashboard = None
 
 
 app = FastAPI(title="Aegis AI Compliance Auditor", lifespan=lifespan)
@@ -95,6 +112,17 @@ app = FastAPI(title="Aegis AI Compliance Auditor", lifespan=lifespan)
 _origins = [o.strip() for o in os.getenv("AEGIS_CORS_ORIGINS", "").split(",") if o.strip()]
 if _origins:  # CORS is off unless origins are listed explicitly
     app.add_middleware(CORSMiddleware, allow_origins=_origins, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-API-Key"])
+
+
+@app.middleware("http")
+async def dashboard_storage_errors(request: Request, call_next):
+    if request.url.path.startswith("/dashboard/api/"):
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            log.error("Dashboard request failed: %s", type(exc).__name__)
+            return JSONResponse(status_code=503, content={"detail": "Dashboard storage unavailable; check server logs"})
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -114,12 +142,20 @@ async def _edge(request: Request, call_next):
             resp = JSONResponse({"detail": "internal error", "request_id": rid}, status_code=500)
     for k, v in sec.SECURITY_HEADERS.items():
         resp.headers.setdefault(k, v)
+    if request.url.path in {"/dashboard/overview", "/dashboard/findings"}:
+        resp.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+        )
     resp.headers["X-Request-ID"] = rid
     ms = round((time.perf_counter() - t0) * 1000, 1)
     p = getattr(request.state, "principal", None)
     metrics.inc("aegis_http_requests_total", method=request.method, status=resp.status_code)
     log.info("request", extra={"method": request.method, "path": request.url.path, "status": resp.status_code, "duration_ms": ms, "key_id": getattr(p, "key_id", "-")})
     return resp
+
+app.include_router(dashboard_router)
+app.mount("/dashboard/static", StaticFiles(directory=STATIC), name="dashboard-static")
 
 
 class CompanyInfo(BaseModel):
@@ -154,6 +190,7 @@ class SignoffRequest(BaseModel):
 # ------------------------------------------------------------------ health
 @app.get("/healthz")
 def healthz():
+    """Process health only: no external services, filesystem scans or model calls."""
     return {"status": "ok"}
 
 

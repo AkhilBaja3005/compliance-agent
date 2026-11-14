@@ -37,7 +37,7 @@ dependencies = [
     "langgraph-checkpoint-mongodb",
     "databricks-sdk",
     "mlflow",
-    "apscheduler",
+    "apscheduler>=3.10,<4",
     "httpx",
     "pytest",
     "pypdf",
@@ -48,12 +48,15 @@ dependencies = [
 dev = [
     "pytest",
     "httpx",
+    "mongomock",
+    "pyyaml",
     "ruff",
     "pip-audit",
 ]
 ocr = [
     "pytesseract",
 ]
+browser = ["playwright"]
 
 [project.scripts]
 graphite = "aegis_audit.cli:app"
@@ -62,6 +65,9 @@ aegis = "aegis_audit.cli:app"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["aegis_audit*", "sample_connectors*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 160

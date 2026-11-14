@@ -29,6 +29,7 @@ class ASTSlice(BaseModel):
     sha256_hash: str
     # Additive (non-contract) helper fields
     function_name: str = ""
+    qualified_name: str = ""
     endpoint_regions: dict[str, str] = Field(default_factory=dict)  # url -> US|EU_UK|INTERNAL|UNKNOWN
     is_route: bool = False
     is_entrypoint: bool = True

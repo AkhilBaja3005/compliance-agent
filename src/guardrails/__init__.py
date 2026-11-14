@@ -9,9 +9,9 @@ from .common import GateContext
 
 
 def apply_guardrails(findings: list[ComplianceFinding], index: TriModalIndex, trace: list[str] | None = None,
-                     known_tenants: set[str] | None = None) -> TriagedAuditReport:
+                     known_tenants: set[str] | None = None, *, law_store=None) -> TriagedAuditReport:
     """Run Gates 1-4 in order. Findings failing gates 1-3 are quarantined, never dropped."""
-    ctx = GateContext(index=index, store=get_store(), known_tenants=known_tenants or set(), trace=list(trace or []))
+    ctx = GateContext(index=index, store=law_store or get_store(), known_tenants=known_tenants or set(), trace=list(trace or []))
     n_in = len(findings)
     for gate in (gate1_citations, gate2_dlp_tenant, gate3_entailment, gate4_framing):
         findings = gate.apply(findings, ctx)

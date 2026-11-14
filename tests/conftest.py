@@ -9,12 +9,13 @@ FIXTURES = ROOT / "tests" / "fixtures" / "companies"
 
 
 @pytest.fixture(autouse=True)
-def _offline_env(monkeypatch):
+def _offline_env(monkeypatch, tmp_path):
     monkeypatch.setenv("BYOM_OFFLINE", "true")
     monkeypatch.setenv("COMPANIES_DIR", str(FIXTURES))
     monkeypatch.setenv("USE_DATABRICKS", "false")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "")  # LLMClient re-reads .env: an empty value stops a developer key from leaking into tests
     monkeypatch.setenv("AEGIS_FRAMEWORKS", "ALL")
+    monkeypatch.setenv("AEGIS_DASHBOARD_DB", str(tmp_path / "dashboard.sqlite3"))
     monkeypatch.setenv("AEGIS_AUTH_DISABLED", "true")  # security tests enable keys explicitly
     monkeypatch.delenv("AEGIS_API_KEYS", raising=False)
     monkeypatch.delenv("AEGIS_DATA_DIR", raising=False)
@@ -27,11 +28,17 @@ def _offline_env(monkeypatch):
         monkeypatch.delenv(var, raising=False)
     from src.law_sync import reset_overlay, reset_store, set_scout
     from src.storage import reset_compliance_store, set_compliance_store
+    from src.security import limiter
 
+    limiter.reset()
     reset_overlay()
     reset_store()
     set_scout(None)
     reset_compliance_store()
+    from src.storage import dashboard
+
+    monkeypatch.setattr(dashboard, "_repositories", {})
+    monkeypatch.setattr(dashboard, "_errors", {})
     yield
     reset_overlay()
     reset_store()

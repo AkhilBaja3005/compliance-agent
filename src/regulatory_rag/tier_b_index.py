@@ -102,15 +102,16 @@ class _Snapshot:
 class HybridRetriever:
     """BM25 + dense, fused by weighted normalised scores. Re-indexes atomically on law updates."""
 
-    def __init__(self, store: LawStore | None = None, alpha: float = 0.5):
+    def __init__(self, store: LawStore | None = None, alpha: float = 0.5, *, local_only: bool = False):
         self.store = store or get_store()
         self.alpha = alpha
-        self.embedder = _make_embedder()
+        self.local_only = local_only
+        self.embedder = HashingEmbedder() if local_only else _make_embedder()
         self._lock = threading.Lock()
         self._snap = _Snapshot(self.store.snapshot(), self.embedder)
         self.indexed_version = self.store.version
         self.store.add_listener(lambda s: self.reindex())
-        self._databricks = _maybe_databricks()
+        self._databricks = None if local_only else _maybe_databricks()
 
     def reindex(self) -> None:
         snap = _Snapshot(self.store.snapshot(), self.embedder)  # build fully, then swap
@@ -126,7 +127,7 @@ class HybridRetriever:
                     return hits
             except Exception as exc:
                 log.warning("Databricks Vector Search failed (%s); falling back to local index", exc)
-        hits = self._mongo_hits(query, k)
+        hits = [] if self.local_only else self._mongo_hits(query, k)
         if hits:
             return hits
         with self._lock:
@@ -159,6 +160,8 @@ class HybridRetriever:
 
     def search_regulatory_knowledge(self, query: str, jurisdiction: str | None = None, top_k: int = 5) -> list[dict]:
         """Searches unified regulatory knowledge (including ingested PDF passages)."""
+        if self.local_only:
+            return []
         from src.storage import get_compliance_store
         cs = get_compliance_store()
         return cs.search_regulatory_knowledge(query, jurisdiction=jurisdiction, top_k=top_k)

@@ -183,6 +183,15 @@ def _collect_functions(node, out: list):
             _collect_functions(child, out)
 
 
+def _qualified_name(node) -> str:
+    names = []
+    while node is not None:
+        if node.type in {"function_definition", "class_definition"}:
+            names.append(_text(node.child_by_field_name("name")))
+        node = node.parent
+    return ".".join(reversed(names))
+
+
 def _imports(root) -> list[str]:
     mods: list[str] = []
     for child in root.children:
@@ -291,7 +300,7 @@ def _scan_bypass_file(src: str, rel: str, tenant_id: str, result: "ScanResult") 
 
 
 # ----------------------------------------------------------------------------- content-addressed AST cache
-SCANNER_VERSION = "3"  # bump when extraction logic changes: invalidates every cached entry
+SCANNER_VERSION = "4"  # bump when extraction logic changes: invalidates every cached entry
 
 
 def sid_py(tenant_id: str, rel: str, start: int) -> str:
@@ -413,8 +422,11 @@ class ScanResult:
         self.infra_facts: list[dict] = []  # hosting/egress facts from IaC and config (see infra_scanner)
 
 
-def scan_code(company_dir: Path | str, tenant_id: str, only_files: "set[str] | None" = None) -> ScanResult:
-    """Scan a code tree. `only_files` (posix paths relative to the root) restricts the scan to those files: used by `aegis scan --diff`."""
+def scan_code(company_dir: Path | str, tenant_id: str, only_files: "set[str] | None" = None, *, strict: bool = False) -> ScanResult:
+    """Scan a code tree, optionally limited to relative posix `only_files` for diff scans.
+
+    Strict Python scans bypass the cache so every Git gate evaluation validates encoding, syntax and symbol ambiguity.
+    """
     root = Path(company_dir)
     result = ScanResult()
     for path in _walk_files(root):
@@ -423,8 +435,11 @@ def scan_code(company_dir: Path | str, tenant_id: str, only_files: "set[str] | N
             continue
         if path.suffix == ".py":
             result.py_files.append(rel)
-            src = _read(path)
-            _cached("py", "py", src, rel, tenant_id, result, lambda: _scan_python_file(src, rel, tenant_id, result))
+            src = path.read_text(encoding="utf-8") if strict else _read(path)
+            if strict:
+                _scan_python_file(src, rel, tenant_id, result, strict=True)
+            else:
+                _cached("py", "py", src, rel, tenant_id, result, lambda: _scan_python_file(src, rel, tenant_id, result))
             if LOCAL_MODEL_RE.search(src):
                 result.uses_local_model = True
         elif (mf := __import__("src.edge_extractors.manifest_scanner", fromlist=["x"]).parse_manifest(path, rel, _read(path), tenant_id)) is not None:
@@ -466,10 +481,15 @@ def scan_code(company_dir: Path | str, tenant_id: str, only_files: "set[str] | N
     return result
 
 
-def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) -> None:
+def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult, *, strict: bool = False) -> None:
+    if strict:
+        # Validate with Python as well as tree-sitter; compilation never executes the input.
+        compile(src, rel, "exec", dont_inherit=True)
     data = src.encode("utf-8", errors="replace")
     tree = _PARSER.parse(data)
     root = tree.root_node
+    if strict and root.has_error:
+        raise ValueError(f"Cannot parse Python file: {rel}")
     imports = _imports(root)
     imports_blob = "\n".join(imports)
     rhs_src, str_val = _module_constants(root)
@@ -480,18 +500,28 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
     infos: dict[str, dict] = {}
     for node in func_nodes:
         defn = node.child_by_field_name("definition") if node.type == "decorated_definition" else node
-        name = _text(defn.child_by_field_name("name"))
+        name = _qualified_name(defn)
         text = _text(node)
         decorators = [_text(c) for c in node.children if c.type == "decorator"] if node.type == "decorated_definition" else []
+        if strict and name in infos:
+            raise ValueError(f"Ambiguous Python symbol: {rel}:{name}")
         infos[name] = {
             "node": node, "text": text, "start": node.start_point[0] + 1, "end": node.end_point[0] + 1,
-            "decorators": decorators,
+            "decorators": decorators, "name": _text(defn.child_by_field_name("name")),
         }
 
     local_names = set(infos)
     for name, info in infos.items():
         body = info["text"]
-        info["calls"] = {n for n in local_names if n != name and re.search(rf"\b{re.escape(n)}\s*\(", body)}
+        scope = name.rpartition(".")[0]
+        info["calls"] = set()
+        for target in local_names - {name}:
+            short = re.escape(infos[target]["name"])
+            owner = target.rpartition(".")[0]
+            if not owner and re.search(rf"(?<![\w.]){short}\s*\(", body):
+                info["calls"].add(target)
+            elif owner == scope and owner and re.search(rf"\b(?:self|cls)\.{short}\s*\(", body):
+                info["calls"].add(target)
         info["is_route"] = any(re.search(r"\.(get|post|put|delete|patch|route|api_route|websocket)\s*\(", d) for d in info["decorators"])
         urls = _urls_in(body)
         for cname, rhs in rhs_src.items():
@@ -544,10 +574,11 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
         eff = {k: any(infos[g]["flags"][k] for g in group) for k in ("pii", "hitl", "mod", "wm", "disc")}
         eff["disc_denied"] = bool(infos[name]["flags"]["disc_denied"])
         touches = eff_ai or eff_http
-        rtxt = _route_text(name, info["decorators"])
-        decision_hit = bool(DECISION_RE.search(name)) or any(DECISION_RE.search(d) for d in info["decorators"]) \
+        short_name = info["name"]
+        rtxt = _route_text(short_name, info["decorators"])
+        decision_hit = bool(DECISION_RE.search(short_name)) or any(DECISION_RE.search(d) for d in info["decorators"]) \
             or (info["is_route"] and bool(DECISION_ROUTE_RE.search(rtxt)))
-        name_gen = bool(re.match(r"(generate|summari[sz]e|synthesi[sz]e|clone)_", name))  # non-route generator (e.g. service method)
+        name_gen = bool(re.match(r"(generate|summari[sz]e|synthesi[sz]e|clone)_", short_name))  # non-route generator
         route_gen = (info["is_route"] and bool(GEN_ROUTE_RE.search(rtxt))) or name_gen
         if not touches and not ((decision_hit and info["is_route"]) or route_gen):
             continue
@@ -570,7 +601,8 @@ def _scan_python_file(src: str, rel: str, tenant_id: str, result: ScanResult) ->
             tenant_id=tenant_id, file_path=rel, start_line=info["start"], end_line=info["end"],
             code_snippet=info["text"], imports=imports, external_endpoints=eff_urls,
             has_pii_redaction=eff["pii"], has_hitl_gate=eff["hitl"], has_moderation_hook=eff["mod"],
-            has_watermark_hook=eff["wm"], has_ai_disclosure=eff["disc"], disclosure_denied=eff["disc_denied"], sha256_hash=sha, function_name=name, endpoint_regions=regions,
+            has_watermark_hook=eff["wm"], has_ai_disclosure=eff["disc"], disclosure_denied=eff["disc_denied"],
+            sha256_hash=sha, function_name=short_name, qualified_name=name, endpoint_regions=regions,
             is_route=info["is_route"], is_entrypoint=is_entry, calls_ai_sdk=eff_ai, calls_http=eff_http,
             is_generation=eff_gen, is_decision=decision_hit,
         )
@@ -680,7 +712,7 @@ def _add_endpoint_card(sl: ASTSlice, prompts: list[dict], str_val: dict[str, str
     if sl.endpoint_regions and any(r == "US" for r in sl.endpoint_regions.values()):
         tags.append("us_hosted_inference")
     result.cards.append(BehavioralCapabilityCard(
-        module_id=f"{sl.file_path}::{sl.function_name}", tenant_id=tenant_id, exact_locator=sl.locator,
+        module_id=f"{sl.file_path}::{sl.qualified_name or sl.function_name}", tenant_id=tenant_id, exact_locator=sl.locator,
         system_prompt=prompt_text, capability_tags=tags, sha256_hash=sha256_text(prompt_text + sl.sha256_hash),
     ))
 

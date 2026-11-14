@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101f2b" />
+    <title>Aegis · Compliance dashboard</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%233dd6bc' d='M20 2 36 9v13c0 8-16 16-16 16S4 30 4 22V9z'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/dashboard/static/dashboard.css" />
+    <script src="/dashboard/static/dashboard.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <aside class="sidebar">
+      <a class="brand" href="/dashboard/overview"
+        ><span class="brand-icon">A</span> AEGIS<span class="brand-dot"
+          >.</span
+        ></a
+      >
+      <p class="eyebrow rail-label">Compliance workspace</p>
+      <nav aria-label="Audience views">
+        <a id="overview-link" href="/dashboard/overview"
+          ><span aria-hidden="true">◫</span> Leadership overview</a
+        >
+        <a id="findings-link" href="/dashboard/findings"
+          ><span aria-hidden="true">≡</span> Engineering findings</a
+        >
+      </nav>
+      <div class="rail-footer">
+        <span class="signal"></span> Evidence before assurance
+        <p>EU &amp; UK · AI governance</p>
+        <a href="/docs">API documentation ↗</a>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <span class="breadcrumb"
+          >Workspace <span>/</span>
+          <strong id="view-label">Leadership overview</strong></span
+        >
+        <div class="topbar-controls">
+          <span id="connection" class="connection" role="status"
+            >Connecting…</span
+          >
+          <label class="sr-only" for="company">Company</label
+          ><select id="company" disabled>
+            <option>Loading companies…</option>
+          </select>
+        </div>
+      </header>
+
+      <main id="main">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">Continuous compliance intelligence</p>
+            <h1 id="page-title">Your compliance, in focus.</h1>
+            <p id="page-description" class="muted">
+              A clear view of readiness, risk, and the work ahead.
+            </p>
+          </div>
+          <button id="run-audit" class="primary" disabled>
+            <span aria-hidden="true">↻</span> Run audit
+          </button>
+        </div>
+
+        <div class="metadata">
+          <span id="assessment">Assessment: awaiting data</span
+          ><span id="refresh-time">Last successful refresh: —</span
+          ><span>Refreshes every 5 seconds</span>
+        </div>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <div id="activity" class="activity" role="status" hidden></div>
+        <div
+          id="storage-warning"
+          class="notice warning"
+          role="status"
+          hidden
+        ></div>
+
+        <details id="settings-panel" class="panel settings-panel">
+          <summary>
+            <span>Sources &amp; audit schedule</span
+            ><span id="schedule-summary" class="muted">Schedules disabled</span>
+          </summary>
+          <form id="settings-form">
+            <p class="muted">
+              Leave sources blank to audit the bundled company. Credentials are
+              configured on the server.
+            </p>
+            <div class="source-grid">
+              <label
+                >GitHub URL or local repository<input
+                  id="github-source"
+                  placeholder="https://github.com/owner/repo or /sources/repo"
+                  maxlength="2048"
+              /></label>
+              <label
+                >Confluence export folder<input
+                  id="confluence-path"
+                  placeholder="/sources/confluence"
+                  maxlength="2048"
+              /></label>
+              <label
+                >Or Confluence cloud space key<input
+                  id="confluence-space"
+                  placeholder="AIGOV"
+                  maxlength="255"
+              /></label>
+            </div>
+            <div class="schedule-row">
+              <label class="checkbox"
+                ><input id="schedule-enabled" type="checkbox" /> Enable
+                scheduled audits</label
+              >
+              <label class="inline-label" for="schedule-frequency"
+                >Frequency
+                <select id="schedule-frequency">
+                  <option value="hourly">Hourly</option>
+                  <option value="daily" selected>Daily</option>
+                  <option value="weekly">Weekly</option>
+                </select></label
+              >
+              <span id="next-run" class="muted">Next run: disabled</span
+              ><button id="save-settings" type="submit" class="secondary">
+                Save settings
+              </button>
+            </div>
+            <p id="settings-message" class="muted" role="status">
+              Manual and scheduled audits use saved settings. Enabling a
+              schedule waits one full interval.
+            </p>
+          </form>
+        </details>
+
+        <section id="empty-state" class="panel empty" aria-live="polite">
+          <div class="empty-icon" aria-hidden="true">◷</div>
+          <h2 id="empty-title">Loading your workspace</h2>
+          <p id="empty-description">
+            Fetching saved assessments and audit activity…
+          </p>
+        </section>
+
+        <div id="overview-content" hidden>
+          <section class="metrics" aria-label="Latest assessment metrics">
+            <article class="panel readiness">
+              <p class="eyebrow">Overall readiness</p>
+              <h2 id="readiness">—</h2>
+              <p id="readiness-note"></p>
+              <span class="metric-foot">Latest completed assessment</span>
+            </article>
+            <article class="panel metric">
+              <p>Confirmed violations</p>
+              <strong id="confirmed-count">—</strong
+              ><span class="metric-foot"
+                ><i class="dot red"></i> Evidence supported</span
+              >
+            </article>
+            <article class="panel metric">
+              <p>Suspected gaps</p>
+              <strong id="suspected-count">—</strong
+              ><span class="metric-foot"
+                ><i class="dot amber"></i> Evidence needed</span
+              >
+            </article>
+            <article class="panel metric">
+              <p>Human review</p>
+              <strong id="quarantined-count">—</strong
+              ><span class="metric-foot"
+                ><i class="dot purple"></i> Quarantined findings</span
+              >
+            </article>
+            <article class="panel metric">
+              <p>Passed checks</p>
+              <strong id="passed-count">—</strong
+              ><span class="metric-foot"
+                ><i class="dot green"></i> Positive evidence</span
+              >
+            </article>
+          </section>
+
+          <div class="analysis-grid">
+            <section class="panel chart-panel">
+              <div class="section-heading">
+                <h2>Assessment history</h2>
+                <span class="muted">Latest 30 audits</span>
+              </div>
+              <p class="muted small">Finding counts by assessment time</p>
+              <div id="trend-chart" class="trend-chart"></div>
+              <div class="legend">
+                <span><i class="dot red"></i> Confirmed</span
+                ><span><i class="dot amber"></i> Gaps</span
+                ><span><i class="dot purple"></i> Quarantined</span
+                ><span><i class="dot green"></i> Passed</span>
+              </div>
+              <details class="history-details">
+                <summary>View history data</summary>
+                <div class="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Assessment</th>
+                        <th>Readiness</th>
+                        <th>Coverage</th>
+                        <th>Confirmed</th>
+                        <th>Gaps</th>
+                        <th>Review</th>
+                        <th>Passed</th>
+                      </tr>
+                    </thead>
+                    <tbody id="history-data"></tbody>
+                  </table>
+                </div>
+              </details>
+            </section>
+            <section class="panel chart-panel">
+              <div class="section-heading">
+                <h2>Open risk by severity</h2>
+                <span id="open-total" class="muted"></span>
+              </div>
+              <div id="severity-chart" class="severity-chart"></div>
+              <p class="muted small">
+                Includes confirmed, suspected, and quarantined findings.
+              </p>
+            </section>
+          </div>
+          <div class="analysis-grid lower-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Priority remediation</h2>
+                <a id="all-findings-link" href="/dashboard/findings"
+                  >Explore findings ↗</a
+                >
+              </div>
+              <div id="priorities"></div>
+            </section>
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Input coverage</h2>
+                <strong id="coverage-value"></strong>
+              </div>
+              <div class="coverage-track"><div id="coverage-bar"></div></div>
+              <div id="coverage-inputs"></div>
+              <p class="muted small">
+                Coverage measures available input types. Missing evidence
+                requires investigation.
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <section id="findings-content" hidden>
+          <div class="panel filter-panel">
+            <div class="section-heading">
+              <h2>Finding explorer</h2>
+              <span id="finding-count" class="muted"></span>
+            </div>
+            <div class="filters">
+              <label class="search-label"
+                >Search findings<input
+                  id="filter-text"
+                  type="search"
+                  placeholder="Search titles, evidence, owners…"
+              /></label>
+              <label
+                >Status<select id="filter-status">
+                  <option value="">All statuses</option>
+                  <option value="CONFIRMED_VIOLATION">
+                    Confirmed violation
+                  </option>
+                  <option value="SUSPECTED_GAP">Suspected gap</option>
+                  <option value="QUARANTINED_FOR_HUMAN_REVIEW">
+                    Quarantined
+                  </option>
+                  <option value="PASS">Passed</option>
+                </select></label
+              >
+              <label
+                >Severity<select id="filter-severity">
+                  <option value="">All severities</option>
+                  <option>Critical</option>
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                  <option>Info</option>
+                  <option>Unspecified</option>
+                </select></label
+              >
+              <label
+                >System<select id="filter-system">
+                  <option value="">All systems</option>
+                </select></label
+              >
+              <label
+                >Jurisdiction<select id="filter-jurisdiction">
+                  <option value="">All jurisdictions</option>
+                </select></label
+              >
+              <button id="clear-filters" class="secondary" type="button">
+                Clear
+              </button>
+            </div>
+          </div>
+          <div id="findings-list"></div>
+        </section>
+
+        <section id="engine-panel" class="panel engine-panel" hidden>
+          <span class="eyebrow">Assessment engines</span>
+          <div id="engines"></div>
+          <p class="muted small">
+            Engine modes recorded with the displayed assessment.
+          </p>
+        </section>
+        <footer>
+          AEGIS <span>Evidence-led AI governance</span>
+          <p>
+            Technical audit observations for human review. Missing results never
+            imply compliance.
+          </p>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

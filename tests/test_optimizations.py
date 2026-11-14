@@ -123,6 +123,38 @@ def test_store_bulk_upserts_in_batches_on_atlas_path():
 
 
 # ------------------------------------------------------------------ (b) content-addressed AST cache
+@pytest.mark.parametrize("source, error", [
+    (b"def broken(:\n", SyntaxError),
+    (b"def decide():\n    pass\ndef decide():\n    pass\n", ValueError),
+    (b"# invalid UTF-8: \xff\n", UnicodeDecodeError),
+])
+def test_strict_scan_rejects_invalid_python_after_permissive_cache_hit(monkeypatch, tmp_path, source, error):
+    monkeypatch.setattr(cs, "_AST_CACHE", AstCache())
+    (tmp_path / "svc.py").write_bytes(source)
+    scan_code(tmp_path, "t")
+    scan_code(tmp_path, "t")
+    assert cs.ast_cache().hits == 1
+    with pytest.raises(error):
+        scan_code(tmp_path, "t", {"svc.py"}, strict=True)
+
+
+def test_cached_and_strict_diff_scans_preserve_qualified_names_and_disclosure(monkeypatch, tmp_path):
+    monkeypatch.setattr(cs, "_AST_CACHE", AstCache())
+    (tmp_path / "svc.py").write_text(
+        'import requests\nclass LoanService:\n    def decide(self, email):\n'
+        '        return requests.post("https://api.openai.com/v1/chat/completions", json={"email": email, "ai_disclosed": True})\n'
+    )
+    (tmp_path / "excluded.py").write_text("def broken(:\n")
+    first = scan_code(tmp_path, "t", {"svc.py"})
+    cached = scan_code(tmp_path, "t", {"svc.py"})
+    strict = scan_code(tmp_path, "t", {"svc.py"}, strict=True)
+    assert first.slices and first.py_files == cached.py_files == strict.py_files == ["svc.py"]
+    assert [s.model_dump() for s in first.slices] == [s.model_dump() for s in cached.slices] == [s.model_dump() for s in strict.slices]
+    sl = first.slices[0]
+    assert sl.function_name == "decide" and sl.qualified_name == "LoanService.decide"
+    assert sl.has_ai_disclosure and not sl.disclosure_denied and sl.is_decision
+
+
 def test_ast_cache_hits_on_repeat_and_skips_tree_sitter(monkeypatch, tmp_path):
     set_ast_cache(AstCache())
     first = scan_code(A, "ta")

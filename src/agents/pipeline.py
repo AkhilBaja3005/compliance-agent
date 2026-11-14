@@ -150,4 +150,8 @@ def run_audit(company_dir: Path | str | None = None, tenant_id: str | None = Non
     if tamper is not None:
         tamper(run.findings)
     report = apply_guardrails(run.findings, run.index, run.trace, known_tenants)
-    return finalize_report(report, run, store, sink)
+    report = finalize_report(report, run, store, sink)
+    from src.storage.dashboard import publish_completed_report
+
+    publish_completed_report(report)
+    return report

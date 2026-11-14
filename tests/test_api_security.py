@@ -31,6 +31,7 @@ def test_closed_by_default_without_keys(monkeypatch):
     monkeypatch.delenv("AEGIS_API_KEYS", raising=False)
     with TestClient(api.app) as c:
         assert c.get("/companies").status_code == 503
+        assert c.get("/dashboard/api/companies/company_a_finscore/snapshot").status_code == 503
         assert c.get("/healthz").status_code == 200
         assert c.get("/readyz").status_code == 503  # auth not configured is not "ready"
 
@@ -56,6 +57,40 @@ def test_security_headers_and_request_id(client):
     r = client.get("/healthz", headers={"X-Request-ID": "abc123"})
     assert r.headers["X-Request-ID"] == "abc123" and r.headers["X-Content-Type-Options"] == "nosniff"
     assert r.headers["Cache-Control"] == "no-store" and "frame-ancestors 'none'" in r.headers["Content-Security-Policy"]
+
+
+def test_dashboard_uses_api_roles_tenant_scopes_and_source_guards(client, monkeypatch):
+    base = "/dashboard/api/companies/company_a_finscore"
+    assert client.get(base + "/snapshot").status_code == 401
+    assert client.get(base + "/snapshot", headers=H("viewerA-0004")).status_code == 200
+    assert client.get(base + "/snapshot", headers=H("auditorB-0003")).status_code == 403
+    assert client.post(base + "/runs", headers=H("viewerA-0004")).status_code == 403
+    assert client.put(base + "/settings", json={}, headers=H("viewerA-0004")).status_code == 403
+    local = {"sources": {"confluence_path": "/etc"}}
+    assert client.put(base + "/settings", json=local, headers=H("auditorA-0002")).status_code == 403
+    assert client.put(base + "/settings", json=local, headers=H("adminkey-0001")).status_code == 400
+    monkeypatch.setenv("AEGIS_ALLOWED_GIT_HOSTS", "internal.example")
+    remote = {"sources": {"github_url": "https://github.com/owner/repo"}}
+    assert client.put(base + "/settings", json=remote, headers=H("auditorA-0002")).status_code == 400
+    assert client.put(base + "/settings", json={}, headers=H("auditorA-0002")).status_code == 200
+    monkeypatch.setenv("AEGIS_RATE_LIMIT_HEAVY_PER_MIN", "1")
+    assert client.post(base + "/runs", headers=H("auditorA-0002")).status_code == 202
+    assert client.post(base + "/runs", headers=H("auditorA-0002")).status_code == 429
+
+
+def test_dashboard_csp_allows_assets_and_storage_errors_keep_security_headers(client, monkeypatch):
+    page = client.get("/dashboard/overview")
+    assert page.status_code == 200 and "script-src 'self'" in page.headers["Content-Security-Policy"]
+    assert "default-src 'none'" in client.get("/healthz").headers["Content-Security-Policy"]
+    assert len([r for r in api.app.routes if getattr(r, "path", None) == "/healthz"]) == 1
+
+    def unavailable(*args):
+        raise OSError("private storage details")
+
+    monkeypatch.setattr(api.app.state.dashboard.repository, "recent_reports", unavailable)
+    response = client.get("/dashboard/api/companies/company_a_finscore/snapshot", headers=H("viewerA-0004"))
+    assert response.status_code == 503 and "private storage details" not in response.text
+    assert response.headers["X-Content-Type-Options"] == "nosniff" and response.headers["X-Request-ID"]
 
 
 def test_rate_limit_on_heavy_endpoint(client, monkeypatch):
