@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY pyproject.toml CLAUDE.md ./
 COPY src ./src
+COPY assets ./assets
 COPY tests ./tests
 COPY synthetic_companies ./synthetic_companies
 COPY sync_sources.yaml ./sync_sources.yaml

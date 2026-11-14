@@ -73,7 +73,7 @@ def test_both_pages_audits_filters_evidence_refresh_and_company_selection(worksp
     page.on("request", lambda request: report_requests.append(request.url) if "/reports/" in request.url else None)
     page.goto(url + f"/dashboard/overview?company={B}")
     expect(page).to_have_title("Graphite · Compliance dashboard")
-    expect(page.locator(".brand img")).to_have_attribute("alt", "Graphite")
+    expect(page.locator(".brand img")).to_have_attribute("src", "/dashboard/assets/graphite_report_logo.png")
     assert page.locator(".brand img").evaluate("img => img.complete && img.naturalWidth > 0")
     expect(page.get_by_role("link", name="API documentation")).to_have_count(0)
     expect(page.locator(".rail-footer p")).to_have_text("EU · AI governance")

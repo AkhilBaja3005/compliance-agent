@@ -607,8 +607,8 @@ def demo_cmd(out_dir: str = typer.Option("demo_output", "--out-dir", help="Where
     console.print(f"[bold]Rule library:[/bold] {n} rules indexed ({get_store().version})")
     targets = [
         (
-            "tests/fixtures/enterprise/aegis_health_uk"
-            if Path("tests/fixtures/enterprise/aegis_health_uk").is_dir()
+            "tests/fixtures/enterprise/graphite_health_uk"
+            if Path("tests/fixtures/enterprise/graphite_health_uk").is_dir()
             else "sample_connectors/enterprise/graphite_health_uk",
             "Graphite Health UK",
         ),

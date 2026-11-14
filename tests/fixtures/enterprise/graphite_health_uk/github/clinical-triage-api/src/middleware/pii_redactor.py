@@ -1,6 +1,6 @@
 """Clinical Data Privacy & Presidio Anonymization Middleware.
 
-Module: aegis.clinical_triage.middleware.pii_redactor
+Module: graphite.clinical_triage.middleware.pii_redactor
 Compliance: UK GDPR (Data Protection Act 2018), NHS Digital Caldicott Principles,
             EU AI Act Art. 10 (Data Governance & Privacy Protection).
 
@@ -16,7 +16,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-logger = logging.getLogger("aegis.compliance.pii_redactor")
+logger = logging.getLogger("graphite.compliance.pii_redactor")
 
 # Dynamic fallback import for Microsoft Presidio Analyzer & Anonymizer
 try:

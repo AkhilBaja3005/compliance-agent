@@ -1,7 +1,7 @@
 # Enterprise AI System Register (2025-2026 Audit Cycle)
 
 **Space:** CLINICAL_GOV  
-**Scope:** Aegis Health Systems Ltd Production Deployments  
+**Scope:** Graphite Health Systems Ltd Production Deployments
 **Review Cadence:** Bi-Monthly  
 
 | System ID | System Name | High-Risk Tier | Legal Classification | System Owner | Approved Hosting | Audit Status |
