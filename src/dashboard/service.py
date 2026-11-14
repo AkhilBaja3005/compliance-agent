@@ -120,8 +120,10 @@ class DashboardService:
                 from src.agents import run_audit
 
                 runner = self.runner or run_audit
+                root = self.company_root()
+                company_dir = root(job.company_id) if callable(root) and getattr(root, "__code__", None) and root.__code__.co_argcount == 1 else (root / job.company_id if isinstance(root, Path) else self.company_root() / job.company_id)
                 report = runner(
-                    self.company_root() / job.company_id, job.company_id, known_tenants=set(self.company_ids()),
+                    company_dir, job.company_id, known_tenants=set(self.company_ids()),
                     github_source=job.sources.github_url,
                     confluence_source=job.sources.confluence_path or ("cloud" if job.sources.confluence_space_key else None),
                     space_key=job.sources.confluence_space_key,

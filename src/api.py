@@ -32,18 +32,60 @@ from src.schemas.regulatory import Jurisdiction, LawIndexStatus, LawSyncResult
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def companies_root() -> Path:
-    """COMPANIES_DIR env > src/synthetic_data > tests/fixtures/companies (first one containing company_* dirs)."""
-    candidates = [os.getenv("COMPANIES_DIR"), ROOT / "src" / "synthetic_data", ROOT / "src" / "synthetic_data" / "companies",
-                  ROOT / "tests" / "fixtures" / "companies"]
+def get_company_dirs() -> dict[str, Path]:
+    """Discovers all available company directories across configured roots."""
+    dirs: dict[str, Path] = {}
+    
+    # 1. Check synthetic_companies root
+    synth = ROOT / "synthetic_companies"
+    if synth.is_dir():
+        for p in sorted(synth.iterdir()):
+            if p.is_dir() and not p.name.startswith("."):
+                dirs[p.name] = p
+
+    # 2. Check primary fixture / company candidates
+    candidates = [
+        os.getenv("COMPANIES_DIR"),
+        ROOT / "tests" / "fixtures" / "companies",
+        ROOT / "src" / "synthetic_data",
+        ROOT / "src" / "synthetic_data" / "companies",
+    ]
     for c in candidates:
-        if c and Path(c).is_dir() and any(p.is_dir() and p.name.startswith("company_") for p in Path(c).iterdir()):
+        if c and Path(c).is_dir():
+            for p in sorted(Path(c).iterdir()):
+                if p.is_dir() and not p.name.startswith(".") and (p.name.startswith("company_") or (p / "app").is_dir() or (p / "src").is_dir()):
+                    if p.name not in dirs:
+                        dirs[p.name] = p
+
+    if not dirs:
+        raise RuntimeError("no company directories found")
+    return dirs
+
+
+def companies_root() -> Path:
+    """Returns the primary companies directory or first root for backward compatibility."""
+    env_dir = os.getenv("COMPANIES_DIR")
+    if env_dir and Path(env_dir).is_dir():
+        return Path(env_dir)
+    synth = ROOT / "synthetic_companies"
+    if synth.is_dir():
+        return synth
+    candidates = [ROOT / "tests" / "fixtures" / "companies", ROOT / "src" / "synthetic_data"]
+    for c in candidates:
+        if c and Path(c).is_dir():
             return Path(c)
     raise RuntimeError("no company directories found")
 
 
 def list_company_ids() -> list[str]:
-    return sorted(p.name for p in companies_root().iterdir() if p.is_dir() and p.name.startswith("company_"))
+    return sorted(get_company_dirs().keys())
+
+
+def get_company_path(company_id: str) -> Path:
+    dirs = get_company_dirs()
+    if company_id in dirs:
+        return dirs[company_id]
+    return companies_root() / company_id
 
 
 log = logging.getLogger("graphite.api")
@@ -64,7 +106,8 @@ state = _State()
 
 
 def _run_job(params: dict) -> dict:
-    rep = run_audit(companies_root() / params["company_id"], params["company_id"], LLMClient(), known_tenants=set(list_company_ids()),
+    company_path = get_company_path(params["company_id"])
+    rep = run_audit(company_path, params["company_id"], LLMClient(), known_tenants=set(list_company_ids()),
                     github_source=params.get("github_url"), confluence_source=params.get("confluence_path") or ("cloud" if params.get("confluence_space_key") else None),
                     space_key=params.get("confluence_space_key"))
     metrics.inc("graphite_audits_total", tenant=params["company_id"])
@@ -232,11 +275,13 @@ def metrics_endpoint(_: sec.Principal = Depends(sec.require("admin"))):
 # ------------------------------------------------------------------ companies and audits
 @app.get("/companies", response_model=list[CompanyInfo])
 def companies(p: sec.Principal = Depends(sec.require("viewer")), _rl: None = Depends(sec.rate_limit())):
-    root, out = companies_root(), []
+    company_dirs = get_company_dirs()
+    out = []
     for cid in list_company_ids():
         if not p.can_access(cid):
             continue
-        ix = build_index(root / cid, cid)
+        path = company_dirs[cid]
+        ix = build_index(path, cid)
         out.append(CompanyInfo(company_id=cid, company_name=ix.company_name, sector=ix.sector,
                                python_files=len(ix.py_files), documents=len({c.doc_name for c in ix.chunks})))
     return out
@@ -253,7 +298,7 @@ def _validated(req: AuditRequest, p: sec.Principal) -> dict:
     if req.company_id not in list_company_ids():
         raise HTTPException(404, f"unknown company '{req.company_id}'")
     sec.require_tenant(p, req.company_id)
-    root = companies_root()
+    root = get_company_path(req.company_id)
     params = req.model_dump()
     if req.github_url:
         params["github_url"] = sec.validate_repo_source(req.github_url, p, root)
@@ -266,7 +311,8 @@ def _validated(req: AuditRequest, p: sec.Principal) -> dict:
 def audit_run(req: AuditRequest, p: sec.Principal = Depends(sec.require("auditor")), _rl: None = Depends(sec.rate_limit(heavy=True))):
     params = _validated(req, p)
     metrics.inc("graphite_audits_total", tenant=req.company_id)
-    return run_audit(companies_root() / req.company_id, req.company_id, LLMClient(),
+    company_path = get_company_path(req.company_id)
+    return run_audit(company_path, req.company_id, LLMClient(),
                      tamper=_fake_citation if req.inject_fake_citation else None, known_tenants=set(list_company_ids()),
                      github_source=params.get("github_url"), confluence_source=params.get("confluence_path") or ("cloud" if req.confluence_space_key else None),
                      space_key=req.confluence_space_key)
