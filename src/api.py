@@ -191,20 +191,20 @@ async def _edge(request: Request, call_next):
     if os.getenv("SPACE_ID") or os.getenv("HUGGINGFACE_SPACES"):
         # Allow Hugging Face iframe embedding
         resp.headers["X-Frame-Options"] = "ALLOWALL"
-        if request.url.path in {"/dashboard/overview", "/dashboard/findings"}:
+        if request.url.path in {"/", "/dashboard/overview", "/dashboard/findings"}:
             resp.headers["Content-Security-Policy"] = (
                 "default-src 'self' https: data: 'unsafe-inline'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval'; "
-                "style-src 'self' https: 'unsafe-inline'; frame-ancestors 'self' https://huggingface.co https://*.hf.space"
+                "style-src 'self' https: 'unsafe-inline'; font-src 'self' https: data:; frame-ancestors 'self' https://huggingface.co https://*.hf.space"
             )
         else:
             resp.headers["Content-Security-Policy"] = (
                 "frame-ancestors 'self' https://huggingface.co https://*.hf.space"
             )
     else:
-        if request.url.path in {"/dashboard/overview", "/dashboard/findings"}:
+        if request.url.path in {"/", "/dashboard/overview", "/dashboard/findings"}:
             resp.headers["Content-Security-Policy"] = (
-                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-                "object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+                "default-src 'self' https: data:; script-src 'self' 'unsafe-inline'; style-src 'self' https: 'unsafe-inline'; "
+                "font-src 'self' https: data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
             )
     resp.headers["X-Request-ID"] = rid
     ms = round((time.perf_counter() - t0) * 1000, 1)
