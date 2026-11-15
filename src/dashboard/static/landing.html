@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Graphite — Your EU AI Act compliance agent</title>
 <meta name="description" content="Graphite is an AI agent that checks your data, code and documents against the EU AI Act, then keeps a live dashboard and an audit-ready report up to date.">
+<link rel="icon" type="image/png" href="/dashboard/assets/graphite_report_logo.png">
+<script src="/dashboard/static/logo_b64.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
 <style>
 :root{--ink:#030710;--deep:#0D1322;--panel:#161F34;--line:#2F4B68;--slate:#40668D;--dim:#7F97B2;--blue:#006DDD;--sky:#7FC8FF;--sky2:#99D3FF;--mist:#CCE9FF;--ice:#E5F4FF;--frost:#F2FAFF;--violet:#7E65AE;--lilac:#D5C3F7}
@@ -201,7 +203,7 @@ footer .small{font-size:.9375rem;color:var(--dim)}
 <header>
 <div class="wrap nav">
 <a class="brand" href="#top" aria-label="Graphite home">
-<svg aria-hidden="true" viewBox="0 0 100 100" width="36" height="36"><g fill="none" stroke="#2F4B68" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M50 18 L82 76 L18 76 Z"/><path d="M50 18 L50 56 M82 76 L50 56 M18 76 L50 56"/></g><circle cx="50" cy="18" r="12" fill="#7FC8FF"/><circle cx="82" cy="76" r="12" fill="#006DDD"/><circle cx="18" cy="76" r="12" fill="#006DDD"/><circle cx="50" cy="56" r="8" fill="#E5F4FF"/></svg>
+<img class="brand-logo" src="/dashboard/assets/graphite_report_logo.png" alt="Graphite" width="36" height="36" style="border-radius:6px;object-fit:contain;vertical-align:middle;">
 <span>graphite</span>
 </a>
 <nav aria-label="Main">
@@ -454,7 +456,7 @@ footer .small{font-size:.9375rem;color:var(--dim)}
 <div class="wrap">
 <div style="display:flex;flex-direction:column;gap:14px;flex:1 1 320px">
 <a class="brand" href="#top" aria-label="Graphite home">
-<svg aria-hidden="true" viewBox="0 0 100 100" width="32" height="32"><g fill="none" stroke="#2F4B68" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M50 18 L82 76 L18 76 Z"/><path d="M50 18 L50 56 M82 76 L50 56 M18 76 L50 56"/></g><circle cx="50" cy="18" r="12" fill="#7FC8FF"/><circle cx="82" cy="76" r="12" fill="#006DDD"/><circle cx="18" cy="76" r="12" fill="#006DDD"/><circle cx="50" cy="56" r="8" fill="#E5F4FF"/></svg>
+<img class="brand-logo" src="/dashboard/assets/graphite_report_logo.png" alt="Graphite" width="32" height="32" style="border-radius:6px;object-fit:contain;vertical-align:middle;">
 <span style="font-size:1.375rem">graphite</span>
 </a>
 <p class="small">Your EU AI Act compliance agent. © 2026 Graphite</p>
@@ -470,6 +472,16 @@ footer .small{font-size:.9375rem;color:var(--dim)}
 </footer>
 
 <script>
+// fallback logo embedding if image asset is unavailable
+if (window.GRAPHITE_LOGO_B64) {
+  document.querySelectorAll('img[src*="graphite_report_logo.png"]').forEach(function(img) {
+    img.onerror = function() {
+      img.onerror = null;
+      img.src = window.GRAPHITE_LOGO_B64;
+    };
+  });
+}
+
 // smooth in-page scrolling without changing the URL
 document.querySelectorAll('a[href^="#"]').forEach(function (a) {
   a.addEventListener('click', function (e) {
