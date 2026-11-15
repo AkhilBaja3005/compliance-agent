@@ -126,8 +126,9 @@ async def submit_demo(request: Request):
                         return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
                     socket.getaddrinfo = _ipv4_addrinfo
 
+                    brevo_sender = os.getenv("BREVO_SENDER_EMAIL", os.getenv("SMTP_USER", "akhilkumarbaja@gmail.com"))
                     brevo_body = {
-                        "sender": {"name": "Graphite AI", "email": "akhilbaja.work@gmail.com"},
+                        "sender": {"name": "Graphite AI", "email": brevo_sender},
                         "to": [{"email": o} for o in owner_list],
                         "subject": f"Graphite AI — New Demo Request from {email}",
                         "htmlContent": (
